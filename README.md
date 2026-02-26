@@ -5,10 +5,6 @@ this is the questing texture dlc - have fun ✨🚂🤜🤛🔥
 
 A JokeYaMind v2 Expansion Pack
 
-https://img.shields.io/badge/WHOOP-WHOOP-purple
-https://img.shields.io/badge/3rd-Joker%20Card-green
-https://img.shields.io/badge/LOST-FOUND-orange
-
 ---
 
 🎪 WHAT IS THIS?
