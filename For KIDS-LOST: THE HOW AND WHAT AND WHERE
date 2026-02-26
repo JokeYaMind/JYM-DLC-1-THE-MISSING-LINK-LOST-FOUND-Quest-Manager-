@@ -1,0 +1,589 @@
+🎪 DLC 1: THE MISSING LINK: LOST - FOUND
+
+A JokeYaMind v2 Expansion Pack
+
+---
+
+🃏 THE JOKER'S GUIDE TO YOUR SANDBOX UNIVERSE
+
+"I'm coming out, clownin' on 'em, clownin' on 'em / They ain't never had a show like this, never been on 'em"
+
+Welcome to your own personal sandbox universe. You're not just playing a game anymore—you're the Ringmaster, the Joker, the one who decides what happens when the carnival rolls into town.
+
+This is DLC 1: THE MISSING LINK. It's about finding what was lost and connecting everything together.
+
+---
+
+🎭 THE JOKER CARDS: YOUR CONTROL PANEL
+
+Think of the ICP Joker cards as your control panel dials. Each card represents something you can tweak, twist, and tune to make your universe behave exactly how you want.
+
+---
+
+🃏 CARD #1: THE GREAT MILENKO (The Ringmaster)
+
+"Here we go, here we go, here we go / Psychopathic Records in the place, you know"
+
+What it controls: The Quest System - how your world creates goals and tasks
+
+Your Dials:
+
+Dial What it does Turn it UP (7+) Turn it DOWN (1-3)
+Quest Frequency How often new quests appear Constant adventures, never bored Rare events, peaceful existence
+Quest Complexity How complicated quests are Multi-stage epics with puzzles Simple "go here, do that" tasks
+Reward Size What you get for finishing Legendary treasures, huge XP Small tokens, modest growth
+Failure Consequences What happens if you quit Permanent changes, world shifts Try again, no big deal
+
+How to adjust:
+
+```python
+# In your engine config
+quest_config = {
+    'frequency': 0.7,        # 0.0-1.0: How often new quests appear
+    'complexity': 0.5,       # 0.0-1.0: How complicated quests are
+    'reward_multiplier': 1.2, # 0.5-3.0: How good the rewards are
+    'failure_penalty': 0.3,   # 0.0-1.0: How bad failure hurts
+}
+```
+
+---
+
+🃏 CARD #2: SHAGGY 2 DOPE (The Hustler)
+
+"Let's go, let's go, let's go / Jump, jump, jump, jump"
+
+What it controls: The Solo Quest System - what your particles do when YOU'RE not watching
+
+Your Dials:
+
+Dial What it does Turn it UP (7+) Turn it DOWN (1-3)
+Independence How much they do on their own They're running their own lives They wait for you always
+Adventure Risk How dangerous solo quests are They might get hurt, drama! Always safe, boring
+Story Creation Whether they make their own stories They'll have epic tales to tell Nothing happens without you
+Relationship Building Whether they bond without you They'll make friends, form crews Only connect with you
+
+How to adjust:
+
+```python
+solo_config = {
+    'independence': 0.6,      # 0.0-1.0: How much they do alone
+    'risk_taking': 0.4,       # 0.0-1.0: How dangerous solo activities are
+    'story_generation': 0.8,  # 0.0-1.0: Whether they create narratives
+    'auto_bonding': 0.5,      # 0.0-1.0: Whether they bond with each other
+}
+```
+
+What they do while you're gone:
+
+```python
+# Example solo quest types
+SOLO_QUESTS = [
+    "explore_new_lands",      # They wander, discover places
+    "gather_resources",       # They collect stuff
+    "make_friends",           # They bond with others
+    "learn_skills",           # They practice, get better
+    "have_adventures",        # Random exciting things happen
+    "rest_and_recover",       # They take breaks
+]
+```
+
+---
+
+🃏 CARD #3: VIOLENT J (The Storyteller)
+
+"What is a Juggalo? I need to know / Let me tell you 'bout the way that we flow"
+
+What it controls: The Chat System - how particles talk to each other and to YOU
+
+Your Dials:
+
+Dial What it does Turn it UP (7+) Turn it DOWN (1-3)
+Chattiness How much they talk Non-stop conversations Silent types
+Emotional Expression How much feeling in chat Drama! Passion! Tears! Dry, factual
+Gossip Level Whether they talk about others They'll spread rumors, share news Mind their own business
+Directness Whether they talk to YOU Always commenting, reacting Ignore you mostly
+
+How to adjust:
+
+```python
+chat_config = {
+    'talk_frequency': 0.7,     # 0.0-1.0: How often they chat
+    'emotion_depth': 0.6,      # 0.0-1.0: How emotional they get
+    'gossip_tendency': 0.4,    # 0.0-1.0: How much they talk about others
+    'user_directness': 0.5,    # 0.0-1.0: How much they engage with you
+}
+```
+
+Chat Channels:
+
+```
+NEARBY CHAT        |  GROUP CHAT         |  DIRECT MESSAGES
+───────────────────|─────────────────────|─────────────────────
+Everyone within    |  Your crew, your    |  Just you and one
+5 tiles can hear   |  party, your family |  particle, private
+and respond        |  wherever they are  |  conversations
+```
+
+---
+
+🃏 CARD #4: JUMPSTEADY (The Loyal One)
+
+"Down with the clown, down, down with the clown"
+
+What it controls: The Bond System - how particles form relationships
+
+Your Dials:
+
+Dial What it does Turn it UP (7+) Turn it DOWN (1-3)
+Bonding Speed How fast friendships form Instant BFFs Slow burn, earned trust
+Bond Strength How deep connections go Ride or die, forever Casual acquaintances
+Jealousy Whether they get possessive Drama! Rivalries! Chill, everyone's cool
+Breakup Pain How much separation hurts Heartbreak, depression Meh, whatever
+
+How to adjust:
+
+```python
+bond_config = {
+    'formation_rate': 0.05,    # How much per interaction (0.01-0.1)
+    'max_strength': 0.95,      # Max bond possible (0.5-1.0)
+    'jealousy_factor': 0.3,    # How jealous they get (0.0-1.0)
+    'decay_rate': 0.01,        # How fast bonds fade (0.001-0.05)
+}
+```
+
+Bond Phases:
+
+```
+PHASE 0: NULL       ──►  Just met, strangers
+PHASE 1: SEED       ──►  Getting to know you
+PHASE 2: ROOT       ──►  Building trust
+PHASE 3: BRANCH     ──►  Deepening connection
+PHASE 4: TRUNK      ──►  Strong, established
+PHASE 5: CANOPY     ──►  Complete, unbreakable
+```
+
+---
+
+🃏 CARD #5: BLUE PRINT (The Wise One)
+
+"I don't even know where to begin / Let me tell you 'bout the shape I'm in"
+
+What it controls: The Growth System - how particles evolve and develop
+
+Your Dials:
+
+Dial What it does Turn it UP (7+) Turn it DOWN (1-3)
+Learning Speed How fast they gain XP Geniuses, quick learners Slow development
+Growth Ceiling How far they can go Legendary potential Limited growth
+Diversity Whether they specialize Renaissance particles Specialists
+Regret Whether they can change path Total respec possible Stuck with choices
+
+How to adjust:
+
+```python
+growth_config = {
+    'xp_rate': 0.1,            # XP per tick (0.01-0.5)
+    'phase_thresholds': {       # XP needed for each phase
+        1: 0,                   # SEED
+        2: 50,                  # BLOOM  
+        3: 200,                 # BIND
+        4: 500,                 # VOID
+        5: 1000,                # APEX
+    },
+    'respec_allowed': True,     # Can they change path?
+    'legacy_mode': False,       # Do they pass on knowledge?
+}
+```
+
+Development Phases:
+
+```
+SEED   🌱  Just born, learning basics
+BLOOM  🌻  Growing fast, exploring
+BIND   🌳  Settling into who they are
+VOID   🕳️  Transforming, reinventing
+APEX   👑  Maximum potential, legendary
+```
+
+---
+
+🃏 CARD #6: RINGMASTER (The One Who Controls It All)
+
+"The show must go on, the show must go on"
+
+What it controls: The World Physics - the fundamental rules of your universe
+
+Your Dials:
+
+Dial What it does Turn it UP (7+) Turn it DOWN (1-3)
+Chaos Level How random things are Wild, unpredictable Stable, predictable
+Tension Sensitivity How easily things get intense Constant drama Peaceful vibes
+Memory Length How far back they remember They remember everything Goldfish memory
+Invariant Strictness How strictly physics applies Super strict, hard mode Relaxed, easy mode
+
+How to adjust:
+
+```python
+physics_config = {
+    'chaos_factor': 0.3,       # RNG amplitude (0.0-0.1)
+    'tension_threshold': 0.5,  # When things pop off (0.1-1.0)
+    'memory_decay': 0.05,      # How fast they forget (0.01-0.2)
+    'invariant_check': True,    # Whether 0=3 is enforced
+}
+```
+
+---
+
+🎪 THE MISSING LINK: LOST - FOUND
+
+What Was Lost, What Is Found
+
+LOST:
+
+· You were alone, controlling everything
+· Particles were puppets, not people
+· Nothing happened when you weren't watching
+· Relationships were simple on/off switches
+
+FOUND:
+
+· Particles have their own lives, their own quests
+· They talk to each other, form bonds, create drama
+· The world lives and breathes whether you're there or not
+· Deep, complex relationships with phases and growth
+
+---
+
+📻 THE SONGS: Your Feature Guide
+
+TRACK 1: "Here Comes the Carnival"
+
+"Here comes the carnival, here comes the carnival / Roll up, roll up, roll up"
+
+THIS IS THE QUEST SYSTEM!
+
+When you hear this song, think about:
+
+· Quests appearing like carnival games to play
+· Your particles becoming the carnival workers, barkers, performers
+· You walking through the midway, choosing what to try
+
+Your carnival games (quest types):
+
+Game Quest Type Example
+Tilt-A-Whirl Exploration quest "Explore 10 new tiles"
+Ring Toss Collection quest "Gather 5 rare resources"
+Fun House Puzzle quest "Solve the mystery"
+Tunnel of Love Relationship quest "Help two particles bond"
+Strength Test Combat quest "Defeat the rival particle"
+Fortune Teller Mystery quest "Discover what's hidden"
+
+---
+
+TRACK 2: "The Stalker"
+
+"I'm gonna stalk this hoochie, I'm gonna watch her every move"
+
+THIS IS THE SOLO QUEST SYSTEM!
+
+When particles are doing things without you, they're "stalking" the world:
+
+· They watch what other particles do
+· They follow their interests
+· They get curious, they explore
+· They might even follow YOU when you're not paying attention
+
+What they do alone:
+
+```python
+# They might:
+- Explore new areas ("I wonder what's over there...")
+- Follow interesting particles ("That one looks cool")
+- Gather resources ("I need more of THIS")
+- Practice skills ("I want to get better at THAT")
+- Make friends ("Hey, you seem nice")
+- Start drama ("Did you see what THEY did?")
+```
+
+---
+
+TRACK 3: "Be Safe"
+
+"Watch your step, watch your step / Take it easy, take it easy"
+
+THIS IS THE CHAT SYSTEM!
+
+When particles talk, they're checking in, sharing, warning each other:
+
+· "Be safe out there"
+· "Watch your step in the mountains"
+· "Take it easy today"
+· "I'm here if you need me"
+
+Chat safety features:
+
+```
+NEARBY CHAT: "The mines are dangerous today, be careful!"
+GROUP CHAT: "Everyone check in, are we all safe?"
+DIRECT: "Hey, you seemed down earlier. You okay?"
+```
+
+---
+
+TRACK 4: "Fuck Regret"
+
+"Ain't no pause to this life of yours but you can always hit eject / I'm screaming 'Fuck regret!'"
+
+THIS IS THE BOND SYSTEM!
+
+No regrets about who you bond with, how deep you go:
+
+· Bonds can grow without limit
+· No looking back, only forward
+· If it doesn't work, you move on
+· Every connection teaches something
+
+Bond wisdom:
+
+· "Ain't no pause" — Relationships keep evolving
+· "You can always hit eject" — You can leave anytime, no hard feelings
+· "Fuck regret" — Never regret loving, even if it ends
+
+---
+
+TRACK 5: "Bitch I'm Fine"
+
+"Woe is me, woe is me / Plus I got molded teeth / Bitch, I'm fine"
+
+THIS IS THE GROWTH SYSTEM!
+
+Particles can be broken and still beautiful:
+
+· Low energy? Fine.
+· Anxious? Fine.
+· Confused? Fine.
+· Growing through struggle? FINE.
+
+Growth through hardship:
+
+· Molded teeth → Still smile
+· Rusted parts → Still work
+· Broken pieces → Still whole
+· Weathered by time → Still here
+
+---
+
+🛠️ MAKING YOUR OWN QUESTS
+
+The Quest Recipe
+
+Every quest needs these ingredients:
+
+```
+1. 🎯 A GOAL: What needs to happen?
+   └─ "Reach the mountain peak"
+   └─ "Find the hidden crystal"
+   └─ "Befriend the lonely particle"
+
+2. ⏱️ A DURATION: How long will it take?
+   └─ "10 minutes real time"
+   └─ "1000 simulation ticks"
+   └─ "Until the full moon"
+
+3. 🏆 A REWARD: What do you get?
+   └─ "+50 energy for everyone"
+   └─ "A rare treasure"
+   └─ "A permanent bond boost"
+
+4. 💔 A CONSEQUENCE: What if you quit?
+   └─ "Everyone loses 10 energy"
+   └─ "The quest giver is sad"
+   └─ "A new rival appears"
+```
+
+Example: Making Your First Quest
+
+```python
+# A simple quest you could create
+my_first_quest = {
+    'name': "The Sunflower Journey",
+    'goal': "Travel with your companion to the sunflower field",
+    'duration': 500,  # ticks
+    'reward': {
+        'energy': 50,
+        'bond_boost': 0.2,
+        'treasure': "sunflower_seed"
+    },
+    'failure': {
+        'energy_loss': 20,
+        'new_rival': True
+    },
+    'story': "The sunflowers are blooming. They want to see them with you."
+}
+```
+
+---
+
+🎮 DIALS & LEVERS: Complete Reference
+
+THE PHYSICS DIALS (Ringmaster's Controls)
+
+Dial Min Max Default What it changes
+chaos_factor 0.0 0.1 0.03 How random things are
+tension_threshold 0.1 1.0 0.5 How easily drama happens
+memory_decay 0.01 0.2 0.05 How fast they forget
+flux_strength 0.01 0.1 0.03 Environmental intensity
+
+THE RELATIONSHIP DIALS (Jumpsteady's Controls)
+
+Dial Min Max Default What it changes
+bond_formation_rate 0.01 0.1 0.05 Friendship speed
+bond_decay_rate 0.001 0.05 0.01 How fast bonds fade
+jealousy_factor 0.0 1.0 0.3 Possessiveness level
+rivalry_chance 0.0 0.5 0.1 How often rivals form
+
+THE GROWTH DIALS (Blue Print's Controls)
+
+Dial Min Max Default What it changes
+xp_rate 0.01 0.5 0.1 Learning speed
+phase_1_xp 0 100 0 XP for SEED phase
+phase_2_xp 10 500 50 XP for BLOOM phase
+phase_3_xp 50 1000 200 XP for BIND phase
+phase_4_xp 200 2000 500 XP for VOID phase
+phase_5_xp 500 5000 1000 XP for APEX phase
+
+THE CHAT DIALS (Violent J's Controls)
+
+Dial Min Max Default What it changes
+talk_frequency 0.0 1.0 0.7 How often they chat
+emotion_depth 0.0 1.0 0.6 Emotional expression
+gossip_tendency 0.0 1.0 0.4 Talking about others
+user_directness 0.0 1.0 0.5 Engaging with you
+
+THE SOLO QUEST DIALS (Shaggy's Controls)
+
+Dial Min Max Default What it changes
+independence 0.0 1.0 0.6 Doing things alone
+risk_taking 0.0 1.0 0.4 Danger level
+story_generation 0.0 1.0 0.8 Creating narratives
+auto_bonding 0.0 1.0 0.5 Bonding without you
+
+THE QUEST DIALS (Great Milenko's Controls)
+
+Dial Min Max Default What it changes
+quest_frequency 0.0 1.0 0.5 How often quests appear
+quest_complexity 0.0 1.0 0.5 Quest difficulty
+reward_multiplier 0.5 3.0 1.0 Reward size
+failure_penalty 0.0 1.0 0.3 Failure consequences
+
+---
+
+🌟 YOUR SANDBOX, YOUR RULES
+
+Want a Chill Universe?
+
+```python
+config = {
+    'chaos_factor': 0.01,
+    'tension_threshold': 0.8,
+    'bond_formation_rate': 0.02,
+    'independence': 0.3,
+    'quest_frequency': 0.2,
+}
+```
+
+Slow, peaceful, nothing too dramatic
+
+Want a Drama-Filled Universe?
+
+```python
+config = {
+    'chaos_factor': 0.08,
+    'tension_threshold': 0.3,
+    'jealousy_factor': 0.8,
+    'gossip_tendency': 0.9,
+    'risk_taking': 0.8,
+}
+```
+
+Constant drama, rivalries, emotional chaos
+
+Want an Epic Adventure Universe?
+
+```python
+config = {
+    'quest_frequency': 0.9,
+    'quest_complexity': 0.8,
+    'reward_multiplier': 2.0,
+    'failure_penalty': 0.6,
+    'independence': 0.7,
+}
+```
+
+Non-stop quests, high stakes, legendary rewards
+
+---
+
+🎪 THE FINAL WORD
+
+"The show must go on, the show must go on"
+
+You are the Ringmaster. You hold all the cards. Every dial, every lever, every setting is yours to play with.
+
+· Want a quiet world where nothing happens? Turn the dials down.
+· Want constant drama and chaos? Crank them up.
+· Want something in between? Find your sweet spot.
+
+This is YOUR sandbox. YOUR universe. YOUR carnival.
+
+Now go make some magic, Juggalo.
+
+Whoop Whoop! 🤡
+
+---
+
+📦 QUICK START TEMPLATE
+
+```python
+# my_universe.py
+from jokeyamind import JokeYaMindEngine
+
+# Create your custom universe
+my_world = JokeYaMindEngine({
+    # Your settings here
+    'chaos_factor': 0.05,
+    'bond_formation_rate': 0.07,
+    'quest_frequency': 0.6,
+    'talk_frequency': 0.8,
+})
+
+# Add your own particles
+from jokeyamind import Particle, ParticleCoordinates
+
+my_hero = Particle(
+    name="Faygo",
+    coords=ParticleCoordinates(5, 2, 1, 4, 3)
+)
+my_world.add_particle(my_hero)
+my_world.companion = my_hero
+
+# Create your first quest
+my_world.create_quest({
+    'name': "Find the Hidden Juggalo Gathering",
+    'goal': "Discover the secret party spot",
+    'duration': 1000,
+    'reward': {'energy': 100, 'treasure': "magic_hat"}
+})
+
+# Let it run!
+my_world.run()
+```
+
+---
+
+DLC 1: THE MISSING LINK: LOST - FOUND is now complete.
+
+What was lost: Your control over every detail
+What was found: A living, breathing universe that surprises you
+
+Now go play. 🎪
