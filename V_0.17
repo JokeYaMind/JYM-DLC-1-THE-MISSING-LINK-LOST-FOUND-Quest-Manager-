@@ -1,0 +1,3426 @@
+📦 PHASE 1: CORE INFRASTRUCTURE
+
+This phase gives you the foundational systems that everything else will build on. After this, your engine will support components, events, data‑driven archetypes, and emergent dialogue.
+
+What’s inside Phase 1
+
+· constants_dlc1.py – All new constants in one place.
+· component.py – Component base class and ComponentHolder mixin.
+· event.py – Event and EventManager.
+· archetype.py – ArchetypeManager that loads JSON archetypes.
+· dialogue.py – DialogueManager for context‑aware speech.
+· Integration notes for UnifiedEngine and Particle.
+
+---
+
+📁 File: constants_dlc1.py
+
+```python
+# =============================================================================
+# DLC 1: THE MISSING LINK – CONSTANTS
+# =============================================================================
+
+# --- Magnetic Fields ---
+MADROX_FIELD_RADIUS = 12
+CALM_FIELD_RADIUS = 15
+MADROX_OPTIMAL_DIST = 6
+MADROX_INNER_RADIUS = 3
+MADROX_OUTER_RADIUS = 12
+CALM_BASE_RATE = 0.01
+MONOXIDE_CALM_STRENGTH = 1.0
+CALM_BASE_STRENGTH = 0.3
+
+# --- Madrox State ---
+MADROX_MAX_DURATION = 500
+MADROX_BIAS_MULTIPLIER = 1.5
+MADROX_CHILL_DURATION = 50
+
+# --- Carnie ---
+CARNIE_DEPLOYMENT_VARIANCE_THRESHOLD = 0.2
+CARNIE_DEPLOYMENT_MIN_TICKS = 200
+CARNIE_WORKING_ENERGY_DRAIN = 0.1
+CARNIE_SMOKE_BREAK_MIN = 30
+CARNIE_SMOKE_BREAK_MAX = 100
+
+# --- Faygo ---
+FAYGO_FRESH_DURATION = 100          # ticks until flat
+FAYGO_FIZZ_FRESH = 1.0
+FAYGO_FIZZ_DECAY = 0.01
+FAYGO_FLAT_THRESHOLD = 0.3
+FAYGO_GEN_BASE = 0.01
+FAYGO_GEN_MULTIPLIER = 2.0
+
+# --- The Midway ---
+MIDWAY_RADIUS = 3
+MIDWAY_POWER_DECAY = 0.001
+MIDWAY_BASE_FIELD = 10
+MIDWAY_MAX_FIELD = 100
+RESIDUE_DURATION = 200
+
+# Cover crop types
+COVER_CROP_TYPES = {
+    "CLOVER": {"faygo_boost": 1.5, "energy_regen": 0.1},
+    "BORAGE": {"gossip_boost": 1.5},
+    "COMFREY": {"nutrient_pump": True},
+    "BUCKWHEAT": {"pest_suppression": 0.7, "rivalry_suppress": True},
+    "TILLAGE_RADISH": {"movement_cost": -0.3, "path_permanence": True},
+    "VETCH": {"compound_benefit": True},
+    "MUSTARD": {"disease_resist": 0.5},
+    "SORGHUM_SUDAN": {"power_growth": 1.5, "lush_bonus": True}
+}
+
+# --- Midway Field Strength ---
+FIELD_DECAY_RATE = 0.01
+FIELD_LOW_THRESHOLD = 5
+FIELD_HIGH_THRESHOLD = 50
+
+FIELD_CONTRIBUTIONS = {
+    "GAME": 1,
+    "FAYGO_FLAT": 1,
+    "FAYGO_SHOOK": 2,
+    "FAYGO_SPRAY": 2,
+    "FAYGO_CHUG": 3,
+    "COP_MOMENT": 5,
+    "CARNIE_WORKING": 0.5,
+    "CARNIE_SMOKE": 0.2
+}
+
+STAGE_MULTIPLIERS = {
+    "MAIN": 1.0,
+    "SIDE1": 1.5,
+    "SIDE2": 0.5,
+    "SIDE3": 2.0
+}
+
+CONSENT_BONUS = 0.2
+
+# --- Juggalo Party ---
+PARTY_RADIUS_BASE = 5
+PARTY_MIN_PARTICIPANTS = 3
+PARTY_TIMEOUT = 50
+PARTY_GROWTH_PER_TICK = 1
+PARTY_GROWTH_DECAY_TICKS = 50
+PARTY_TEMP_DECAY = 0.1
+PULL_RADIUS_MULTIPLIER = 2
+PULL_BASE_CHANCE = 0.05
+
+PARTY_GROWTH_CONTRIBUTIONS = {
+    "GAME": 5,
+    "FAYGO": 3,
+    "NEW_BOND": 10,
+    "WIN_CHALLENGE": 8,
+    "COP_MOMENT": 15,
+    "CHEER": 2,
+    "BUY_ROUND": 20
+}
+
+PARTY_BENEFITS = {
+    1: {"radius": 5, "bond_mult": 1.2, "curiosity": 0.05, "energy_regen": 0.1},
+    2: {"radius": 6, "bond_mult": 1.4, "curiosity": 0.10, "energy_regen": 0.2},
+    3: {"radius": 7, "bond_mult": 1.6, "curiosity": 0.15, "energy_regen": 0.3},
+    4: {"radius": 8, "bond_mult": 1.8, "curiosity": 0.20, "energy_regen": 0.4},
+    5: {"radius": 10, "bond_mult": 2.0, "curiosity": 0.25, "energy_regen": 0.5, "veteran_trait": True}
+}
+
+# --- Danger Zone States ---
+DANGER_STATE_DURATIONS = {
+    "GET_CLOWNED": (50, 150),
+    "JUGGALO_PARTY": (30, 100),
+    "THE_MIDWAY": None,
+    "LOST_AT_THE_CARNIVAL": None,
+    "I_FUCKED_A_COP": (100, 300)
+}
+
+# --- Legendary Party Spots ---
+LEGENDARY_POWER_DECAY = 0.001
+LEGENDARY_POWER_INCREASE_VISIT = 0.01
+LEGENDARY_POWER_DECREASE_CHICKEN = 0.1
+LEGENDARY_POWER_DECREASE_JUFF = 0.15
+LEGENDARY_POWER_DECREASE_SKEPTIC = 0.05
+LEGENDARY_POWER_THRESHOLD = 1.0
+
+# --- Faygo Flavor Enum (for color pie integration) ---
+FAYGO_FLAVORS = ["WATERMELON", "PINEAPPLE", "GRAPE", "ORANGE", "ROOT_BEER", "COTTON_CANDY"]
+
+# Fireworks mix formula
+FIREWORKS_MIX = {
+    ("WATERMELON", "PINEAPPLE"): "Tactical Spike",
+    ("WATERMELON", "GRAPE"): "Emotional Debt",
+    ("PINEAPPLE", "GRAPE"): "Hidden Advantage",
+    ("GRAPE", "ORANGE"): "Ledgered Law",
+    ("WATERMELON", "ORANGE"): "Clean Combat",
+}
+```
+
+---
+
+📁 File: component.py
+
+```python
+# =============================================================================
+# COMPONENT SYSTEM – BASE CLASSES
+# =============================================================================
+
+class Component:
+    """
+    Base class for all components.
+    Components are attached to an entity (e.g., a Particle) and provide modular behavior.
+    """
+    def __init__(self, name):
+        self.name = name
+        self.entity = None  # reference to the owning entity, set on attach
+
+    def on_attach(self, entity):
+        """Called when this component is added to an entity."""
+        self.entity = entity
+
+    def on_detach(self):
+        """Called when this component is removed from an entity."""
+        self.entity = None
+
+    def update(self, tick):
+        """
+        Called every simulation tick.
+        Override in subclasses to implement per‑tick behavior.
+        """
+        pass
+
+    def handle_event(self, event):
+        """
+        Called when an event is dispatched.
+        Return True if the event was handled and should not be passed to other components.
+        """
+        return False
+
+
+class ComponentHolder:
+    """
+    Mixin for entities that can hold components.
+    Add this as a base class to your entity class.
+    """
+    def __init__(self):
+        self.components = {}  # name -> Component
+
+    def add_component(self, name, component):
+        """Attach a component to this entity."""
+        component.on_attach(self)
+        self.components[name] = component
+
+    def remove_component(self, name):
+        """Detach a component by name."""
+        if name in self.components:
+            self.components[name].on_detach()
+            del self.components[name]
+
+    def get_component(self, name):
+        """Retrieve a component by name, or None if not present."""
+        return self.components.get(name)
+
+    def update_components(self, tick):
+        """Call update on all attached components."""
+        for comp in self.components.values():
+            comp.update(tick)
+
+    def dispatch_event_to_components(self, event):
+        """
+        Send an event to all components, stopping if one handles it.
+        Returns True if any component handled the event.
+        """
+        for comp in self.components.values():
+            if comp.handle_event(event):
+                return True
+        return False
+```
+
+---
+
+📁 File: event.py
+
+```python
+# =============================================================================
+# EVENT SYSTEM – GLOBAL EVENT BUS
+# =============================================================================
+
+from collections import defaultdict
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Optional
+
+@dataclass
+class Event:
+    """Represents an event in the simulation."""
+    type: str                       # e.g., "faygo_use", "bond_change", "tile_entered"
+    source: Optional[Any] = None    # the object that triggered the event (e.g., a particle)
+    target: Optional[Any] = None    # the primary target, if any
+    data: Dict[str, Any] = field(default_factory=dict)  # additional information
+
+
+class EventManager:
+    """
+    Manages event subscriptions and dispatches events to all registered listeners.
+    """
+    def __init__(self):
+        self._listeners: Dict[str, List[Callable[[Event], None]]] = defaultdict(list)
+        self.history: List[Event] = []
+        self.max_history = 1000
+
+    def subscribe(self, event_type: str, callback: Callable[[Event], None]) -> None:
+        """
+        Register a callback to be called when an event of the given type is posted.
+        """
+        self._listeners[event_type].append(callback)
+
+    def unsubscribe(self, event_type: str, callback: Callable[[Event], None]) -> None:
+        """
+        Remove a previously registered callback.
+        """
+        if callback in self._listeners[event_type]:
+            self._listeners[event_type].remove(callback)
+
+    def post(self, event: Event) -> None:
+        """
+        Dispatch an event to all listeners subscribed to its type.
+        """
+        self.history.append(event)
+        if len(self.history) > self.max_history:
+            self.history.pop(0)
+
+        for cb in self._listeners.get(event.type, []):
+            try:
+                cb(event)
+            except Exception as e:
+                print(f"[EventManager] Error in callback for {event.type}: {e}")
+
+    def get_recent(self, event_type: str = None, limit: int = 10) -> List[Event]:
+        """
+        Get recent events, optionally filtered by type.
+        """
+        if event_type:
+            filtered = [e for e in self.history if e.type == event_type]
+            return filtered[-limit:]
+        return self.history[-limit:]
+```
+
+---
+
+📁 File: archetype.py
+
+```python
+# =============================================================================
+# ARCHETYPE MANAGER – DATA‑DRIVEN ROLE DEFINITIONS
+# =============================================================================
+
+import os
+import json
+from typing import Dict, Any, Optional
+from .component import Component
+
+class ArchetypeManager:
+    """
+    Loads archetype definitions from JSON files and applies them to particles.
+    """
+    def __init__(self, archetype_dir: str = "archetypes/"):
+        self.archetype_dir = archetype_dir
+        self.archetypes: Dict[str, Dict[str, Any]] = {}
+        self.load_all()
+
+    def load_all(self) -> None:
+        """Load all .json files from the archetype directory."""
+        if not os.path.exists(self.archetype_dir):
+            os.makedirs(self.archetype_dir)
+            print(f"Created archetype directory: {self.archetype_dir}")
+            return
+
+        for filename in os.listdir(self.archetype_dir):
+            if filename.endswith(".json"):
+                path = os.path.join(self.archetype_dir, filename)
+                with open(path, 'r') as f:
+                    data = json.load(f)
+                    name = data.get("name")
+                    if name:
+                        self.archetypes[name] = data
+                        print(f"Loaded archetype: {name}")
+                    else:
+                        print(f"Warning: {filename} missing 'name' field")
+
+    def get_archetype(self, name: str) -> Optional[Dict[str, Any]]:
+        """Return the raw archetype data for a given name."""
+        return self.archetypes.get(name)
+
+    def apply_archetype(self, particle: 'Particle', archetype_name: str) -> None:
+        """
+        Configure a particle using the named archetype.
+        Sets base coordinates, builds tensor, adds components, and stores archetype data.
+        """
+        data = self.archetypes.get(archetype_name)
+        if not data:
+            raise ValueError(f"Archetype '{archetype_name}' not found")
+
+        # 1. Set base personality coordinates (assumes particle has coords attribute)
+        coords_data = data.get("base_coords", {})
+        if hasattr(particle, 'coords'):
+            for k, v in coords_data.items():
+                setattr(particle.coords, k, v)
+            particle.coords.clamp()
+
+        # 2. Build the personality tensor (if particle has a tensor)
+        if hasattr(particle, 'tensor'):
+            particle.tensor.build(particle.coords)
+
+        # 3. Add components specified in the archetype
+        components = data.get("components", {})
+        for comp_name, comp_config in components.items():
+            comp = self._create_component(comp_name, comp_config)
+            if comp and hasattr(particle, 'add_component'):
+                particle.add_component(comp_name, comp)
+
+        # 4. Store the full archetype data for later use
+        particle.archetype_data = data
+
+    def _create_component(self, comp_name: str, config: Any) -> Optional[Component]:
+        """
+        Factory method to instantiate a component from a name and config.
+        Extend this with your own component classes as we build them.
+        """
+        # This will be expanded in later phases.
+        # For now, return a generic component.
+        return Component(comp_name)
+```
+
+---
+
+📁 File: dialogue.py
+
+```python
+# =============================================================================
+# DIALOGUE MANAGER – EMERGENT, CONTEXT‑AWARE SPEECH
+# =============================================================================
+
+import os
+import json
+import random
+from typing import Dict, List, Optional, Any
+
+class DialogueManager:
+    """
+    Generates emergent dialogue based on particle state, archetype, and context.
+    Templates are loaded from JSON files and selected via weighted random.
+    Placeholders are filled with live data from the particle.
+    """
+    def __init__(self, template_dir: str = "dialogue/"):
+        self.template_dir = template_dir
+        self.templates: Dict[str, List[Dict[str, Any]]] = {}  # context -> list of template dicts
+        self.mood_modifiers: Dict[str, Dict[str, Any]] = {}   # mood -> modifier data
+        self.load_all()
+
+    def load_all(self) -> None:
+        """Load all JSON files from the template directory."""
+        if not os.path.exists(self.template_dir):
+            os.makedirs(self.template_dir)
+            print(f"Created dialogue directory: {self.template_dir}")
+            return
+
+        for filename in os.listdir(self.template_dir):
+            if filename.endswith(".json"):
+                path = os.path.join(self.template_dir, filename)
+                with open(path, 'r') as f:
+                    data = json.load(f)
+                    # Load contexts
+                    for ctx, templates in data.get("contexts", {}).items():
+                        self.templates.setdefault(ctx, []).extend(templates)
+                    # Load mood modifiers
+                    self.mood_modifiers.update(data.get("mood_modifiers", {}))
+                    print(f"Loaded dialogue: {filename}")
+
+    def get_response(self, particle: 'Particle', context: str, target: Optional['Particle'] = None, **kwargs) -> str:
+        """
+        Generate a response for the given context, optionally directed at a target particle.
+        Uses particle's mood, arousal, and bond with target to weight templates.
+        """
+        templates = self.templates.get(context, [])
+        if not templates:
+            return "..."
+
+        # Mood and arousal
+        mood = getattr(particle, 'mood_val', 'neutral')
+        arousal = getattr(particle, 'arousal_level', 0) / 5.0  # normalize 0‑1
+
+        # Bond with target (if any)
+        bond_strength = 0.5
+        if target:
+            bond = particle.bonds.get(target.uid)
+            if bond:
+                bond_strength = bond.strength
+
+        # Weighted template selection
+        weighted_templates = []
+        for t in templates:
+            base_weight = t.get("weight", 1.0)
+
+            # Mood modifier
+            mood_mod = self.mood_modifiers.get(mood, {})
+            if context in mood_mod.get("prefer", []):
+                base_weight *= mood_mod.get("weight_multiplier", 1.2)
+
+            # Arousal – higher arousal might prefer energetic templates
+            if "energetic" in t.get("tags", []) and arousal > 0.7:
+                base_weight *= 1.4
+
+            # Bond strength – close bonds might prefer intimate templates
+            if "intimate" in t.get("tags", []) and bond_strength > 0.8:
+                base_weight *= 1.5
+            # Rivals might prefer confrontational templates
+            if "confrontational" in t.get("tags", []) and bond_strength < 0.3:
+                base_weight *= 1.5
+
+            weighted_templates.append((t, base_weight))
+
+        total = sum(w for _, w in weighted_templates)
+        if total <= 0:
+            return "..."
+
+        r = random.random() * total
+        for t, w in weighted_templates:
+            r -= w
+            if r <= 0:
+                chosen_template = t
+                break
+        else:
+            chosen_template = templates[0]
+
+        # Build placeholders
+        placeholders = self._build_placeholders(particle, target, **kwargs)
+
+        try:
+            text = chosen_template["text"].format(**placeholders)
+        except KeyError as e:
+            print(f"Warning: missing placeholder {e} in template: {chosen_template['text']}")
+            text = chosen_template["text"]
+
+        return text
+
+    def _build_placeholders(self, particle: 'Particle', target: Optional['Particle'] = None, **kwargs) -> Dict[str, str]:
+        """Collect all possible placeholders from particle state, bond, and kwargs."""
+        placeholders = {
+            "name": getattr(particle, 'name', str(particle.uid)),
+            "energy": f"{getattr(particle.state, 'energy', 0):.0f}",
+            "valence": str(getattr(particle.state, 'valence', 3)),
+            "arousal": str(getattr(particle, 'arousal_level', 0)),
+            "cause": getattr(particle, 'madrox_cause', 'something'),
+            "fizz": kwargs.get("fizz", "flat"),
+        }
+
+        if target:
+            placeholders["target_name"] = getattr(target, 'name', str(target.uid))
+            bond = particle.bonds.get(target.uid)
+            if bond:
+                placeholders["bond_strength"] = f"{bond.strength:.2f}"
+                placeholders["bond_phase"] = str(getattr(bond, 'phase', 'unknown'))
+            else:
+                placeholders["bond_strength"] = "0.0"
+                placeholders["bond_phase"] = "none"
+
+        for k, v in kwargs.items():
+            placeholders[k] = str(v)
+
+        return placeholders
+```
+
+---
+
+🔧 Integration Instructions (Phase 1)
+
+1. Add the new files
+
+Place all five files (constants_dlc1.py, component.py, event.py, archetype.py, dialogue.py) into a folder named dlc1 in your project root.
+
+2. Modify your UnifiedEngine class (from Here.txt)
+
+In UnifiedEngine.__init__, add the new managers:
+
+```python
+from dlc1.event import EventManager
+from dlc1.archetype import ArchetypeManager
+from dlc1.dialogue import DialogueManager
+
+class UnifiedEngine:
+    def __init__(self, ...):
+        # ... existing code ...
+        self.event_manager = EventManager()
+        self.archetype_manager = ArchetypeManager("archetypes/")
+        self.dialogue_manager = DialogueManager("dialogue/")
+```
+
+3. Modify your Particle class
+
+Add the component holder mixin and a method to post events:
+
+```python
+from dlc1.component import ComponentHolder
+from dlc1.event import Event
+
+class Particle(ComponentHolder):
+    def __init__(self, ...):
+        ComponentHolder.__init__(self)
+        # ... existing __init__ ...
+        # Optionally, apply archetype if given
+        if hasattr(self, 'engine') and self.engine and hasattr(self, 'archetype_name'):
+            self.engine.archetype_manager.apply_archetype(self, self.archetype_name)
+
+    def post_event(self, event_type: str, target=None, **data):
+        """Create and post an event through the engine's event manager."""
+        event = Event(
+            type=event_type,
+            source=self,
+            target=target,
+            data=data
+        )
+        self.engine.event_manager.post(event)
+```
+
+In Particle.update(), call self.update_components(tick) somewhere near the end.
+
+4. Use the dialogue manager in respond_to_user
+
+```python
+def respond_to_user(self, user_input, trust_modifier=1.0):
+    # ... existing SCG processing ...
+    base = self.engine.dialogue_manager.get_response(self, "user_greeting", user_input=user_input)
+    return base
+```
+
+5. Create a sample archetype JSON
+
+Place this in archetypes/mystic.json:
+
+```json
+{
+  "name": "MYSTIC",
+  "base_coords": {
+    "warmth": 4,
+    "softness": 3,
+    "family": 1,
+    "axis_a": 4,
+    "axis_b": 2
+  },
+  "components": {},
+  "action_weights": {},
+  "dialogue": {
+    "tone": "mystical",
+    "verbosity": 0.7
+  },
+  "allowed_actions": []
+}
+```
+
+6. Create a sample dialogue file
+
+Place this in dialogue/mystic.json:
+
+```json
+{
+  "contexts": {
+    "user_greeting": [
+      {"text": "Hello, {name}. The energies are strong today.", "weight": 1.0, "tags": ["elaborate"]},
+      {"text": "Ah, {name}. I've been expecting you.", "weight": 0.7, "tags": ["mysterious"]},
+      {"text": "Greetings.", "weight": 0.5, "tags": ["direct"]}
+    ]
+  },
+  "mood_modifiers": {}
+}
+```
+
+---
+
+📦 PHASE 2: ENTITY-LEVEL DLC COMPONENTS
+
+This phase adds the core components that attach to particles: Faygo (inventory), Madrox (overthinker), Carnie (temporary role), and DangerState (temporary psychological states). Each component is a self‑contained Python file that plugs into the component system we built in Phase 1.
+
+---
+
+What’s inside Phase 2
+
+· faygo.py – InventoryComponent, FaygoMode, FaygoFlavor, plus utility functions should_use_faygo() and choose_faygo_mode().
+· madrox.py – MadroxComponent with activation logic, timer, bias multiplier, and event handling.
+· carnie.py – CarnieComponent with working/smoke break modes, game offering, and rumor generation.
+· dangerstate.py – DangerStateComponent with state enum, enter/exit, and per‑state updates (e.g., wandering in LOST, gambling in THE_MIDWAY).
+· Integration notes for Particle and the decision loop.
+
+All files go into the dlc1/ folder. Constants are already in constants_dlc1.py (from Phase 1).
+
+---
+
+📁 File: dlc1/faygo.py
+
+```python
+# =============================================================================
+# FAYGO – THE MAGIC DRINK (with Flavor System)
+# =============================================================================
+
+import random
+from enum import Enum
+from .component import Component
+from .constants import (
+    FAYGO_FIZZ_FRESH, FAYGO_FIZZ_DECAY, FAYGO_FLAT_THRESHOLD,
+    FAYGO_GEN_BASE, FAYGO_GEN_MULTIPLIER, FAYGO_FLAVORS,
+    FIREWORKS_MIX, FIELD_CONTRIBUTIONS
+)
+from .event import Event
+
+class FaygoMode(Enum):
+    FLAT = "flat"
+    SHOOK = "shook"
+    SPRAY = "spray"
+    BATHE = "bathe"
+    HIT_IN_FACE = "hit_in_face"
+    CHUG = "chug"
+
+class FaygoFlavor(Enum):
+    WATERMELON = "watermelon"
+    PINEAPPLE = "pineapple"
+    GRAPE = "grape"
+    ORANGE = "orange"
+    ROOT_BEER = "root_beer"
+    COTTON_CANDY = "cotton_candy"
+
+
+class InventoryComponent(Component):
+    """
+    Holds items – each Faygo has a flavor and its own fizz level.
+    """
+    def __init__(self):
+        super().__init__("inventory")
+        self.faygos = []  # list of {'flavor': FaygoFlavor, 'fizz': float}
+
+    def add_faygo(self, flavor: FaygoFlavor = None, count: int = 1):
+        """Add one or more Faygos. If flavor is None, choose random."""
+        for _ in range(count):
+            if flavor is None:
+                flavor = random.choice(list(FaygoFlavor))
+            self.faygos.append({
+                'flavor': flavor,
+                'fizz': FAYGO_FIZZ_FRESH
+            })
+
+    def use_faygo(self, mode: FaygoMode, target=None) -> bool:
+        """Use the oldest Faygo (FIFO). Returns True if successful."""
+        if not self.faygos:
+            return False
+
+        faygo = self.faygos.pop(0)  # take the oldest
+        flavor = faygo['flavor']
+        fizz = faygo['fizz']
+
+        # Post event before applying effects
+        if self.entity and hasattr(self.entity, 'engine'):
+            self.entity.engine.event_manager.post(Event(
+                type="faygo_use",
+                source=self.entity,
+                target=target,
+                data={
+                    "mode": mode.value,
+                    "flavor": flavor.value,
+                    "fizz": fizz,
+                    "flat": fizz < FAYGO_FLAT_THRESHOLD
+                }
+            ))
+
+        self._apply_effects(flavor, mode, target, fizz)
+        return True
+
+    def _apply_effects(self, flavor: FaygoFlavor, mode: FaygoMode, target, fizz: float):
+        """Apply effects based on flavor and mode."""
+        p = self.entity
+        if not p:
+            return
+
+        flat_bonus = 1.0 if fizz < FAYGO_FLAT_THRESHOLD else 1.5
+
+        # Base effects from mode (simplified – expand later)
+        if mode == FaygoMode.FLAT:
+            p.energy += 10 * flat_bonus
+            p.anx_cur.anxiety = max(0, p.anx_cur.anxiety - 0.2 * flat_bonus)
+        elif mode == FaygoMode.SHOOK:
+            p.energy += 20 * flat_bonus
+            p.arousal_level = min(5, p.arousal_level + int(2 * flat_bonus))
+        elif mode == FaygoMode.SPRAY and target:
+            target.energy -= 5 * flat_bonus
+            target.arousal_level = max(0, target.arousal_level - int(1 * flat_bonus))
+            if target.uid in p.bonds:
+                p.bonds[target.uid].strength += 0.05 * flat_bonus
+        elif mode == FaygoMode.BATHE:
+            p.poison_level = 0
+            p.thirst = max(0, p.thirst - 0.5 * flat_bonus)
+            p.anx_cur.anxiety = max(0, p.anx_cur.anxiety - 0.1 * flat_bonus)
+        elif mode == FaygoMode.HIT_IN_FACE and target:
+            target.energy -= 15 * flat_bonus
+            # Could trigger rivalry – handled elsewhere
+        elif mode == FaygoMode.CHUG:
+            p.energy += 30 * flat_bonus
+            if random.random() < 0.2 * flat_bonus:
+                # brain freeze
+                if hasattr(p, 'scg') and p.scg:
+                    p.scg.clarity_score *= 0.8
+
+        # Flavor modifiers (placeholder – expand later)
+        # You can add per‑flavor logic here, e.g., watermelon boosts energy further.
+
+    def update(self, tick):
+        """Fizz decays for all stored Faygos."""
+        for f in self.faygos:
+            f['fizz'] = max(0, f['fizz'] - FAYGO_FIZZ_DECAY)
+
+
+# -----------------------------------------------------------------------------
+# AI DECISION LOGIC (to be integrated into Particle.decide_action)
+# -----------------------------------------------------------------------------
+
+def should_use_faygo(particle) -> bool:
+    """
+    Determine if a particle should use a Faygo this tick.
+    Called from decide_action.
+    """
+    inv = particle.get_component("inventory")
+    if not inv or not inv.faygos:
+        return False
+
+    # Conditions – adjust as needed
+    if particle.energy < 30 and particle.anx_cur.anxiety < 0.5:
+        return random.random() < 0.3
+    if hasattr(particle, 'arousal_level') and particle.arousal_level > 3 and particle.stats.playfulness > 60:
+        return random.random() < 0.4
+    if hasattr(particle, 'boredom_state') and particle.boredom_state >= 2:
+        if random.random() < 0.1:
+            return True
+    madrox = particle.get_component("madrox")
+    if madrox and madrox.active and random.random() < 0.2:
+        return True
+    return False
+
+
+def choose_faygo_mode(particle, target=None) -> FaygoMode:
+    """
+    Choose a Faygo mode based on personality and situation.
+    """
+    inv = particle.get_component("inventory")
+    flat_chance = 0.1 if inv and inv.faygos and inv.faygos[0]['fizz'] < FAYGO_FLAT_THRESHOLD else 0.01
+
+    playful = particle.stats.playfulness > 60
+    aggressive = particle.genes.get('aggression', 0.5) > 0.6
+    anxious = particle.anx_cur.anxiety > 0.6
+
+    modes = []
+    if random.random() < flat_chance:
+        modes.append(FaygoMode.FLAT)
+    if playful:
+        modes.append(FaygoMode.SHOOK)
+        if target:
+            modes.append(FaygoMode.SPRAY)
+    if aggressive and target:
+        modes.append(FaygoMode.HIT_IN_FACE)
+    if anxious:
+        modes.append(FaygoMode.BATHE)
+    if particle.energy > 70 and particle.anx_cur.anxiety < 0.4:
+        modes.append(FaygoMode.CHUG)
+
+    if not modes:
+        return FaygoMode.FLAT if random.random() < 0.5 else FaygoMode.SHOOK
+    return random.choice(modes)
+```
+
+---
+
+📁 File: dlc1/madrox.py
+
+```python
+# =============================================================================
+# MADROX COMPONENT – THE OVERTHINKER
+# =============================================================================
+
+import random
+from .component import Component
+from .constants import MADROX_MAX_DURATION, MADROX_BIAS_MULTIPLIER, MADROX_CHILL_DURATION
+from .event import Event
+
+class MadroxComponent(Component):
+    """Jamie Madrox state – the overthinker."""
+    def __init__(self):
+        super().__init__("madrox")
+        self.active = False
+        self.timer = 0
+        self.counter = 0
+        self.bias_multiplier = MADROX_BIAS_MULTIPLIER
+        self.cause = ""          # self‑righteous crusade
+        self.biases = {}         # temporary biases against types
+
+    def enter(self, cause: str = ""):
+        """Enter the Madrox state."""
+        if self.active:
+            return
+        self.active = True
+        self.timer = MADROX_MAX_DURATION
+        self.cause = cause or "defending the truth"
+        if self.entity and hasattr(self.entity, 'engine'):
+            self.entity.engine.event_manager.post(Event(
+                type="madrox_enter",
+                source=self.entity,
+                data={"cause": self.cause}
+            ))
+            self.entity.engine.add_log(f"[Madrox] {self.entity.uid} has entered the Madrox state. Cause: {self.cause}")
+
+    def exit(self):
+        """Exit the Madrox state."""
+        if not self.active:
+            return
+        self.active = False
+        self.timer = 0
+        self.biases.clear()
+        if self.entity and hasattr(self.entity, 'engine'):
+            self.entity.engine.event_manager.post(Event(
+                type="madrox_exit",
+                source=self.entity
+            ))
+            self.entity.engine.add_log(f"[Madrox] {self.entity.uid} has emerged from the Madrox state.")
+
+    def update(self, tick):
+        """Update Madrox state each tick."""
+        if not self.active:
+            return
+
+        self.timer -= 1
+
+        # Check exit conditions
+        if self.timer <= 0 or self.entity.anx_cur.anxiety < 0.4:
+            self.exit()
+            return
+
+        # Amplify anxiety
+        self.entity.anx_cur.anxiety = min(1.0, self.entity.anx_cur.anxiety + 0.01)
+
+        # Self‑justification – post a rant event occasionally
+        if random.random() < 0.05:
+            self.entity.engine.event_manager.post(Event(
+                type="madrox_rant",
+                source=self.entity,
+                data={"cause": self.cause}
+            ))
+
+    def modify_action_weight(self, action, base_weight):
+        """Increase weight of overthink‑type actions when active."""
+        if not self.active:
+            return base_weight
+        if action in ["OVERTHINK", "PREACH", "ACCUSE", "JUSTIFY"]:
+            return base_weight * self.bias_multiplier
+        return base_weight
+
+    def handle_event(self, event):
+        """React to events that might trigger or affect Madrox."""
+        if event.type == "provoke" and event.target == self.entity:
+            self.enter(cause=event.data.get("reason", "being provoked"))
+            return True
+        return False
+```
+
+---
+
+📁 File: dlc1/carnie.py
+
+```python
+# =============================================================================
+# CARNIE COMPONENT – MONOXIDE, THE WRAITH‑SPAWNED CARNIE
+# =============================================================================
+
+import random
+from enum import Enum
+from .component import Component
+from .constants import CARNIE_WORKING_ENERGY_DRAIN, CARNIE_SMOKE_BREAK_MIN, CARNIE_SMOKE_BREAK_MAX
+from .event import Event
+
+class CarnieMode(Enum):
+    WORKING = "working"
+    SMOKE_BREAK = "smoke_break"
+    SMOKE_GOSSIP = "smoke_gossip"
+    SMOKE_CHILL = "smoke_chill"
+
+class CarnieComponent(Component):
+    """Monoxide – the Wraith‑spawned carnie."""
+    def __init__(self):
+        super().__init__("carnie")
+        self.active = False
+        self.mode = CarnieMode.WORKING
+        self.sub_mode = None
+        self.timer = 0
+        self.original_role = ""
+        self.games_offered = 0
+        self.rumors_generated = 0
+
+    def activate(self, original_role: str):
+        """Activate the carnie role."""
+        self.active = True
+        self.mode = CarnieMode.WORKING
+        self.original_role = original_role
+        self.timer = 0
+        if self.entity:
+            self.entity.role = "CARNIE"
+            if hasattr(self.entity, 'engine'):
+                self.entity.engine.add_log(f"[Carnie] {self.entity.uid} is now running the midway.")
+
+    def deactivate(self):
+        """Deactivate the carnie role."""
+        self.active = False
+        if self.entity and self.original_role:
+            self.entity.role = self.original_role
+            if hasattr(self.entity, 'engine'):
+                self.entity.engine.add_log(f"[Carnie] {self.entity.uid} returns to being {self.original_role}.")
+
+    def update(self, tick):
+        """Update carnie state each tick."""
+        if not self.active:
+            return
+
+        # Energy drain while working
+        if self.mode == CarnieMode.WORKING:
+            if self.entity.energy < 30:
+                self.enter_smoke_break()
+            else:
+                self.entity.energy -= CARNIE_WORKING_ENERGY_DRAIN
+        else:
+            # Smoke break
+            self.timer -= 1
+            if self.timer <= 0:
+                self.exit_smoke_break()
+
+    def enter_smoke_break(self):
+        """Enter smoke break mode."""
+        self.mode = CarnieMode.SMOKE_BREAK
+        self.sub_mode = random.choice([CarnieMode.SMOKE_GOSSIP, CarnieMode.SMOKE_CHILL])
+        self.timer = random.randint(CARNIE_SMOKE_BREAK_MIN, CARNIE_SMOKE_BREAK_MAX)
+
+        # If chill mode, Wraith may nudge toward Madrox particles (handled by engine)
+
+    def exit_smoke_break(self):
+        """Exit smoke break and return to work."""
+        self.mode = CarnieMode.WORKING
+        self.sub_mode = None
+
+    def offer_game(self, participant):
+        """Offer a carnival game to another entity."""
+        self.games_offered += 1
+        games = ["ring_toss", "milk_bottle", "guess_weight"]
+        game = random.choice(games)
+        success_chance = 0.3 + participant.stats.playfulness / 200.0
+
+        if random.random() < success_chance:
+            reward = "Faygo" if random.random() < 0.5 else "energy"
+            return {"game": game, "won": True, "reward": reward}
+        return {"game": game, "won": False, "reward": None}
+
+    def generate_rumor(self, engine):
+        """Generate a rumor based on recent events."""
+        if not hasattr(engine, 'rumors'):
+            engine.rumors = []
+        # Simple: pick a random recent event from Wraith log
+        if engine.wraith_log:
+            ev = random.choice(engine.wraith_log[-10:])
+            rumor_text = f"I heard that {ev['source']} did something {ev['type']}."
+        else:
+            rumor_text = "I heard the Wraith is watching."
+        engine.rumors.append({
+            'text': rumor_text,
+            'truth': random.random(),
+            'source': self.entity.uid,
+            'timestamp': engine.time_sys.total_ticks,
+            'spread_count': 0
+        })
+        self.rumors_generated += 1
+```
+
+---
+
+📁 File: dlc1/dangerstate.py
+
+```python
+# =============================================================================
+# DANGER STATE COMPONENT – TEMPORARY PSYCHOLOGICAL STATES
+# =============================================================================
+
+import random
+from enum import Enum
+from .component import Component
+from .constants import DANGER_STATE_DURATIONS
+from .event import Event
+
+class DangerState(Enum):
+    GET_CLOWNED = "get_clowned"
+    JUGGALO_PARTY = "juggalo_party"
+    THE_MIDWAY = "the_midway"
+    LOST_AT_THE_CARNIVAL = "lost_at_the_carnival"
+    I_FUCKED_A_COP = "i_fucked_a_cop"
+
+class DangerStateComponent(Component):
+    """Manages temporary danger zone states."""
+    def __init__(self):
+        super().__init__("danger_state")
+        self.current_state: Optional[DangerState] = None
+        self.timer = 0
+        self.data = {}  # state‑specific data (e.g., desperation, consecutive losses)
+
+    def enter(self, state: DangerState, data: dict = None):
+        """Enter a new danger state."""
+        self.current_state = state
+        self.data = data or {}
+
+        duration_range = DANGER_STATE_DURATIONS.get(state.value, (50, 150))
+        if duration_range:
+            self.timer = random.randint(*duration_range)
+        else:
+            self.timer = -1  # indefinite
+
+        if self.entity and hasattr(self.entity, 'engine'):
+            self.entity.engine.event_manager.post(Event(
+                type="danger_state_enter",
+                source=self.entity,
+                data={"state": state.value}
+            ))
+            self.entity.engine.add_log(f"[Danger] {self.entity.uid} enters {state.value} state.")
+
+    def exit(self):
+        """Exit the current danger state."""
+        if self.entity and self.current_state and hasattr(self.entity, 'engine'):
+            self.entity.engine.event_manager.post(Event(
+                type="danger_state_exit",
+                source=self.entity,
+                data={"state": self.current_state.value}
+            ))
+            self.entity.engine.add_log(f"[Danger] {self.entity.uid} exits {self.current_state.value} state.")
+        self.current_state = None
+        self.timer = 0
+        self.data.clear()
+
+    def update(self, tick):
+        """Update the danger state each tick."""
+        if self.current_state is None:
+            return
+
+        if self.timer > 0:
+            self.timer -= 1
+            if self.timer == 0:
+                self.exit()
+                return
+        elif self.timer == -1:
+            # indefinite state – handled by subclasses
+            pass
+
+        # State‑specific updates
+        if self.current_state == DangerState.LOST_AT_THE_CARNIVAL:
+            self._update_lost()
+        elif self.current_state == DangerState.THE_MIDWAY:
+            self._update_midway_gambling()
+
+    def _update_lost(self):
+        """Lost particles wander and hallucinate."""
+        if not self.entity:
+            return
+        self.entity.x = max(0, min(self.entity.engine.biome.w - 1,
+                                   self.entity.x + random.choice([-1, 0, 1])))
+        self.entity.y = max(0, min(self.entity.engine.biome.h - 1,
+                                   self.entity.y + random.choice([-1, 0, 1])))
+
+        if random.random() < 0.05 and hasattr(self.entity, 'grimoire'):
+            self.entity.grimoire.update({
+                "type": "hallucination",
+                "description": f"I see someone familiar at ({self.entity.x}, {self.entity.y})...",
+                "importance": 0.3
+            }, is_vivid=True)
+
+    def _update_midway_gambling(self):
+        """Midway state: decide whether to keep gambling or walk away."""
+        if not self.entity:
+            return
+
+        desperation = self.data.get("desperation", 0)
+        consecutive_losses = self.data.get("consecutive_losses", 0)
+
+        play_chance = max(0.3, 0.7 - desperation * 0.05)
+
+        if random.random() < play_chance:
+            # Play again
+            game = random.choice(["ring_toss", "milk_bottle", "wheel"])
+            win = random.random() < (0.3 + self.entity.stats.playfulness / 200.0)
+
+            if win:
+                self.entity.energy += 10
+                self.data["consecutive_losses"] = 0
+                if hasattr(self.entity, 'treasures'):
+                    self.entity.treasures += 1
+                self.enter(DangerState.JUGGALO_PARTY)  # win leads to party
+            else:
+                self.entity.energy -= 5
+                consecutive_losses += 1
+                self.data["consecutive_losses"] = consecutive_losses
+                desperation += 0.1
+                self.data["desperation"] = desperation
+
+                if consecutive_losses >= 3:
+                    self.enter(DangerState.GET_CLOWNED, {"humiliation_source": "the_carnie"})
+        else:
+            # Walk away
+            if desperation > 0.5:
+                self.enter(DangerState.GET_CLOWNED)
+            else:
+                self.exit()
+```
+
+---
+
+🔧 Integration Instructions (Phase 2)
+
+1. Add the components to particles
+
+You have two options:
+
+· Via archetype JSON: In your archetype files, add "components" entries, e.g.:
+  ```json
+  "components": {
+    "inventory": {},
+    "madrox": {},
+    "danger_state": {}
+  }
+  ```
+· Manually in code: In Particle.__init__, after calling ComponentHolder.__init__, add:
+  ```python
+  self.add_component("inventory", InventoryComponent())
+  self.add_component("madrox", MadroxComponent())
+  self.add_component("danger_state", DangerStateComponent())
+  # Carnie is added only when activated by the engine.
+  ```
+
+2. Update the particle's update() method
+
+Make sure self.update_components(tick) is called (you already added this in Phase 1). The components will now run their per‑tick logic.
+
+3. Modify decide_action() to include component influences
+
+In your particle's decision‑making method, you should:
+
+· Check should_use_faygo() and if true, add ActionType.USE_FAYGO to candidates (store chosen mode and target for later execution).
+· If MadroxComponent is active, use its modify_action_weight to adjust weights of actions like OVERTHINK, PREACH, etc.
+· The DangerStateComponent may also affect action weights (e.g., in LOST, withdrawal actions get higher weight).
+
+Example snippet:
+
+```python
+def decide_action(self):
+    candidates = []   # your existing candidate generation
+
+    # Faygo
+    if should_use_faygo(self):
+        mode = choose_faygo_mode(self)
+        target = ... # determine target if needed
+        self._pending_faygo_mode = mode
+        self._pending_faygo_target = target
+        candidates.append(("USE_FAYGO", 2.0))
+
+    # Madrox influence
+    madrox = self.get_component("madrox")
+    if madrox and madrox.active:
+        for i, (act, w) in enumerate(candidates):
+            candidates[i] = (act, madrox.modify_action_weight(act, w))
+
+    # DangerState influence – you can add custom weighting here
+    # ...
+
+    return self._select_action(candidates)
+```
+
+4. Add new action types and costs
+
+In your ActionType enum and ACTION_COST dictionary (from the base engine), add:
+
+```python
+class ActionType(Enum):
+    # ... existing ...
+    USE_FAYGO = "use_faygo"
+    OVERTHINK = "overthink"
+    PREACH = "preach"
+    JUDGE = "judge"
+    GAMBLE = "gamble"
+
+ACTION_COST = {
+    # ... existing ...
+    ActionType.USE_FAYGO: 0,
+    ActionType.OVERTHINK: 1,
+    ActionType.PREACH: 2,
+    ActionType.JUDGE: 0,
+    ActionType.GAMBLE: 2,
+}
+```
+
+5. Handle USE_FAYGO in perform_action()
+
+```python
+def perform_action(self, action, target=None):
+    if action == ActionType.USE_FAYGO:
+        inv = self.get_component("inventory")
+        if inv:
+            mode = getattr(self, '_pending_faygo_mode', FaygoMode.FLAT)
+            return inv.use_faygo(mode, target)
+    # ... other actions ...
+```
+
+6. Trigger danger states
+
+The DangerStateComponent itself does not automatically enter states; you need to trigger them based on events. For example, when a particle loses a challenge badly, you might call:
+
+```python
+danger = self.get_component("danger_state")
+if danger and not danger.current_state:
+    danger.enter(DangerState.GET_CLOWNED, {"source": opponent.uid})
+```
+
+Similarly, you can trigger JUGGALO_PARTY when a party starts, THE_MIDWAY when on a carnival tile and gambling, LOST_AT_THE_CARNIVAL when isolated, and I_FUCKED_A_COP after a Cop Moment.
+
+7. Carnie activation
+
+The CarnieComponent is not added by default. The engine (WraithVote) should decide when to deploy a Carnie. When variance is low, pick a particle and call:
+
+```python
+carnie = CarnieComponent()
+carnie.activate(particle.role)
+particle.add_component("carnie", carnie)
+```
+
+You'll also need to ensure that Carnie particles are drawn to festival tiles (Midway) and that they occasionally call offer_game() and generate_rumor().
+
+---
+
+📦 PHASE 3: ENGINE‑LEVEL GLOBAL SYSTEMS
+
+This phase adds the global systems that run in the engine’s tick loop and affect multiple entities. They rely on the constants, events, and components from previous phases.
+
+---
+
+What’s inside Phase 3
+
+· magnetic.py – MagneticFieldsSystem – attracts Madrox particles toward calming sources.
+· rumor.py – Rumor and RumorManager – global rumor propagation.
+· midway.py – MidwayBiome – festival overlay with cover crops and field strength.
+· juggalo.py – JuggaloParty and JuggaloPartyManager – group celebration mechanics.
+· stage.py – StageSystem – multiple arenas with different rules.
+· cop.py – CopMoment static methods – rival truce event.
+· cartridges.py – new physics cartridges (BinaryWraithCartridge, Chapter17Cartridge, SubstrateCartridge, BioCarrierCartridge, PhysicsPatch).
+
+All files go into the dlc1/ folder. Constants are already in constants_dlc1.py.
+
+---
+
+📁 File: dlc1/magnetic.py
+
+```python
+# =============================================================================
+# MAGNETIC FIELDS SYSTEM – ATTRACTION/REPULSION FOR MADROX
+# =============================================================================
+
+import math
+import random
+from .constants import (
+    MADROX_FIELD_RADIUS, CALM_FIELD_RADIUS, MADROX_OPTIMAL_DIST,
+    MADROX_INNER_RADIUS, MADROX_OUTER_RADIUS, CALM_BASE_RATE,
+    MONOXIDE_CALM_STRENGTH, CALM_BASE_STRENGTH
+)
+
+class MagneticFieldsSystem:
+    """Manages invisible attraction/repulsion fields."""
+    def __init__(self):
+        self.field_vectors = {}  # entity_uid -> (x, y) vector (not used yet)
+
+    def update_entity(self, entity, engine):
+        """Apply magnetic bias to entity movement if it is in Madrox state."""
+        madrox = entity.get_component('madrox')
+        if not madrox or not madrox.active:
+            return
+
+        # Find all calming sources
+        calming_sources = self._find_calming_sources(entity, engine)
+        if not calming_sources:
+            return
+
+        # Compute net field vector
+        net_vector = self._compute_field_bias(entity, calming_sources)
+
+        # Apply bias with 10% chance
+        if random.random() < 0.1 and (abs(net_vector[0]) > 0 or abs(net_vector[1]) > 0):
+            dx = 1 if net_vector[0] > 0 else -1 if net_vector[0] < 0 else 0
+            dy = 1 if net_vector[1] > 0 else -1 if net_vector[1] < 0 else 0
+
+            new_x = max(0, min(engine.biome.w - 1, entity.x + dx))
+            new_y = max(0, min(engine.biome.h - 1, entity.y + dy))
+            entity.x, entity.y = new_x, new_y
+
+        # Apply proximity calming
+        self._apply_proximity_calming(entity, calming_sources, engine)
+
+    def _find_calming_sources(self, entity, engine):
+        """Return list of (source_entity, strength, distance)."""
+        sources = []
+        for e in engine.social_hub.entities:
+            if not e.alive or e.uid == entity.uid:
+                continue
+            strength = self._get_calm_strength(e)
+            if strength <= 0:
+                continue
+            dist = math.hypot(e.x - entity.x, e.y - entity.y)
+            if dist <= CALM_FIELD_RADIUS:
+                sources.append((e, strength, dist))
+        return sources
+
+    def _get_calm_strength(self, entity):
+        """Calm field strength of an entity."""
+        carnie = entity.get_component('carnie')
+        if carnie and carnie.active:
+            if carnie.sub_mode == CarnieMode.SMOKE_CHILL:
+                return MONOXIDE_CALM_STRENGTH * 1.5
+            return MONOXIDE_CALM_STRENGTH * 0.7
+        return CALM_BASE_STRENGTH
+
+    def _compute_field_bias(self, entity, calming_sources):
+        """Return net (dx, dy) bias vector."""
+        net_x, net_y = 0.0, 0.0
+        for source, strength, dist in calming_sources:
+            dx = source.x - entity.x
+            dy = source.y - entity.y
+            if dist == 0:
+                continue
+            d = dist
+            optimal = MADROX_OPTIMAL_DIST
+            spread = (MADROX_OUTER_RADIUS - MADROX_INNER_RADIUS) / 2
+            w = 1 - ((d - optimal) ** 2) / (spread ** 2)
+            w = max(-1, min(1, w))
+            w *= strength
+            net_x += (dx / dist) * w
+            net_y += (dy / dist) * w
+        return (net_x, net_y)
+
+    def _apply_proximity_calming(self, entity, calming_sources, engine):
+        """Reduce anxiety when near calming sources."""
+        for source, strength, dist in calming_sources:
+            if dist <= 3:  # proximity radius
+                base_rate = CALM_BASE_RATE * strength
+                madrox = entity.get_component('madrox')
+                if madrox:
+                    duration = MADROX_MAX_DURATION - madrox.timer
+                    resistance = min(0.77, duration / MADROX_MAX_DURATION * 0.77)
+                    calm_rate = base_rate * (1 - resistance)
+                else:
+                    calm_rate = base_rate
+                entity.anx_cur.anxiety = max(0, entity.anx_cur.anxiety - calm_rate)
+
+                carnie = source.get_component('carnie')
+                if carnie and carnie.sub_mode == CarnieMode.SMOKE_CHILL and madrox:
+                    if random.random() < 0.05:
+                        self._offer_smoke(entity, source, engine)
+
+    def _offer_smoke(self, madrox_entity, carnie_entity, engine):
+        """Carnie offers smoke to Madrox entity."""
+        engine.add_log(f"[Carnie] {carnie_entity.uid} offers a smoke to {madrox_entity.uid}.")
+        madrox = madrox_entity.get_component('madrox')
+        if madrox:
+            madrox_entity.anx_cur.anxiety = max(0, madrox_entity.anx_cur.anxiety - 0.3)
+            madrox.timer = max(0, madrox.timer - 100)
+            madrox.bias_multiplier *= 0.5
+            # Mark a false memory as doubtful
+            if madrox_entity.grimoire.high_res_memory:
+                mem = random.choice(list(madrox_entity.grimoire.high_res_memory))
+                if isinstance(mem, dict) and 'importance' in mem:
+                    mem['doubtful'] = True
+            engine.add_log(f"[Madrox] {madrox_entity.uid} feels the smoke. The carnival inside quiets.")
+```
+
+---
+
+📁 File: dlc1/rumor.py
+
+```python
+# =============================================================================
+# RUMOR SYSTEM – INFORMATION PROPAGATION
+# =============================================================================
+
+from dataclasses import dataclass
+from typing import Optional, List
+import random
+from .constants import COVER_CROP_TYPES, MIDWAY_RADIUS
+
+@dataclass
+class Rumor:
+    """A piece of information that spreads through the world."""
+    text: str
+    truth: float = 0.5          # 0.0 = false, 1.0 = true
+    source: Optional[str] = None
+    timestamp: int = 0
+    spread_count: int = 0
+    tags: list = None
+
+    def __post_init__(self):
+        if self.tags is None:
+            self.tags = []
+
+
+class RumorManager:
+    """Manages global rumor propagation."""
+    def __init__(self):
+        self.rumors: List[Rumor] = []
+        self.max_rumors = 100
+
+    def create_rumor(self, text: str, truth: float = 0.5, source: str = None,
+                     timestamp: int = 0, tags: list = None) -> Rumor:
+        """Create and store a new rumor."""
+        rumor = Rumor(
+            text=text,
+            truth=max(0.0, min(1.0, truth)),
+            source=source,
+            timestamp=timestamp,
+            tags=tags or []
+        )
+        self.rumors.append(rumor)
+        if len(self.rumors) > self.max_rumors:
+            self.rumors.pop(0)
+        return rumor
+
+    def spread_rumor(self, rumor: Rumor, listener, teller, engine) -> bool:
+        """Spread a rumor from teller to listener."""
+        if listener.genes.get('curiosity', 0.5) < 0.3:
+            return False
+
+        listener.curiosity = min(1.0, listener.curiosity + 0.05)
+
+        if hasattr(listener, 'grimoire'):
+            listener.grimoire.update({
+                "type": "rumor",
+                "text": rumor.text,
+                "source": teller.uid if teller else "unknown",
+                "truth": rumor.truth,
+                "importance": 0.5
+            }, is_vivid=True)
+
+        rumor.spread_count += 1
+
+        if hasattr(engine, 'midway'):
+            for (fx, fy), data in engine.midway.festival_data.items():
+                if abs(listener.x - fx) + abs(listener.y - fy) < MIDWAY_RADIUS:
+                    gossip_mult = COVER_CROP_TYPES.get(
+                        data.get('cover_crop', 'CLOVER'),
+                        {}
+                    ).get('gossip_boost', 1.0)
+                    listener.curiosity = min(1.0, listener.curiosity + 0.05 * (gossip_mult - 1))
+
+        engine.add_log(f"[Rumor] Spreading: \"{rumor.text[:30]}...\" (truth: {rumor.truth:.1f})")
+        return True
+
+    def get_random_rumor(self, min_truth: float = 0.0, max_truth: float = 1.0) -> Optional[Rumor]:
+        """Get a random rumor within truth range."""
+        candidates = [r for r in self.rumors if min_truth <= r.truth <= max_truth]
+        return random.choice(candidates) if candidates else None
+
+    def get_rumors_by_tag(self, tag: str) -> List[Rumor]:
+        """Get all rumors with a specific tag."""
+        return [r for r in self.rumors if tag in r.tags]
+```
+
+---
+
+📁 File: dlc1/midway.py
+
+```python
+# =============================================================================
+# THE MIDWAY BIOME – FESTIVAL OVERLAY WITH COVER CROPS
+# =============================================================================
+
+import random
+from enum import Enum
+from .constants import (
+    MIDWAY_RADIUS, MIDWAY_BASE_FIELD, MIDWAY_MAX_FIELD,
+    FIELD_DECAY_RATE, FIELD_LOW_THRESHOLD, FIELD_HIGH_THRESHOLD,
+    FIELD_CONTRIBUTIONS, STAGE_MULTIPLIERS, CONSENT_BONUS,
+    COVER_CROP_TYPES, RESIDUE_DURATION
+)
+
+class CoverCropType(Enum):
+    CLOVER = "clover"
+    BORAGE = "borage"
+    COMFREY = "comfrey"
+    BUCKWHEAT = "buckwheat"
+    TILLAGE_RADISH = "tillage_radish"
+    VETCH = "vetch"
+    MUSTARD = "mustard"
+    SORGHUM_SUDAN = "sorghum_sudan"
+
+
+class MidwayBiome:
+    """Manages the carnival/festival Midway biome overlay."""
+    def __init__(self, width: int, height: int):
+        self.width = width
+        self.height = height
+        self.festival_data: dict = {}          # (x, y) -> {cover_crop, field_strength, duration, created_tick, radius}
+        self.field_history: list = []
+        self.root_memories: dict = {}          # (x, y, entity_uid) -> strength
+        self.legendary_spots: dict = {}        # (x, y) -> power
+
+    def create_festival(self, x: int, y: int, cover_crop: str = None, tick: int = 0) -> dict:
+        """Create a new festival (Midway overlay)."""
+        if not (0 <= x < self.width and 0 <= y < self.height):
+            return None
+
+        if cover_crop is None:
+            cover_crop = random.choice([c.value for c in CoverCropType])
+
+        self.festival_data[(x, y)] = {
+            "cover_crop": cover_crop,
+            "field_strength": MIDWAY_BASE_FIELD,
+            "duration": RESIDUE_DURATION,
+            "created_tick": tick,
+            "radius": MIDWAY_RADIUS
+        }
+        return self.festival_data[(x, y)]
+
+    def remove_festival(self, x: int, y: int, current_tick: int) -> None:
+        """Remove a festival and apply residue effects."""
+        if (x, y) not in self.festival_data:
+            return
+        data = self.festival_data[(x, y)]
+        power = data["field_strength"] / MIDWAY_MAX_FIELD
+
+        if power > 0.5:
+            self._check_legendary_spot(x, y, power)
+
+        del self.festival_data[(x, y)]
+
+    def contribute_to_field(self, amount: float, entity, stage: str = "MAIN", consent: bool = False) -> None:
+        """Contribute to field strength at nearest festival."""
+        nearest = self._find_nearest_festival(entity.x, entity.y)
+        if not nearest:
+            return
+
+        x, y = nearest
+        if (x, y) not in self.festival_data:
+            return
+
+        stage_mult = STAGE_MULTIPLIERS.get(stage, 1.0)
+        consent_mult = 1 + (CONSENT_BONUS if consent else 0)
+        contribution = amount * stage_mult * consent_mult
+
+        data = self.festival_data[(x, y)]
+        data["field_strength"] = min(MIDWAY_MAX_FIELD, data["field_strength"] + contribution)
+
+        self.field_history.append({
+            "tick": entity.engine.time_sys.total_ticks,
+            "x": x, "y": y,
+            "amount": contribution,
+            "source": entity.uid,
+            "action": getattr(entity, 'last_action', 'unknown')
+        })
+
+    def tick(self, engine):
+        """Update all festivals."""
+        current_tick = engine.time_sys.total_ticks
+
+        for (x, y), data in list(self.festival_data.items()):
+            data["field_strength"] *= (1 - FIELD_DECAY_RATE)
+            data["duration"] -= 1
+
+            if data["duration"] <= 0 or data["field_strength"] < FIELD_LOW_THRESHOLD:
+                self.remove_festival(x, y, current_tick)
+                continue
+
+            self._apply_midway_effects(x, y, data, engine)
+
+            if data["field_strength"] > FIELD_HIGH_THRESHOLD:
+                self._check_field_events(x, y, data, engine)
+
+    def _apply_midway_effects(self, fx: int, fy: int, data: dict, engine):
+        """Apply Midway biome effects to tiles in radius."""
+        radius = data["radius"]
+        cover_crop = data["cover_crop"]
+        field_ratio = data["field_strength"] / MIDWAY_MAX_FIELD
+        crop_data = COVER_CROP_TYPES.get(cover_crop, {})
+
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                x, y = fx + dx, fy + dy
+                if not (0 <= x < engine.biome.w and 0 <= y < engine.biome.h):
+                    continue
+                dist = abs(dx) + abs(dy)
+                if dist > radius:
+                    continue
+
+                strength = field_ratio * (1 - dist / (radius + 1))
+
+                if "faygo_boost" in crop_data and strength > 0.5:
+                    if random.random() < 0.01 * strength * crop_data["faygo_boost"]:
+                        self._spawn_faygo(x, y, engine)
+
+                if "energy_regen" in crop_data:
+                    for e in engine.social_hub.entities:
+                        if e.alive and e.x == x and e.y == y and e.stance == 0:  # DORMANT
+                            e.energy += crop_data["energy_regen"] * strength
+
+    def _spawn_faygo(self, x: int, y: int, engine):
+        """Spawn a Faygo item on a tile."""
+        for e in engine.social_hub.entities:
+            if e.alive and e.x == x and e.y == y:
+                inv = e.get_component("inventory")
+                if inv:
+                    inv.add_faygo(None, 1)
+                    engine.add_log(f"[Midway] {e.uid} found a Faygo!")
+                    return
+
+    def _check_field_events(self, x: int, y: int, data: dict, engine):
+        """Check for special events at high field strength."""
+        field = data["field_strength"]
+
+        if field > 80 and random.random() < 0.01:
+            self._trigger_carnival_of_carnage(x, y, engine)
+
+        if field > 90 and random.random() < 0.005:
+            self._trigger_shangri_la_resonance(engine)
+
+    def _trigger_carnival_of_carnage(self, x: int, y: int, engine):
+        """Trigger a chaos event."""
+        engine.add_log(f"[Midway] Carnival of Carnage erupts at ({x}, {y})!")
+        for e in engine.social_hub.entities:
+            if e.alive and abs(e.x - x) + abs(e.y - y) < MIDWAY_RADIUS:
+                if random.random() < 0.5:
+                    e.energy += 20
+                else:
+                    e.energy -= 10
+                    e.anx_cur.anxiety += 0.2
+
+    def _trigger_shangri_la_resonance(self, engine):
+        """Trigger global harmony effect."""
+        engine.add_log("[Midway] Shangri‑La Resonance – the world feels calmer.")
+        for e in engine.social_hub.entities:
+            if e.alive:
+                if hasattr(e, 'kanban'):
+                    e.kanban.vector_bias += 0.1
+                if hasattr(e, 'stats'):
+                    e.stats.warmth = min(100, e.stats.warmth + 5)
+                if hasattr(e, 'anx_cur'):
+                    e.anx_cur.anxiety = max(0, e.anx_cur.anxiety - 0.2)
+
+    def _check_legendary_spot(self, x: int, y: int, power: float) -> None:
+        """Check if this should become a legendary party spot."""
+        if power > 0.5:
+            if (x, y) not in self.legendary_spots:
+                self.legendary_spots[(x, y)] = power
+            else:
+                self.legendary_spots[(x, y)] = min(1.0, self.legendary_spots[(x, y)] + 0.1)
+
+    def update_root_memories(self, entity, engine):
+        """Update root memories for an entity on Midway tiles."""
+        nearest = self._find_nearest_festival(entity.x, entity.y)
+        if not nearest:
+            return
+        x, y = nearest
+        if (x, y) not in self.festival_data:
+            return
+
+        key = (x, y, entity.uid)
+        self.root_memories[key] = self.root_memories.get(key, 0) + 0.01
+        if self.root_memories[key] > 0.3:
+            entity.anx_cur.anxiety = max(0, entity.anx_cur.anxiety - 0.01)
+
+    def _find_nearest_festival(self, x: int, y: int):
+        """Find coordinates of nearest festival."""
+        nearest = None
+        nearest_dist = float('inf')
+        for (fx, fy) in self.festival_data:
+            dist = abs(x - fx) + abs(y - fy)
+            if dist < nearest_dist:
+                nearest_dist = dist
+                nearest = (fx, fy)
+        return nearest
+```
+
+---
+
+📁 File: dlc1/juggalo.py
+
+```python
+# =============================================================================
+# JUGGALO PARTY – COLLECTIVE CELEBRATION
+# =============================================================================
+
+import random
+from .constants import (
+    PARTY_RADIUS_BASE, PARTY_MIN_PARTICIPANTS, PARTY_TIMEOUT,
+    PARTY_GROWTH_PER_TICK, PARTY_GROWTH_DECAY_TICKS, PARTY_TEMP_DECAY,
+    PULL_RADIUS_MULTIPLIER, PULL_BASE_CHANCE,
+    PARTY_GROWTH_CONTRIBUTIONS, PARTY_BENEFITS
+)
+
+class JuggaloParty:
+    """A collective celebration event."""
+    def __init__(self, center_x: int, center_y: int, engine):
+        self.center_x = center_x
+        self.center_y = center_y
+        self.engine = engine
+        self.level = 1
+        self.temperature = 50.0
+        self.growth_meter = 0.0
+        self.participants = set()
+        self.radius = PARTY_RADIUS_BASE
+        self.created_tick = engine.time_sys.total_ticks
+        self.last_action_tick = self.created_tick
+        self.inactivity_timer = 0
+
+    def add_participant(self, entity_uid: int) -> None:
+        """Add a participant to the party."""
+        self.participants.add(entity_uid)
+        self.last_action_tick = self.engine.time_sys.total_ticks
+
+    def remove_participant(self, entity_uid: int) -> None:
+        """Remove a participant."""
+        self.participants.discard(entity_uid)
+
+    def contribute(self, action_type: str, contributor) -> None:
+        """Contribute to party growth."""
+        base_contrib = PARTY_GROWTH_CONTRIBUTIONS.get(action_type, 1)
+        temp_mult = 1.2 if self.temperature > 80 else (0.8 if self.temperature < 20 else 1.0)
+
+        self.growth_meter += base_contrib * temp_mult
+        self.last_action_tick = self.engine.time_sys.total_ticks
+        self.inactivity_timer = 0
+
+        temp_change = 2.0 if action_type in ["COP_MOMENT", "WIN_CHALLENGE"] else 1.0
+        self.temperature = max(0, min(100, self.temperature + temp_change))
+
+        if self.growth_meter >= 100:
+            self._level_up()
+
+    def tick(self) -> bool:
+        """Update party state. Returns False if party should end."""
+        current_tick = self.engine.time_sys.total_ticks
+
+        self.temperature = max(0, self.temperature - PARTY_TEMP_DECAY)
+
+        if current_tick - self.last_action_tick > 10:
+            self.inactivity_timer += 1
+            if self.inactivity_timer > PARTY_GROWTH_DECAY_TICKS:
+                self.growth_meter -= 1
+                if self.growth_meter <= 0:
+                    self._level_down()
+        else:
+            if len(self.participants) >= 3:
+                self.growth_meter += PARTY_GROWTH_PER_TICK
+
+        if len(self.participants) < PARTY_MIN_PARTICIPANTS:
+            self.inactivity_timer += 1
+        else:
+            self.inactivity_timer = max(0, self.inactivity_timer - 1)
+
+        if self.inactivity_timer >= PARTY_TIMEOUT:
+            return False
+
+        if self.temperature > 80 and random.random() < 0.01:
+            self._trigger_chaos_event()
+
+        self._pull_outsiders()
+
+        return True
+
+    def _level_up(self) -> None:
+        """Increase party level."""
+        if self.level >= 5:
+            return
+        self.level += 1
+        self.growth_meter = 0
+        self.radius = PARTY_BENEFITS[self.level]["radius"]
+        self.engine.add_log(f"[Party] Level up! Now level {self.level} at ({self.center_x}, {self.center_y})")
+
+        if self.level == 5 and hasattr(self.engine, 'midway'):
+            self.engine.midway.legendary_spots[(self.center_x, self.center_y)] = 0.5
+            self.engine.add_log("[Party] This party is legendary!")
+
+    def _level_down(self) -> None:
+        """Decrease party level."""
+        if self.level <= 1:
+            return
+        self.level -= 1
+        self.growth_meter = 50
+        self.radius = PARTY_BENEFITS[self.level]["radius"]
+
+    def _trigger_chaos_event(self) -> None:
+        """Trigger a chaos event."""
+        events = ["spill", "argument", "game_fail"]
+        event = random.choice(events)
+        self.engine.add_log(f"[Party] Chaos: {event}!")
+
+        for uid in self.participants:
+            entity = next((e for e in self.engine.social_hub.entities if e.uid == uid), None)
+            if entity and entity.alive:
+                if event == "spill":
+                    entity.energy -= 2
+                elif event == "argument":
+                    if hasattr(entity, 'kanban'):
+                        entity.kanban.vector_bias -= 0.1
+                elif event == "game_fail":
+                    entity.energy -= 5
+
+        self.temperature += 10
+
+    def _pull_outsiders(self) -> None:
+        """Pull curious outsiders toward the party."""
+        pull_radius = self.radius * PULL_RADIUS_MULTIPLIER
+
+        for entity in self.engine.social_hub.entities:
+            if not entity.alive or entity.uid in self.participants:
+                continue
+
+            dist = abs(entity.x - self.center_x) + abs(entity.y - self.center_y)
+
+            if dist <= pull_radius and dist > self.radius:
+                skepticism = 1.0 - entity.genes.get('curiosity', 0.5)
+                pull_chance = PULL_BASE_CHANCE * (self.level / 5) * (1 - skepticism)
+
+                if random.random() < pull_chance:
+                    dx = 1 if entity.x < self.center_x else -1 if entity.x > self.center_x else 0
+                    dy = 1 if entity.y < self.center_y else -1 if entity.y > self.center_y else 0
+                    entity.x = max(0, min(self.engine.biome.w - 1, entity.x + dx))
+                    entity.y = max(0, min(self.engine.biome.h - 1, entity.y + dy))
+
+    def apply_benefits(self, entity) -> None:
+        """Apply party benefits to a participant."""
+        if entity.uid not in self.participants:
+            return
+
+        benefits = PARTY_BENEFITS.get(self.level, {})
+        if "bond_mult" in benefits:
+            entity._party_bond_mult = benefits["bond_mult"]
+        if "curiosity" in benefits:
+            entity.curiosity = min(1.0, entity.curiosity + benefits["curiosity"] * 0.01)
+        if "energy_regen" in benefits:
+            entity.energy = min(100, entity.energy + benefits["energy_regen"])
+
+    def end(self) -> dict:
+        """End the party and return summary."""
+        if hasattr(self.engine, 'midway'):
+            self.engine.midway.root_memories.setdefault(
+                (self.center_x, self.center_y, 'party_residue'), 0
+            )
+            self.engine.midway.root_memories[(self.center_x, self.center_y, 'party_residue')] = min(
+                1.0, self.engine.midway.root_memories[(self.center_x, self.center_y, 'party_residue')] + 0.3
+            )
+
+        veterans = []
+        if self.level == 5:
+            for uid in self.participants:
+                entity = next((e for e in self.engine.social_hub.entities if e.uid == uid), None)
+                if entity:
+                    entity._party_veteran = True
+                    veterans.append(uid)
+
+        return {
+            "level_reached": self.level,
+            "max_temperature": self.temperature,
+            "total_participants": len(self.participants),
+            "veterans": veterans
+        }
+
+
+class JuggaloPartyManager:
+    """Manages all active Juggalo parties."""
+    def __init__(self):
+        self.parties: List[JuggaloParty] = []
+
+    def tick(self, engine) -> None:
+        """Update all parties."""
+        self.parties = [p for p in self.parties if p.tick()]
+
+        for party in self.parties:
+            for uid in party.participants:
+                entity = next((e for e in engine.social_hub.entities if e.uid == uid), None)
+                if entity and entity.alive:
+                    party.apply_benefits(entity)
+
+        self._check_party_triggers(engine)
+
+    def _check_party_triggers(self, engine) -> None:
+        """Check if conditions are met for a new party."""
+        tile_counts = {}
+        for e in engine.social_hub.entities:
+            if not e.alive:
+                continue
+            key = (e.x, e.y)
+            tile_counts.setdefault(key, []).append(e)
+
+        for (x, y), entities in tile_counts.items():
+            if len(entities) < PARTY_MIN_PARTICIPANTS:
+                continue
+
+            if any(abs(p.center_x - x) + abs(p.center_y - y) < 3 for p in self.parties):
+                continue
+
+            high_valence = [e for e in entities if hasattr(e, 'state') and e.state.valence >= 4]
+            low_anxiety = [e for e in entities if hasattr(e, 'anx_cur') and e.anx_cur.anxiety < 0.4]
+
+            if len(high_valence) >= 1 and len(low_anxiety) >= 2:
+                party = JuggaloParty(x, y, engine)
+                for e in entities:
+                    party.add_participant(e.uid)
+                self.parties.append(party)
+                engine.add_log(f"[Party] A party starts at ({x}, {y})!")
+
+    def get_party_at(self, x: int, y: int) -> Optional[JuggaloParty]:
+        """Get party at or near coordinates."""
+        for party in self.parties:
+            if abs(party.center_x - x) + abs(party.center_y - y) < party.radius:
+                return party
+        return None
+```
+
+---
+
+📁 File: dlc1/stage.py
+
+```python
+# =============================================================================
+# STAGE SYSTEM – MULTIPLE ARENAS WITH DIFFERENT RULES
+# =============================================================================
+
+from .constants import STAGE_MULTIPLIERS
+
+STAGE_MAIN = 0
+STAGE_SIDE1 = 1
+STAGE_SIDE2 = 2
+STAGE_SIDE3 = 3
+STAGE_NAMES = ["Main", "Side1", "Side2", "Side3"]
+
+STAGE_RULES = {
+    STAGE_MAIN: {'energy_mult': 1.0, 'consent_required': 0.0},
+    STAGE_SIDE1: {'energy_mult': 1.5, 'consent_required': 0.3},
+    STAGE_SIDE2: {'energy_mult': 0.5, 'consent_required': 0.7},
+    STAGE_SIDE3: {'energy_mult': 2.0, 'consent_required': 0.9},
+}
+
+
+class StageSystem:
+    """Manages multiple arenas with different rules."""
+    def __init__(self, engine):
+        self.engine = engine
+        self.entity_stage = {}  # uid -> stage
+
+    def set_stage(self, entity, stage):
+        self.entity_stage[entity.uid] = stage
+
+    def get_stage(self, entity):
+        return self.entity_stage.get(entity.uid, STAGE_MAIN)
+
+    def apply_stage_effects(self, entity):
+        stage = self.get_stage(entity)
+        rules = STAGE_RULES[stage]
+        # Energy multiplier
+        entity.energy *= rules['energy_mult']
+        # Consent requirement (affects interactions)
+        if rules['consent_required'] > entity.kanban.consent_level:
+            entity.kanban.vector_bias -= 0.01
+        return stage
+```
+
+---
+
+📁 File: dlc1/cop.py
+
+```python
+# =============================================================================
+# COP MOMENT – I FUCKED A COP (RIVAL'S TRUCE)
+# =============================================================================
+
+import random
+from .event import Event
+
+class CopMoment:
+    """Represents a 'Cop Moment' – a rival's truce event."""
+
+    @staticmethod
+    def check_trigger(entity_a, entity_b, engine) -> bool:
+        """Check if a Cop Moment should trigger between two entities."""
+        # 1. Long‑standing opposition (TENSE bond phase or rivalry)
+        bond_a = entity_a.bonds.get(entity_b.uid)
+        bond_b = entity_b.bonds.get(entity_a.uid)
+
+        is_opposed = False
+        if bond_a and hasattr(entity_a, 'kanban') and entity_a.kanban.phase in [3, 4]:  # GIBBOUS, FULL
+            is_opposed = True
+        if bond_b and hasattr(entity_b, 'kanban') and entity_b.kanban.phase in [3, 4]:
+            is_opposed = True
+
+        if not is_opposed and hasattr(entity_a, 'social_layer') and entity_a.social_layer.current_layer == 4:  # RIVALS
+            is_opposed = True
+
+        if not is_opposed:
+            return False
+
+        # 2. High arousal for both
+        if hasattr(entity_a, 'arousal') and hasattr(entity_b, 'arousal'):
+            if entity_a.arousal.excitation < 3 or entity_b.arousal.excitation < 3:
+                return False
+
+        # 3. Proximity
+        if abs(entity_a.x - entity_b.x) + abs(entity_a.y - entity_b.y) > 2:
+            return False
+
+        danger_mult = 1.0
+        if hasattr(entity_a, 'get_component'):
+            danger_a = entity_a.get_component('danger_state')
+            if danger_a and danger_a.current_state:
+                danger_mult += 0.5
+        if hasattr(entity_b, 'get_component'):
+            danger_b = entity_b.get_component('danger_state')
+            if danger_b and danger_b.current_state:
+                danger_mult += 0.5
+
+        return random.random() < 0.1 * danger_mult
+
+    @staticmethod
+    def trigger(entity_a, entity_b, engine) -> None:
+        """Trigger a Cop Moment between two entities."""
+        CopMoment._enter_ride_along(entity_a, entity_b)
+        CopMoment._enter_ride_along(entity_b, entity_a)
+        engine.add_log(f"[CopMoment] A moment passes between {entity_a.uid} and {entity_b.uid}...")
+
+    @staticmethod
+    def _enter_ride_along(entity, partner) -> None:
+        """Enter ride‑along state."""
+        entity._ride_along_active = True
+        entity._ride_along_partner = partner.uid
+        entity._ride_along_timer = random.randint(30, 60)
+
+        if partner.uid not in entity.bonds:
+            # create a bond if not exists
+            from .bond import Bond
+            entity.bonds[partner.uid] = Bond(partner.uid, 2)  # EMERGING
+
+        entity._suppress_hostile_actions = True
+
+    @staticmethod
+    def update(entity, engine) -> None:
+        """Update ride‑along state."""
+        if not getattr(entity, '_ride_along_active', False):
+            return
+
+        entity._ride_along_timer -= 1
+
+        partner = next((e for e in engine.social_hub.entities
+                       if e.uid == entity._ride_along_partner and e.alive), None)
+
+        if partner:
+            if partner.uid in entity.bonds:
+                entity.bonds[partner.uid].strength = min(1.0, entity.bonds[partner.uid].strength + 0.05)
+
+            dx = 1 if entity.x < partner.x else -1 if entity.x > partner.x else 0
+            dy = 1 if entity.y < partner.y else -1 if entity.y > partner.y else 0
+            entity.x = max(0, min(engine.biome.w - 1, entity.x + dx))
+            entity.y = max(0, min(engine.biome.h - 1, entity.y + dy))
+
+        if entity._ride_along_timer <= 0:
+            CopMoment._exit_ride_along(entity, engine)
+
+    @staticmethod
+    def _exit_ride_along(entity, engine) -> None:
+        """Exit ride‑along with awkward aftermath."""
+        partner_uid = entity._ride_along_partner
+        entity._post_cop_cooldown = 200
+
+        if hasattr(entity, 'grimoire'):
+            entity.grimoire.update({
+                "type": "cop_moment",
+                "partner": partner_uid,
+                "description": f"We had a moment... it was weird.",
+                "importance": 0.7
+            }, is_vivid=True)
+
+        del entity._ride_along_active
+        del entity._ride_along_partner
+        del entity._ride_along_timer
+
+        if hasattr(entity, '_suppress_hostile_actions'):
+            del entity._suppress_hostile_actions
+
+        engine.add_log(f"[CopMoment] The moment between {entity.uid} and {partner_uid} ends. Awkward silence.")
+```
+
+---
+
+📁 File: dlc1/cartridges.py
+
+```python
+# =============================================================================
+# NEW S.A.M. CARTRIDGES – BinaryWraith, Chapter17, Substrate, BioCarrier, PhysicsPatch
+# =============================================================================
+
+import numpy as np
+import random
+import math
+from .constants import (
+    MAP_W, MAP_H, NDIM, ANGULAR_MOMENTUM_SCALE, CHAOS_FACTOR,
+    EVENT_HORIZON_THRESHOLD, HUMUS_DECAY, HUMUS_SPREAD,
+    HUMUS_HEAL_THRESHOLD, HUMUS_STARVE_THRESHOLD,
+    DIATOM_GROWTH_RATE, NECROMASS_DECAY, ISOPOD_SPAWN_THRESHOLD,
+    ACTIVE_RADIUS_LOW_RESONANCE, ATTRACTION_STRENGTH
+)
+
+# Binary Wraith Cartridge
+class BinaryWraithCartridge:
+    """Pure physics for angular momentum vs chaos interactions."""
+    def __init__(self, engine):
+        self.engine = engine
+        self.manifestation_active = False
+        self.system_state = 0  # 0 neutral, 1 high entropy, 2 stasis
+        self.friction_grid = np.ones((engine.biome.w, engine.biome.h)) * 0.5
+        self.field_stability = 1.0
+
+    def tick(self):
+        self._update_friction_field()
+        self._resolve_collisions()
+        self._check_criticality()
+        self._apply_thermodynamics()
+
+    def _update_friction_field(self):
+        """Friction based on fungi (as mist proxy)."""
+        for x in range(self.engine.biome.w):
+            for y in range(self.engine.biome.h):
+                mist = self.engine.biome.fungi[x][y]
+                self.friction_grid[x][y] = 0.1 if mist > 0.6 else 0.5
+
+    def _resolve_collisions(self):
+        spin_entities = [e for e in self.engine.social_hub.entities if e.role == "SPIN" and e.alive]
+        chaos_entities = [e for e in self.engine.social_hub.entities if e.role == "CHAOS" and e.alive]
+        for s in spin_entities:
+            for c in chaos_entities:
+                dist = abs(s.x - c.x) + abs(s.y - c.y)
+                if dist <= 1:
+                    self._calculate_interaction(s, c)
+
+    def _calculate_interaction(self, spin, chaos):
+        omega = spin.genes.get('aggression', 0.5) * ANGULAR_MOMENTUM_SCALE * 2.0
+        sigma = chaos.genes.get('curiosity', 0.5) * CHAOS_FACTOR * 2.0
+        if omega > sigma * 1.2:
+            chaos.energy -= 2.0
+            self.engine.add_log(f"[BinaryWraith] Spin > Chaos: {spin.uid} drains {chaos.uid}")
+        elif sigma > omega * 1.2:
+            self._apply_stochastic_burst(chaos)
+            self.engine.add_log(f"[BinaryWraith] Chaos > Spin: {chaos.uid} bursts")
+        else:
+            spin.energy += 1.0
+            chaos.energy += 1.0
+            self.engine.add_log(f"[BinaryWraith] Resonance: {spin.uid} & {chaos.uid} gain energy")
+
+    def _apply_stochastic_burst(self, entity):
+        entity.energy += random.uniform(-2.0, 5.0)
+        if random.random() < 0.5:
+            entity.x += random.choice([-1,1])
+            entity.y += random.choice([-1,1])
+            entity.x = max(0, min(self.engine.biome.w-1, entity.x))
+            entity.y = max(0, min(self.engine.biome.h-1, entity.y))
+
+    def _check_criticality(self):
+        spin_present = any(e.role == "SPIN" for e in self.engine.social_hub.entities if e.alive)
+        chaos_present = any(e.role == "CHAOS" for e in self.engine.social_hub.entities if e.alive)
+        if spin_present and chaos_present:
+            points = [e for e in self.engine.social_hub.entities if e.role in ("SPIN","CHAOS") and e.alive]
+            if points:
+                avg_x = sum(e.x for e in points) / len(points)
+                avg_y = sum(e.y for e in points) / len(points)
+                variance = sum((e.x-avg_x)**2 + (e.y-avg_y)**2 for e in points) / len(points)
+                alignment = max(0.0, 1.0 - (variance / 50.0))
+                if alignment > EVENT_HORIZON_THRESHOLD and not self.manifestation_active:
+                    self._trigger_critical_event()
+
+    def _trigger_critical_event(self):
+        self.manifestation_active = True
+        self.engine.global_resonance = 1.0
+        self.engine.add_log("[BinaryWraith] Criticality reached – gravity inverted!")
+
+    def _apply_thermodynamics(self):
+        if not self.manifestation_active:
+            return
+        energies = [e.energy for e in self.engine.social_hub.entities if e.alive]
+        if not energies:
+            return
+        avg_energy = sum(energies) / len(energies)
+        if avg_energy > 70:
+            self.system_state = 1
+            for x in range(self.engine.biome.w):
+                for y in range(self.engine.biome.h):
+                    self.engine.biome.fungi[x][y] = min(1.0, self.engine.biome.fungi[x][y] + 0.05)
+        elif avg_energy < 30:
+            self.system_state = 2
+            for x in range(self.engine.biome.w):
+                for y in range(self.engine.biome.h):
+                    self.engine.biome.altitude[x][y] = min(1.0, self.engine.biome.altitude[x][y] + 0.01)
+        else:
+            self.system_state = 0
+
+
+# Chapter 17 Cartridge
+class Chapter17Cartridge:
+    """Kinetic vs entropy interactions with battery/heavy coupling."""
+    def __init__(self, engine):
+        self.engine = engine
+
+    def tick(self):
+        self._process_kinetic()
+        self._process_entropy()
+        self._check_coupling()
+
+    def _process_kinetic(self):
+        for e in self.engine.social_hub.entities:
+            if e.role == "KINETIC" and e.alive:
+                if e.energy > 70:
+                    if random.random() < 0.5:
+                        e.x += random.choice([-1,1])
+                        e.y += random.choice([-1,1])
+                        e.x = max(0, min(self.engine.biome.w-1, e.x))
+                        e.y = max(0, min(self.engine.biome.h-1, e.y))
+                    e.genes['durability'] = 0.9
+
+    def _process_entropy(self):
+        for e in self.engine.social_hub.entities:
+            if e.role == "ENTROPY" and e.alive:
+                neighbors = [o for o in self.engine.social_hub.entities if o != e and o.alive and
+                             abs(o.x-e.x)+abs(o.y-e.y) <= 1]
+                for n in neighbors:
+                    if n.role != "ENTROPY":
+                        n.energy -= 0.1
+                        e.energy += 0.05
+
+    def _check_coupling(self):
+        batteries = [e for e in self.engine.social_hub.entities if e.role == "BATTERY" and e.alive]
+        heavies = [e for e in self.engine.social_hub.entities if e.role == "HEAVY" and e.alive]
+        for h in heavies:
+            for b in batteries:
+                dist = abs(h.x - b.x) + abs(h.y - b.y)
+                if dist < 3 and h.energy < 20:
+                    transfer = min(5, b.energy)
+                    h.energy += transfer
+                    b.energy -= transfer
+                    self.engine.add_log(f"[Chapter17] Energy transfer: {b.uid} → {h.uid}")
+
+
+# Substrate Cartridge (humus layer)
+class SubstrateCartridge:
+    """Adds humus layer; entities heal based on local substrate quality."""
+    def __init__(self, engine):
+        self.engine = engine
+        self.humus = np.zeros((engine.biome.w, engine.biome.h))
+        self._seed_humus()
+
+    def _seed_humus(self):
+        # Fibonacci spiral initial seeds
+        cx, cy = self.engine.biome.w // 2, self.engine.biome.h // 2
+        theta = 2.39996  # golden angle
+        for i in range(20):
+            r = 0.5 * math.sqrt(i) * 3
+            angle = i * theta
+            x = int(cx + r * math.cos(angle))
+            y = int(cy + r * math.sin(angle))
+            if 0 <= x < self.engine.biome.w and 0 <= y < self.engine.biome.h:
+                self.humus[x][y] = 1.0
+
+    def tick(self):
+        self._regenerate()
+        self._nourish_entities()
+
+    def _regenerate(self):
+        new_humus = self.humus.copy()
+        for x in range(self.engine.biome.w):
+            for y in range(self.engine.biome.h):
+                if self.engine.biome.water[x][y] > 0.3:
+                    new_humus[x][y] = min(1.0, new_humus[x][y] + 0.005)
+                else:
+                    new_humus[x][y] = max(0.0, new_humus[x][y] - 0.01)
+                if new_humus[x][y] > 0.8:
+                    dx, dy = random.choice([(0,1),(0,-1),(1,0),(-1,0)])
+                    nx, ny = x+dx, y+dy
+                    if 0 <= nx < self.engine.biome.w and 0 <= ny < self.engine.biome.h:
+                        if random.random() < 0.1:
+                            new_humus[nx][ny] = min(1.0, new_humus[nx][ny] + 0.3)
+        self.humus = new_humus
+
+    def _nourish_entities(self):
+        for e in self.engine.social_hub.entities:
+            if e.alive and 0 <= e.x < self.engine.biome.w and 0 <= e.y < self.engine.biome.h:
+                q = self.humus[e.x][e.y]
+                if q > HUMUS_HEAL_THRESHOLD:
+                    e.energy = min(100, e.energy + 0.5)
+                elif q < HUMUS_STARVE_THRESHOLD:
+                    e.energy -= 0.2
+
+
+# BioCarrier Cartridge (diatoms, necromass, isopods)
+class BioCarrierCartridge:
+    """Diatoms, necromass, and isopods."""
+    def __init__(self, engine):
+        self.engine = engine
+        self.diatoms = np.zeros((engine.biome.w, engine.biome.h))
+        self.necromass = 0.0
+        self.isopods = []  # each isopod: {'x','y','energy','age'}
+
+    def tick(self):
+        self._process_diatoms()
+        self._process_necromass()
+        self._spawn_isopods()
+        self._update_isopods()
+
+    def _process_diatoms(self):
+        for x in range(self.engine.biome.w):
+            for y in range(self.engine.biome.h):
+                if self.engine.biome.water[x][y] > 0.6 and self.engine.biome.nutrients[x][y] > 0.6:
+                    self.diatoms[x][y] = min(1.0, self.diatoms[x][y] + DIATOM_GROWTH_RATE)
+                    self.necromass += 0.5
+                    self.engine.biome.nutrients[x][y] -= 0.1
+                else:
+                    self.diatoms[x][y] *= 0.99
+
+    def _process_necromass(self):
+        self.necromass *= NECROMASS_DECAY
+
+    def _spawn_isopods(self):
+        if self.necromass > ISOPOD_SPAWN_THRESHOLD and len(self.isopods) < 5:
+            x = random.randint(0, self.engine.biome.w-1)
+            y = random.randint(0, self.engine.biome.h-1)
+            self.isopods.append({'x': x, 'y': y, 'energy': 50.0, 'age': 0})
+            self.necromass -= 2.0
+
+    def _update_isopods(self):
+        for iso in self.isopods[:]:
+            iso['x'] += random.choice([-1,0,1])
+            iso['y'] += random.choice([-1,0,1])
+            iso['x'] = max(0, min(self.engine.biome.w-1, iso['x']))
+            iso['y'] = max(0, min(self.engine.biome.h-1, iso['y']))
+            if self.necromass > 0:
+                self.necromass -= 0.1
+                iso['energy'] -= 0.1
+            else:
+                iso['energy'] -= 0.5
+            iso['age'] += 1
+            if iso['age'] > 100 or iso['energy'] <= 0:
+                self.isopods.remove(iso)
+                # return nutrients
+                self.engine.biome.nutrients[iso['x']][iso['y']] = min(1.0, self.engine.biome.nutrients[iso['x']][iso['y']] + 0.2)
+
+
+# PhysicsPatch (radius constraints, attraction vectors)
+class PhysicsPatch:
+    """Adds radius constraints and attraction vectors."""
+    def __init__(self, engine):
+        self.engine = engine
+
+    def apply(self):
+        # Radius constraint: low resonance reduces active radius
+        if self.engine.global_resonance < 0.3:
+            active_radius = int(self.engine.biome.w * ACTIVE_RADIUS_LOW_RESONANCE)
+            cx, cy = self.engine.biome.w // 2, self.engine.biome.h // 2
+            for e in self.engine.social_hub.entities:
+                if e.alive:
+                    dist = abs(e.x - cx) + abs(e.y - cy)
+                    if dist > active_radius:
+                        e.energy -= 0.1
+
+        # Attraction vector: low energy entities move toward center
+        for e in self.engine.social_hub.entities:
+            if e.alive and e.energy < 30:
+                cx, cy = self.engine.biome.w // 2, self.engine.biome.h // 2
+                dx = 1 if cx > e.x else -1 if cx < e.x else 0
+                dy = 1 if cy > e.y else -1 if cy < e.y else 0
+                e.x += dx
+                e.y += dy
+                e.x = max(0, min(self.engine.biome.w-1, e.x))
+                e.y = max(0, min(self.engine.biome.h-1, e.y))
+```
+
+---
+
+🔧 Integration Instructions (Phase 3)
+
+1. Add new systems to UnifiedEngine
+
+In UnifiedEngine.__init__, after existing initializations, add:
+
+```python
+from dlc1.magnetic import MagneticFieldsSystem
+from dlc1.rumor import RumorManager
+from dlc1.midway import MidwayBiome
+from dlc1.juggalo import JuggaloPartyManager
+from dlc1.stage import StageSystem
+from dlc1.cartridges import (
+    BinaryWraithCartridge, Chapter17Cartridge,
+    SubstrateCartridge, BioCarrierCartridge, PhysicsPatch
+)
+
+class UnifiedEngine:
+    def __init__(self, ...):
+        # ... existing code ...
+        self.magnetic_fields = MagneticFieldsSystem()
+        self.rumor_manager = RumorManager()
+        self.midway = MidwayBiome(self.biome.w, self.biome.h)
+        self.party_manager = JuggaloPartyManager()
+        self.stage_system = StageSystem(self)
+
+        # New cartridges
+        self.binary_wraith = BinaryWraithCartridge(self)
+        self.chapter17 = Chapter17Cartridge(self)
+        self.substrate = SubstrateCartridge(self)
+        self.bio_carrier = BioCarrierCartridge(self)
+        self.physics_patch = PhysicsPatch(self)
+
+        # Also ensure event_manager is present (from Phase 1)
+```
+
+2. Modify UnifiedEngine.tick()
+
+Inside tick(), after processing entities, add:
+
+```python
+def tick(self, user_input=None):
+    # ... existing updates ...
+
+    # Phase 3 systems
+    self.midway.tick(self)
+    self.party_manager.tick(self)
+    for e in self.social_hub.entities:
+        if e.alive:
+            self.magnetic_fields.update_entity(e, self)
+            self.midway.update_root_memories(e, self)
+            # CopMoment update (call static method)
+            from dlc1.cop import CopMoment
+            CopMoment.update(e, self)
+
+    # Cartridges
+    self.binary_wraith.tick()
+    self.chapter17.tick()
+    self.substrate.tick()
+    self.bio_carrier.tick()
+    self.physics_patch.apply()
+
+    # Stage effects
+    for e in self.social_hub.entities:
+        if e.alive:
+            self.stage_system.apply_stage_effects(e)
+```
+
+3. Add new constants to your main constants file
+
+If you haven't already, copy the constants from constants_dlc1.py into your main constants file, or import them directly. Make sure all required constants are defined.
+
+4. Use rumor manager in interactions
+
+Where appropriate (e.g., when a particle hears gossip), call:
+
+```python
+self.engine.rumor_manager.spread_rumor(rumor, listener, teller, self.engine)
+```
+
+5. Create festivals via VillageEmergence
+
+When your VillageEmergence creates a festival, also call:
+
+```python
+self.midway.create_festival(x, y, tick=current_tick)
+```
+
+6. Contribute to Midway field in actions
+
+In actions that should boost the carnival (Faygo use, playing games, Cop Moments), call:
+
+```python
+self.engine.midway.contribute_to_field(amount, self, stage, consent)
+```
+
+7. Check for Cop Moments
+
+In Entity.interact(), after processing the interaction, check:
+
+```python
+from dlc1.cop import CopMoment
+if CopMoment.check_trigger(self, other, self.engine):
+    CopMoment.trigger(self, other, self.engine)
+```
+
+---
+
+📦 PHASE 4: USER INTERFACE & INTERACTION SYSTEMS
+
+This phase adds the UI layers that let the player interact with the world in new ways: save slots, user grimoire, chat, color deposition, Ferris Wheel view, and start menu enhancements.
+
+---
+
+What’s inside Phase 4
+
+· config.py – Config class for persistent user settings.
+· saveslots.py – SaveSlot and SaveSlotManager for multiple save files.
+· usergrimoire.py – UserGrimoire – player’s stats, memories, stories, inventory.
+· chat.py – ChatMessage, ChatSystem – multi‑channel chat with entities.
+· colordeposit.py – ColorDeposition and ColorResidue – the crayon melting mechanic (already designed, finalised here).
+· start_menu.py – modifications to the existing start menu (new options, role selection, map config, etc.).
+· Integration notes for UnifiedEngine and Particle.
+
+All files go into the dlc1/ folder.
+
+---
+
+📁 File: dlc1/config.py
+
+```python
+# =============================================================================
+# CONFIGURATION MANAGEMENT – USER SETTINGS
+# =============================================================================
+
+import json
+import os
+
+class Config:
+    """Stores user settings persistently."""
+    def __init__(self):
+        self.map_width = 40
+        self.map_height = 20
+        self.map_depth = 5          # for spawn area (3D layer depth)
+        self.num_initial_entities = 8
+        self.user_role = "MYSTIC"    # default companion role
+        self.random_seed = None
+        self.simulation_speed = 0.1  # seconds per tick
+        self.default_view = 1        # 1 = 2D, 2 = emergent, 3 = feed
+        self.auto_gen_rolls = True
+        self.num_save_slots = 3
+        self.formation = "individual"  # individual, duo, group
+        self.config_file = "jym_config.json"
+
+    def save(self):
+        """Save config to JSON file."""
+        with open(self.config_file, 'w') as f:
+            json.dump(self.__dict__, f, indent=2)
+
+    def load(self):
+        """Load config from JSON file if it exists."""
+        if os.path.exists(self.config_file):
+            with open(self.config_file, 'r') as f:
+                data = json.load(f)
+                for k, v in data.items():
+                    if k in self.__dict__:
+                        setattr(self, k, v)
+```
+
+---
+
+📁 File: dlc1/saveslots.py
+
+```python
+# =============================================================================
+# SAVE SLOT MANAGEMENT
+# =============================================================================
+
+import os
+import json
+from datetime import datetime
+
+class SaveSlot:
+    """Represents a single save slot."""
+    def __init__(self, index: int, filename: str = None):
+        self.index = index
+        self.filename = filename or f"save_{index}.json"
+        self.name = f"Slot {index}"
+        self.timestamp = None
+        self.preview = ""
+        self.exists = False
+
+    def update_info(self):
+        """Read save file to extract metadata."""
+        if os.path.exists(self.filename):
+            try:
+                with open(self.filename, 'r') as f:
+                    data = json.load(f)
+                self.exists = True
+                stat = os.stat(self.filename)
+                self.timestamp = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M")
+                # Extract preview
+                if 'entities' in data and data['entities']:
+                    # try to get companion or first entity
+                    companion_uid = data.get('companion_uid')
+                    if companion_uid:
+                        for ed in data['entities']:
+                            if ed.get('uid') == companion_uid:
+                                self.preview = f"{ed.get('role','Unknown')} {ed.get('uid','?')} energy {ed.get('energy',0):.0f}"
+                                break
+                    else:
+                        ed = data['entities'][0]
+                        self.preview = f"{ed.get('role','Unknown')} {ed.get('uid','?')}"
+                else:
+                    self.preview = "Empty world"
+                if 'time_sys' in data and 'total_ticks' in data['time_sys']:
+                    self.preview += f" | Ticks: {data['time_sys']['total_ticks']}"
+            except:
+                self.exists = False
+                self.preview = "Corrupted save"
+        else:
+            self.exists = False
+            self.preview = "Empty slot"
+
+    def save(self, engine):
+        """Save engine state to this slot."""
+        from . import extended_save   # will be provided in engine integration
+        extended_save(engine, self.filename)
+        self.update_info()
+
+    def load(self, engine):
+        """Load engine state from this slot."""
+        from . import extended_load
+        extended_load(engine, self.filename)
+        self.update_info()
+
+    def display_line(self):
+        status = "✓" if self.exists else " "
+        return f"{self.index}. [{status}] {self.name} – {self.preview} ({self.timestamp or 'never'})"
+
+
+class SaveSlotManager:
+    """Manages multiple save slots."""
+    def __init__(self, num_slots: int = 3):
+        self.num_slots = num_slots
+        self.slots = [SaveSlot(i+1) for i in range(num_slots)]
+
+    def set_num_slots(self, new_num: int):
+        """Change number of slots (create new or truncate)."""
+        if new_num > self.num_slots:
+            for i in range(self.num_slots, new_num):
+                self.slots.append(SaveSlot(i+1))
+        elif new_num < self.num_slots:
+            self.slots = self.slots[:new_num]
+        self.num_slots = new_num
+        for i, slot in enumerate(self.slots):
+            slot.index = i+1
+            slot.filename = f"save_{i+1}.json"
+
+    def refresh_all(self):
+        for slot in self.slots:
+            slot.update_info()
+
+    def display(self):
+        print("\n=== SAVE SLOTS ===")
+        for slot in self.slots:
+            print(slot.display_line())
+        print(f"{self.num_slots+1}. Back")
+```
+
+---
+
+📁 File: dlc1/usergrimoire.py
+
+```python
+# =============================================================================
+# USER GRIMOIRE – PLAYER STATS, MEMORIES, STORIES, INVENTORY
+# =============================================================================
+
+import time
+import os
+from collections import deque
+
+class UserGrimoire:
+    """Holds user's personal data, memories, stories, and inventory."""
+    def __init__(self, engine):
+        self.engine = engine
+        self.stats = {
+            'presence': 50,
+            'magnetism': 50,
+            'agency': 50,
+            'warmth': 50,
+            'playfulness': 50,
+            'attunement': 50,
+            'intensity': 50
+        }
+        self.memories = deque(maxlen=20)
+        self.stories = []
+        self.motivation = 0.5
+        self.inventory = {
+            'treasures': 0,
+            'seeds': [],
+            'artifacts': []
+        }
+        self.notes = []
+
+    def add_memory(self, text: str, importance: float = 0.5):
+        self.memories.append({'text': text, 'importance': importance, 'time': time.time()})
+
+    def add_story(self, title: str, text: str):
+        self.stories.append({'title': title, 'text': text, 'time': time.time()})
+
+    def update_stats_from_entity(self, entity):
+        if entity:
+            self.stats['presence'] = entity.stats.presence
+            self.stats['magnetism'] = entity.stats.magnetism
+            self.stats['agency'] = entity.stats.agency
+            self.stats['warmth'] = entity.stats.warmth
+            self.stats['playfulness'] = entity.stats.playfulness
+            self.stats['attunement'] = entity.stats.attunement
+            self.stats['intensity'] = entity.stats.intensity
+            self.inventory['treasures'] = entity.treasures
+
+    def display(self) -> bool:
+        """Show grimoire in a text UI. Returns False when user exits."""
+        while True:
+            self._clear_screen()
+            print("\n" + "="*60)
+            print("📜 USER GRIMOIRE")
+            print("="*60)
+
+            print("\n--- STATS ---")
+            for k, v in self.stats.items():
+                bar = '█' * int(v/10) + '░' * (10 - int(v/10))
+                print(f"{k.capitalize():12} : {v:3} {bar}")
+
+            print("\n--- MOTIVATION ---")
+            bar = '█' * int(self.motivation*10) + '░' * (10 - int(self.motivation*10))
+            print(f"Desire: {self.motivation*100:.1f}% {bar}")
+
+            print("\n--- INVENTORY ---")
+            print(f"Treasures: {self.inventory['treasures']}")
+            print(f"Seeds: {len(self.inventory['seeds'])}")
+            print(f"Artifacts: {len(self.inventory['artifacts'])}")
+
+            print("\n--- RECENT MEMORIES ---")
+            for i, mem in enumerate(list(self.memories)[-5:], 1):
+                print(f"{i}. {mem['text']} (imp: {mem['importance']:.1f})")
+
+            print("\n--- STORIES ---")
+            for i, story in enumerate(self.stories[-3:], 1):
+                print(f"{i}. {story['title']}")
+
+            print("\nOptions:")
+            print("  [1-5]  View full memory")
+            print("  [s#]   View story (e.g., s1)")
+            print("  [n]    Add note")
+            print("  [share] Share selected item")
+            print("  [b]    Back")
+
+            choice = input(">> ").strip().lower()
+            if choice == 'b':
+                return False
+            elif choice.isdigit():
+                idx = int(choice)-1
+                if 0 <= idx < len(self.memories):
+                    mem = list(self.memories)[idx]
+                    print(f"\n📝 MEMORY: {mem['text']}\nImportance: {mem['importance']}")
+                    input("Press Enter to continue...")
+            elif choice.startswith('s'):
+                try:
+                    idx = int(choice[1:])-1
+                    if 0 <= idx < len(self.stories):
+                        story = self.stories[idx]
+                        print(f"\n📖 STORY: {story['title']}\n{story['text']}")
+                        input("Press Enter to continue...")
+                except:
+                    pass
+            elif choice == 'n':
+                note = input("Enter note: ")
+                self.notes.append(note)
+                print("Note added.")
+                input("Press Enter to continue...")
+            elif choice == 'share':
+                self._share_menu()
+            else:
+                print("Invalid choice.")
+                input("Press Enter to continue...")
+        return True
+
+    def _share_menu(self):
+        print("\n--- SHARE MENU ---")
+        print("1. Share a memory")
+        print("2. Share a story")
+        print("3. Share a stat")
+        print("4. Cancel")
+        sub = input("Choose: ").strip()
+        if sub == '1':
+            if not self.memories:
+                print("No memories.")
+                return
+            for i, mem in enumerate(list(self.memories)[-5:], 1):
+                print(f"{i}. {mem['text'][:40]}...")
+            try:
+                idx = int(input("Memory number: "))-1
+                mem = list(self.memories)[idx]
+                self._choose_target_and_send(f"memory: {mem['text']}")
+            except:
+                print("Invalid.")
+        elif sub == '2':
+            if not self.stories:
+                print("No stories.")
+                return
+            for i, story in enumerate(self.stories[-3:], 1):
+                print(f"{i}. {story['title']}")
+            try:
+                idx = int(input("Story number: "))-1
+                story = self.stories[idx]
+                self._choose_target_and_send(f"story: {story['title']}\n{story['text']}")
+            except:
+                print("Invalid.")
+        elif sub == '3':
+            print("Stats:")
+            for i, (k, v) in enumerate(self.stats.items(), 1):
+                print(f"{i}. {k}: {v}")
+            try:
+                idx = int(input("Stat number: "))-1
+                stat_name = list(self.stats.keys())[idx]
+                stat_val = self.stats[stat_name]
+                self._choose_target_and_send(f"stat {stat_name}: {stat_val}")
+            except:
+                print("Invalid.")
+        elif sub == '4':
+            return
+
+    def _choose_target_and_send(self, content):
+        print("\nTarget options:")
+        print("1. Companion")
+        print("2. Nearby entity")
+        print("3. Long-distance friend")
+        print("4. Group")
+        print("5. Cancel")
+        tgt = input("Choose: ").strip()
+        if tgt == '1':
+            if self.engine.social_hub.companion:
+                self.engine.chat.send_direct(self.engine.social_hub.companion, f"[Shared] {content}")
+                self.engine.add_log("Shared with companion.")
+            else:
+                print("No companion.")
+        elif tgt == '2':
+            if self.engine.social_hub.companion:
+                cx, cy = self.engine.social_hub.companion.x, self.engine.social_hub.companion.y
+                nearby = [e for e in self.engine.social_hub.entities if e.alive and e != self.engine.social_hub.companion and abs(e.x-cx)+abs(e.y-cy) <= 5]
+                if nearby:
+                    print("Nearby entities:")
+                    for i, e in enumerate(nearby, 1):
+                        print(f"{i}. {e.role} {e.uid}")
+                    try:
+                        idx = int(input("Choose: "))-1
+                        target = nearby[idx]
+                        self.engine.chat.send_direct(target, f"[Shared] {content}")
+                        self.engine.add_log(f"Shared with {target.role} {target.uid}.")
+                    except:
+                        print("Invalid.")
+                else:
+                    print("No nearby entities.")
+        elif tgt == '3':
+            self.engine.chat.long_distance_menu(content)
+        elif tgt == '4':
+            self.engine.chat.send_group(content)
+        elif tgt == '5':
+            return
+
+    def _clear_screen(self):
+        os.system('cls' if os.name == 'nt' else 'clear')
+```
+
+---
+
+📁 File: dlc1/chat.py
+
+```python
+# =============================================================================
+# CHAT SYSTEM – NEARBY, GROUP, LONG‑DISTANCE, DIRECT
+# =============================================================================
+
+import time
+from collections import deque
+from dataclasses import dataclass
+
+@dataclass
+class ChatMessage:
+    sender: str
+    content: str
+    channel: str
+    timestamp: float = None
+
+    def __post_init__(self):
+        if self.timestamp is None:
+            self.timestamp = time.time()
+
+    def display(self):
+        t = time.ctime(self.timestamp)[11:19]
+        return f"[{t}] {self.sender}: {self.content}"
+
+
+class ChatSystem:
+    """Manages different chat channels."""
+    def __init__(self, engine):
+        self.engine = engine
+        self.nearby_messages = deque(maxlen=50)
+        self.group_messages = deque(maxlen=50)
+        self.long_distance_messages = deque(maxlen=50)
+        self.direct_messages = {}          # uid -> deque
+        self.contacts = []                 # list of (name, uid, seed)
+
+    def send_nearby(self, sender, content):
+        """Send to all entities within range of sender."""
+        if isinstance(sender, str):
+            sender_name = sender
+            sender_entity = None
+        else:
+            sender_entity = sender
+            sender_name = f"{sender.role} {sender.uid}"
+        msg = ChatMessage(sender_name, content, 'nearby')
+        self.nearby_messages.append(msg)
+        if sender_entity:
+            for e in self.engine.social_hub.entities:
+                if e.alive and e != sender_entity and abs(e.x-sender_entity.x)+abs(e.y-sender_entity.y) <= 5:
+                    e.receive_message(msg)
+        self.engine.add_log(f"[Nearby] {sender_name}: {content}")
+
+    def send_group(self, sender, content):
+        """Send to all entities in same group (formation)."""
+        sender_name = f"{sender.role} {sender.uid}" if not isinstance(sender, str) else sender
+        msg = ChatMessage(sender_name, content, 'group')
+        self.group_messages.append(msg)
+        self.engine.add_log(f"[Group] {sender_name}: {content}")
+
+    def send_long_distance(self, sender, recipient_name, content):
+        """Send to a saved contact by name."""
+        contact = next((c for c in self.contacts if c[0] == recipient_name), None)
+        if contact:
+            msg = ChatMessage(sender, content, 'long_distance')
+            self.long_distance_messages.append(msg)
+            self.engine.add_log(f"[Long-distance to {recipient_name}] {sender}: {content}")
+        else:
+            print(f"Contact '{recipient_name}' not found.")
+
+    def send_direct(self, recipient, content, sender="User"):
+        """Send a direct message to a specific entity."""
+        if isinstance(recipient, Entity):
+            uid = recipient.uid
+            name = f"{recipient.role} {uid}"
+            if uid not in self.direct_messages:
+                self.direct_messages[uid] = deque(maxlen=20)
+            msg = ChatMessage(sender, content, f"direct:{uid}")
+            self.direct_messages[uid].append(msg)
+            recipient.receive_message(msg)
+            self.engine.add_log(f"[To {name}] {sender}: {content}")
+        else:
+            self.send_long_distance(sender, recipient, content)
+
+    def long_distance_menu(self, content):
+        if not self.contacts:
+            print("No long-distance friends yet. Add one?")
+            if input("Add friend? (y/n): ").lower() == 'y':
+                name = input("Friend's name: ")
+                self.contacts.append((name, None, None))
+                print(f"{name} added.")
+        if self.contacts:
+            print("Long-distance friends:")
+            for i, (name, _, _) in enumerate(self.contacts, 1):
+                print(f"{i}. {name}")
+            try:
+                idx = int(input("Choose: "))-1
+                if 0 <= idx < len(self.contacts):
+                    self.send_long_distance("User", self.contacts[idx][0], content)
+            except:
+                pass
+
+    def display_nearby(self):
+        print("\n--- NEARBY CHAT ---")
+        for msg in list(self.nearby_messages)[-10:]:
+            print(msg.display())
+
+    def display_group(self):
+        print("\n--- GROUP CHAT ---")
+        for msg in list(self.group_messages)[-10:]:
+            print(msg.display())
+
+    def display_long_distance(self):
+        print("\n--- LONG-DISTANCE CHAT ---")
+        for msg in list(self.long_distance_messages)[-10:]:
+            print(msg.display())
+
+    def display_direct(self, uid=None):
+        if uid is None:
+            print("\n--- DIRECT MESSAGES ---")
+            for uid, msgs in self.direct_messages.items():
+                last = msgs[-1] if msgs else None
+                if last:
+                    print(f"{uid}: {last.content[:40]}...")
+        else:
+            msgs = self.direct_messages.get(uid, [])
+            for msg in list(msgs)[-10:]:
+                print(msg.display())
+```
+
+---
+
+📁 File: dlc1/colordeposit.py
+
+```python
+# =============================================================================
+# COLOR DEPOSITION – CRAYON MELTING ART
+# =============================================================================
+
+import numpy as np
+from collections import deque
+
+class ColorResidue:
+    """Stores a blended color tensor and total weight for a tile."""
+    def __init__(self, tensor=None, weight=0.0):
+        # tensor is a 7x3 numpy array (colors × Body/Mind/Flow)
+        self.tensor = tensor if tensor is not None else np.zeros((7, 3))
+        self.weight = weight
+
+    def add(self, new_tensor, deposit_weight=1.0):
+        """Blend a new tensor into this residue using weighted average."""
+        if self.weight == 0:
+            self.tensor = new_tensor.copy()
+            self.weight = deposit_weight
+        else:
+            total = self.weight + deposit_weight
+            self.tensor = (self.tensor * self.weight + new_tensor * deposit_weight) / total
+            self.weight = total
+
+    def decay(self, factor=0.995):
+        """Reduce weight over time (color fades)."""
+        self.weight *= factor
+
+    def influence(self, target_tensor, strength=0.1):
+        """Shift target tensor slightly toward this residue."""
+        if self.weight == 0:
+            return target_tensor
+        return target_tensor + strength * (self.tensor - target_tensor)
+
+
+class ColorDeposition:
+    """Manages color residues on the map and handles sharing between entities."""
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.residues = {}          # (x, y) -> ColorResidue
+        self.decay_rate = 0.995     # per tick
+        self.diffusion_rate = 0.1   # how much spreads to neighbors
+
+    def deposit(self, x, y, tensor, weight=1.0):
+        """Add an entity's color tensor to a tile."""
+        if not (0 <= x < self.width and 0 <= y < self.height):
+            return
+        key = (x, y)
+        if key not in self.residues:
+            self.residues[key] = ColorResidue()
+        self.residues[key].add(tensor, weight)
+
+    def get_residue(self, x, y):
+        return self.residues.get((x, y))
+
+    def tick(self):
+        """Apply decay and diffusion to all residues."""
+        new_residues = {}
+        for (x, y), res in self.residues.items():
+            # Decay
+            res.decay(self.decay_rate)
+            if res.weight < 0.01:
+                continue
+
+            # Diffusion to four neighbors
+            for dx, dy in [(0,1),(0,-1),(1,0),(-1,0)]:
+                nx, ny = x+dx, y+dy
+                if 0 <= nx < self.width and 0 <= ny < self.height:
+                    amount = res.weight * self.diffusion_rate / 4
+                    if amount > 0.001:
+                        key = (nx, ny)
+                        if key not in new_residues:
+                            new_residues[key] = ColorResidue()
+                        new_residues[key].add(res.tensor, amount)
+
+            # Keep the original after decay
+            if res.weight > 0.01:
+                new_residues[(x, y)] = res
+
+        self.residues = new_residues
+
+    def share_color(self, source_entity, target_entity, amount=0.2):
+        """Blend the color tensors of two entities."""
+        source_tensor = source_entity.current_tensor
+        target_tensor = target_entity.current_tensor
+        new_source = source_tensor + amount * (target_tensor - source_tensor)
+        new_target = target_tensor + amount * (source_tensor - target_tensor)
+        source_entity.current_tensor = new_source
+        target_entity.current_tensor = new_target
+        if hasattr(source_entity, 'engine') and source_entity.engine:
+            source_entity.engine.add_log(f"{source_entity.role} shares color with {target_entity.role}.")
+```
+
+---
+
+📁 File: dlc1/start_menu.py
+
+```python
+# =============================================================================
+# START MENU EXTENSIONS – ROLE SELECTION, MAP CONFIG, FORMATION
+# =============================================================================
+
+import random
+import time
+import os
+from .config import Config
+from .saveslots import SaveSlotManager
+
+AVAILABLE_ROLES = [
+    "MYSTIC", "SKEPTIC", "FOOL", "PIRATE", "KID", "PREDATOR", "STORYTELLER", "CHICKEN",
+    "SPIN", "CHAOS", "KINETIC", "ENTROPY", "BATTERY", "HEAVY"
+]
+
+def choose_role():
+    print("\n=== SELECT YOUR COMPANION ROLE ===")
+    for i, role in enumerate(AVAILABLE_ROLES, 1):
+        print(f"{i}. {role}")
+    while True:
+        try:
+            choice = int(input("Enter number: "))
+            if 1 <= choice <= len(AVAILABLE_ROLES):
+                return AVAILABLE_ROLES[choice-1]
+        except ValueError:
+            pass
+        print("Invalid choice. Try again.")
+
+def configure_map():
+    print("\n=== MAP CONFIGURATION ===")
+    print("Default is 40x20 with depth 5 (spawn area 6x6x5).")
+    w = input("Map width (default 40): ").strip()
+    h = input("Map height (default 20): ").strip()
+    d = input("Map depth (for spawn, default 5): ").strip()
+    try:
+        w = int(w) if w else 40
+        h = int(h) if h else 20
+        d = int(d) if d else 5
+    except ValueError:
+        print("Invalid input, using defaults.")
+        w, h, d = 40, 20, 5
+    return w, h, d
+
+def settings_menu(config):
+    print("\n=== SETTINGS ===")
+    print(f"1. Map size (current: {config.map_width}x{config.map_height})")
+    print(f"2. Number of initial entities (current: {config.num_initial_entities})")
+    print(f"3. Default role (current: {config.user_role})")
+    print(f"4. Simulation speed (current: {config.simulation_speed}s)")
+    print(f"5. Auto-gen rolls (current: {config.auto_gen_rolls})")
+    print(f"6. Number of save slots (current: {config.num_save_slots})")
+    print(f"7. Formation (current: {config.formation})")
+    print("8. Save and return")
+    choice = input("Choose: ").strip()
+    if choice == '1':
+        w, h, d = configure_map()
+        config.map_width, config.map_height, config.map_depth = w, h, d
+    elif choice == '2':
+        try:
+            n = int(input("Number of initial entities: "))
+            config.num_initial_entities = n
+        except:
+            print("Invalid.")
+    elif choice == '3':
+        config.user_role = choose_role()
+    elif choice == '4':
+        try:
+            s = float(input("Seconds per tick: "))
+            config.simulation_speed = s
+        except:
+            print("Invalid.")
+    elif choice == '5':
+        config.auto_gen_rolls = input("Auto-gen rolls? (y/n): ").lower() == 'y'
+    elif choice == '6':
+        try:
+            ns = int(input(f"Number of save slots (current {config.num_save_slots}): "))
+            if ns >= 1:
+                config.num_save_slots = ns
+        except:
+            print("Invalid.")
+    elif choice == '7':
+        f = input("Formation (individual/duo/group): ").strip().lower()
+        if f in ('individual','duo','group'):
+            config.formation = f
+        else:
+            print("Invalid.")
+    elif choice == '8':
+        config.save()
+        return
+    config.save()
+
+def new_game_with_slots(config, slot_manager):
+    print("\n=== NEW GAME ===")
+    print("Select a save slot for this game:")
+    slot_manager.display()
+    try:
+        choice = int(input("Slot number (or Enter to cancel): ").strip())
+        if 1 <= choice <= len(slot_manager.slots):
+            slot = slot_manager.slots[choice-1]
+            if slot.exists:
+                confirm = input(f"Slot {choice} already exists. Overwrite? (y/n): ").lower()
+                if confirm != 'y':
+                    return
+            # Create engine and start
+            from . import patched_new_game  # we'll define this later
+            patched_new_game(config)
+        elif choice == len(slot_manager.slots)+1:
+            return
+        else:
+            print("Invalid choice.")
+    except ValueError:
+        pass
+
+def load_game_with_slots(config, slot_manager):
+    print("\n=== LOAD GAME ===")
+    slot_manager.display()
+    try:
+        choice = int(input("Slot number: ").strip())
+        if 1 <= choice <= len(slot_manager.slots):
+            slot = slot_manager.slots[choice-1]
+            if not slot.exists:
+                print("Slot is empty.")
+                return
+            from . import patched_load_game
+            patched_load_game(config, slot.filename)
+        elif choice == len(slot_manager.slots)+1:
+            return
+        else:
+            print("Invalid choice.")
+    except ValueError:
+        pass
+
+def start_menu():
+    """Main start menu loop."""
+    config = Config()
+    config.load()
+    slot_manager = SaveSlotManager(config.num_save_slots)
+    slot_manager.refresh_all()
+
+    print("="*60)
+    print("JOKE YA MIND – DLC 1: THE MISSING LINK")
+    print("="*60)
+
+    while True:
+        print("\n1. New Game")
+        print("2. Load Game")
+        print("3. Settings")
+        print("4. Test Mode")
+        print("5. View License")
+        print("6. From the Steward")   # joke book archive
+        print("7. Quit")
+        choice = input("Choose: ").strip()
+
+        if choice == '1':
+            new_game_with_slots(config, slot_manager)
+        elif choice == '2':
+            load_game_with_slots(config, slot_manager)
+        elif choice == '3':
+            settings_menu(config)
+        elif choice == '4':
+            test_mode(config)
+        elif choice == '5':
+            display_license()
+        elif choice == '6':
+            steward_menu()
+        elif choice == '7':
+            print("Goodbye! No Kings.")
+            break
+        else:
+            print("Invalid choice.")
+```
+
+---
+
+🔧 Integration Instructions (Phase 4)
+
+1. Add new systems to UnifiedEngine
+
+In UnifiedEngine.__init__, add:
+
+```python
+from dlc1.usergrimoire import UserGrimoire
+from dlc1.chat import ChatSystem
+from dlc1.colordeposit import ColorDeposition
+
+class UnifiedEngine:
+    def __init__(self, config=None):
+        # ... existing init ...
+        self.grimoire = UserGrimoire(self)
+        self.chat = ChatSystem(self)
+        self.color_deposit = ColorDeposition(self.biome.w, self.biome.h)
+        self.config = config or Config()
+```
+
+2. Modify UnifiedEngine.tick()
+
+Add:
+
+```python
+def tick(self, user_input=None):
+    # ... existing updates ...
+    self.color_deposit.tick()
+```
+
+3. Add new commands to handle_input()
+
+Add cases for:
+
+· grimoire – open user grimoire
+· chat – open chat interface
+· say [text] – send nearby chat
+· tell [name]: [text] – direct message
+· group [text] – send to group
+· colors – show color deposition heatmap (optional)
+· save [slot] – save to a slot (if slot number given)
+· load [slot] – load from a slot
+
+You'll need to modify the existing handle_input method to include these.
+
+4. Add receive_message to Entity
+
+```python
+def receive_message(self, msg):
+    """Handle an incoming chat message."""
+    if msg.sender == "User":
+        if random.random() < 0.3:
+            response = self.respond_to_user(msg.content)
+            self.engine.chat.send_direct("User", response, sender=f"{self.role} {self.uid}")
+    # else ignore (or react based on bond)
+```
+
+5. Modify start menu to use the new start_menu() function
+
+In your main script, instead of directly creating an engine, call start_menu(). This will handle role selection, save slots, etc., and then launch the engine with the chosen config.
+
+6. Add Ferris Wheel view mode
+
+In UnifiedEngine.render(), add a new view mode (e.g., VIEW_EMERGENT = 2) and a corresponding render method that shows hidden info (soil states, pirate loot, humus, etc.). You can copy the _render_emergent function from earlier brainstorming.
+
+Example:
+
+```python
+def _render_emergent(self):
+    print("\n=== EMERGENT VIEW ===")
+    # Show soil states
+    for y in range(self.biome.h):
+        line = ""
+        for x in range(self.biome.w):
+            s = self.soil.states[x][y]
+            line += SOIL_STATE_NAMES[s][0]
+        print(line)
+    # Show pirate info, humus, etc.
+    if hasattr(self, 'pirate'):
+        print(f"Hidden loot: {len(self.pirate.hidden_loot)} spots")
+    if hasattr(self, 'substrate'):
+        print(f"Humus avg: {np.mean(self.substrate.humus):.2f}")
+    input("Press Enter to continue...")
+    self.view = 1
+```
+
+Add a command 'v' to cycle views.
+
+7. Add From the Steward archive
+
+In start_menu.py, define steward_menu() that displays the joke book texts (you can load them from files or embed strings). Provide options to view Joke Book, Poem Jokes, Joke Ya Mind.
+
+8. License display
+
+In start_menu.py, define display_license() that prints the MIT No Kings license text.
+
+---
+
