@@ -1,0 +1,4594 @@
+Lazy Version...ill get there ..fuck you hahah 🤜🤛🤷🕊️🎡🍽️🥧
+Status: READY FOR IMPLEMENTATION
+License: MIT No Kings Edition
+Core Invariant: 0 = 3 (Observer + Race + Reflection)
+
+A unified field simulation engine for emergent behavior, suitable for all ages and open-source distribution.
+
+---
+
+📋 TABLE OF CONTENTS
+
+1. Core Philosophy & Invariants
+2. System Architecture
+3. Physics Engine
+4. Particle System
+5. World Environment
+6. Governance Systems
+7. Interaction Protocols
+8. Persistence & Output
+9. User Interface
+10. Constants & Configuration
+11. Implementation Checklist
+12. Testing Strategy
+13. Complete Code Structure
+14. API Reference
+15. Example Simulations
+
+---
+
+1. CORE PHILOSOPHY & INVARIANTS
+
+1.1 Fundamental Principles
+
+Principle Description
+Emergence Behavior arises from physics, not scripts
+Autonomy Particles act based on internal state only
+Memory All systems retain history
+Conservation Energy-like quantities flow and transform
+Observation System runs regardless of observation
+
+1.2 Core Invariants (Non-Negotiable)
+
+ID Invariant Enforcement
+I0 0 = 3 — Complete only with Observer + Race + Reflection Checked each tick
+I1 Time flows monotonically Tick counter only increments
+I2 Energy dissipates according to gradients Decay functions
+I3 Particles are autonomous No external control of decisions
+I4 Every action has consequences State updates deterministic
+I5 No self-exemption All particles follow same rules
+I6 Physics runs independently Continuous even with no observers
+I7 Conflict destroys value Combat reduces total system energy
+I8 Value is contextual Depends on local conditions
+I9 Objective logging WraithLog immutable
+I10 Universal decay All state variables decay to baseline
+
+1.3 Containment Protocol
+
+If 3+ invariants violated within 100 ticks:
+
+· Enter Containment Mode
+· Only minimal output allowed
+· No new interactions
+· Energy regeneration only
+· Auto-exit after stabilization
+
+---
+
+2. SYSTEM ARCHITECTURE
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    JOKE YA MIND v2 ENGINE                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │                    COUNCIL                           │   │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐           │   │
+│  │  │ Observer │ │Attunement│ │ Authority│           │   │
+│  │  └──────────┘ └──────────┘ └──────────┘           │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                              │                               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │                 PHYSICS ENGINE                       │   │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐           │   │
+│  │  │ Membrane │ │  Memory  │ │   RNG    │           │   │
+│  │  └──────────┘ └──────────┘ └──────────┘           │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                              │                               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │                 PARTICLE SYSTEM                      │   │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐           │   │
+│  │  │  State   │ │  Tensor  │ │   Bond   │           │   │
+│  │  └──────────┘ └──────────┘ └──────────┘           │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                              │                               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │                  WORLD ENGINE                        │   │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐           │   │
+│  │  │  Biome   │ │   Time   │ │Settlement│           │   │
+│  │  └──────────┘ └──────────┘ └──────────┘           │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                              │                               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │                 PERSISTENCE                          │   │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐           │   │
+│  │  │ Cassette │ │  Voice   │ │   Log    │           │   │
+│  │  └──────────┘ └──────────┘ └──────────┘           │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                              │                               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │                    USER INTERFACE                    │   │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐           │   │
+│  │  │   Menu   │ │ Grimoire │ │   Chat   │           │   │
+│  │  └──────────┘ └──────────┘ └──────────┘           │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+3. PHYSICS ENGINE
+
+3.1 Core Constants
+
+```python
+# physics/constants.py
+PHI = (1 + 5**0.5) / 2           # Golden ratio
+GOLDEN_ANGLE = 2 * math.pi * (1 - 1/PHI)  # ~137.5°
+
+# Dimensional axes (7D space)
+NDIM = 7
+AXES = [1, 2, 3, 4, 5, 12, 17]   # Conceptual axis labels
+
+# Field dynamics
+ALPHA = 0.8      # Momentum weight
+BETA = 0.1       # RNG weight
+GAMMA = 0.1      # Flux weight
+GAMMA_MEMBRANE = 0.1   # Membrane decay
+GAMMA_MEMORY = 0.05    # Memory decay
+FLUX_STRENGTH = 0.03   # Environmental flux
+STOCHASTIC_AMP = 0.01  # RNG amplitude
+THRESHOLD_POP = 0.5    # Tension threshold
+```
+
+3.2 Membrane Class
+
+```python
+class Membrane:
+    """
+    7D spinning membrane with dual stabilizers.
+    Represents the fundamental field through which all particles interact.
+    """
+    
+    def __init__(self):
+        self.M = [0.0] * NDIM          # Main membrane field
+        self.M_stab1 = [0.0] * NDIM    # Fast stabilizer
+        self.M_stab2 = [0.0] * NDIM    # Slow stabilizer
+        self.tension = 0.0
+        self.phase = 0.0
+    
+    def update(self, p: List[float], N: List[float], E: float, dt: float = 0.01) -> None:
+        """
+        Update membrane: M += α·p + β·N + γ·E
+        
+        Args:
+            p: Momentum vector
+            N: Stochastic injection
+            E: Environmental flux (scalar)
+            dt: Time delta
+        """
+        for i in range(NDIM):
+            # Main update
+            self.M[i] += ALPHA * p[i] + BETA * N[i] + GAMMA * E
+            self.M[i] *= (1 - GAMMA_MEMBRANE)
+            
+            # Stabilizer updates (low-pass filters)
+            self.M_stab1[i] += 0.5 * (self.M[i] - self.M_stab1[i])
+            self.M_stab2[i] += 0.5 * (self.M[i] - self.M_stab2[i])
+        
+        # Tension = L1 norm of stabilizer difference
+        self.tension = sum(abs(self.M[i] - self.M_stab1[i]) for i in range(NDIM))
+        self.phase += GOLDEN_ANGLE * dt
+    
+    def pop(self) -> bool:
+        """Check if tension exceeds threshold (critical event)."""
+        return self.tension > THRESHOLD_POP
+    
+    def serialize(self) -> dict:
+        return {
+            'M': list(self.M),
+            'M_stab1': list(self.M_stab1),
+            'M_stab2': list(self.M_stab2),
+            'tension': self.tension,
+            'phase': self.phase
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'Membrane':
+        m = cls()
+        m.M = data['M']
+        m.M_stab1 = data['M_stab1']
+        m.M_stab2 = data['M_stab2']
+        m.tension = data['tension']
+        m.phase = data['phase']
+        return m
+```
+
+3.3 MemoryField Class
+
+```python
+class MemoryField:
+    """
+    High or low resolution memory storage field.
+    Stores historical state information with decay.
+    """
+    
+    RESOLUTIONS = ['high', 'low']
+    
+    def __init__(self, name: str, resolution: str = 'high'):
+        assert resolution in self.RESOLUTIONS, f"Resolution must be {self.RESOLUTIONS}"
+        self.name = name
+        self.resolution = resolution
+        self.psi = [0.0] * NDIM
+        self.energy = 0.0
+    
+    def store(self, M: List[float], N: List[float], p: List[float], E: float) -> None:
+        """Store current state into memory field."""
+        H = 0.05 * (sum(M) + sum(N) + sum(p) + E * NDIM)
+        if self.resolution == 'low':
+            H *= 0.5
+        
+        for i in range(NDIM):
+            self.psi[i] += H
+        
+        self.energy = sum(x**2 for x in self.psi)
+    
+    def decay(self) -> None:
+        """Apply memory decay."""
+        for i in range(NDIM):
+            self.psi[i] *= (1 - GAMMA_MEMORY)
+        self.energy = sum(x**2 for x in self.psi)
+    
+    def serialize(self) -> dict:
+        return {
+            'name': self.name,
+            'resolution': self.resolution,
+            'psi': list(self.psi),
+            'energy': self.energy
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'MemoryField':
+        mf = cls(data['name'], data['resolution'])
+        mf.psi = data['psi']
+        mf.energy = data['energy']
+        return mf
+```
+
+3.4 RNGratchet Class
+
+```python
+class RNGratchet:
+    """
+    Stochastic injection engine.
+    Provides controlled randomness to the system.
+    """
+    
+    def __init__(self):
+        self.state = [0.0] * NDIM
+        self.phase = [0.0] * NDIM
+        self.history = deque(maxlen=100)
+        self.steps = 0
+    
+    def step(self) -> List[float]:
+        """Generate next stochastic vector."""
+        raw = [random.choice([-1, 0, 1]) for _ in range(NDIM)]
+        
+        for i in range(NDIM):
+            self.phase[i] += GOLDEN_ANGLE
+            self.state[i] = raw[i] * STOCHASTIC_AMP
+        
+        self.steps += 1
+        self.history.append(list(self.state))
+        return list(self.state)
+    
+    def statistics(self) -> dict:
+        """Return statistics about recent stochastic activity."""
+        if not self.history:
+            return {'mean': 0.0, 'variance': 0.0, 'activity': 0}
+        
+        arr = [sum(x) for x in self.history]
+        mean = sum(arr) / len(arr)
+        var = sum((x - mean)**2 for x in arr) / len(arr)
+        
+        return {
+            'mean': mean,
+            'variance': var,
+            'activity': len(self.history),
+            'steps': self.steps
+        }
+    
+    def serialize(self) -> dict:
+        return {
+            'state': list(self.state),
+            'phase': list(self.phase),
+            'steps': self.steps
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'RNGratchet':
+        r = cls()
+        r.state = data['state']
+        r.phase = data['phase']
+        r.steps = data['steps']
+        return r
+```
+
+3.5 BridgeNetwork Class
+
+```python
+class BridgeNetwork:
+    """
+    Network of bridges connecting high and low memory fields.
+    Bridges form when fields are sufficiently aligned.
+    """
+    
+    def __init__(self):
+        self.bridges: List[Tuple[List[float], List[float]]] = []
+        self.percolation = 0.0
+        self.threshold = 0.8
+    
+    def detect(self, M_high: List[float], M_low: List[float]) -> bool:
+        """Check for bridge formation between high and low fields."""
+        dist = sum((h - l)**2 for h, l in zip(M_high, M_low))**0.5
+        
+        if dist < self.threshold:
+            self.bridges.append((list(M_high), list(M_low)))
+            if len(self.bridges) > 100:
+                self.bridges.pop(0)
+            self._update_percolation()
+            return True
+        return False
+    
+    def _update_percolation(self) -> None:
+        """Update percolation value (fraction of connected nodes)."""
+        if not self.bridges:
+            self.percolation = 0.0
+            return
+        
+        # Collect unique node vectors
+        nodes = set()
+        for h, l in self.bridges:
+            nodes.add(tuple(h))
+            nodes.add(tuple(l))
+        
+        # Simple percolation = bridge count / node count
+        self.percolation = len(self.bridges) / max(1, len(nodes))
+    
+    def compute_percolation(self) -> float:
+        return self.percolation
+    
+    def serialize(self) -> dict:
+        return {
+            'bridges': [(list(h), list(l)) for h, l in self.bridges],
+            'percolation': self.percolation,
+            'threshold': self.threshold
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'BridgeNetwork':
+        bn = cls()
+        bn.bridges = [(list(h), list(l)) for h, l in data['bridges']]
+        bn.percolation = data['percolation']
+        bn.threshold = data['threshold']
+        return bn
+```
+
+3.6 UnifiedPhysics Class
+
+```python
+class UnifiedPhysics:
+    """
+    Complete physics engine integrating all field dynamics.
+    Central simulation controller.
+    """
+    
+    def __init__(self):
+        # Core fields
+        self.wraith = [0.0] * NDIM      # Observer field
+        self.seed = [0.0] * NDIM        # Core seed field
+        self.damion = [0.0] * NDIM      # Decay field
+        self.juggalo = [0.0] * NDIM     # Regeneration field
+        
+        # Field components
+        self.membrane = Membrane()
+        self.high_mem = MemoryField("crystal", "high")
+        self.low_mem = MemoryField("fungi", "low")
+        self.bridges = BridgeNetwork()
+        self.rng = RNGratchet()
+        
+        # Momentum and environment
+        self.p = [0.0] * NDIM           # Momentum field
+        self.environment = [FLUX_STRENGTH] * NDIM
+        
+        # State tracking
+        self.tick_count = 0
+        self.invariant = 0
+        self.history: List[dict] = []
+        self.containment_mode = False
+        self.invariant_violations = 0
+    
+    def step(self) -> dict:
+        """Advance physics by one tick. Returns summary of changes."""
+        self.tick_count += 1
+        
+        # 1. Stochastic injection
+        N = self.rng.step()
+        E = sum(self.environment) / NDIM
+        
+        # 2. Damion (decay) field evolution
+        for i in range(NDIM):
+            self.damion[i] += 0.1 * N[i] + 0.05 * self.seed[i]
+            self.damion[i] *= (1 - GAMMA_MEMBRANE)
+        
+        # 3. Seed field evolution
+        for i in range(NDIM):
+            self.seed[i] += self.damion[i] + self.juggalo[i]
+            self.seed[i] += (1 if self.seed[i] > 0 else -1) * 0.01
+        
+        # 4. Juggalo (regeneration) field
+        for i in range(NDIM):
+            self.juggalo[i] += 0.5 * (self.seed[i] + self.damion[i])
+        
+        # 5. Environmental flux variation
+        for i in range(NDIM):
+            self.environment[i] += random.uniform(-0.01, 0.01)
+            self.environment[i] = max(0.0, min(0.1, self.environment[i]))
+        
+        # 6. Membrane update
+        self.membrane.update(self.p, N, E)
+        
+        # 7. Memory update
+        self.high_mem.store(self.membrane.M, N, self.p, E)
+        self.low_mem.store(self.membrane.M, N, self.p, E)
+        self.high_mem.decay()
+        self.low_mem.decay()
+        
+        # 8. Bridge detection
+        self.bridges.detect(self.high_mem.psi, self.low_mem.psi)
+        
+        # 9. Wraith (observer) field
+        self.wraith = list(self.seed)
+        
+        # 10. Momentum update
+        for i in range(NDIM):
+            self.p[i] = ALPHA * self.p[i] + BETA * N[i] + GAMMA * self.environment[i]
+        
+        # 11. Invariant check (0 = 3)
+        total = (sum(self.membrane.M) + sum(self.high_mem.psi) +
+                 sum(self.low_mem.psi) + sum(N) + sum(self.p) +
+                 sum(self.environment) + sum(self.wraith))
+        self.invariant = int(total % 3)
+        
+        # 12. Containment mode check
+        self._check_containment()
+        
+        # Record history
+        summary = {
+            'tick': self.tick_count,
+            'invariant': self.invariant,
+            'tension': self.membrane.tension,
+            'memory_energy': self.high_mem.energy + self.low_mem.energy,
+            'bridges': len(self.bridges.bridges),
+            'percolation': self.bridges.percolation,
+            'containment': self.containment_mode
+        }
+        self.history.append(summary)
+        
+        return summary
+    
+    def _check_containment(self) -> None:
+        """Check invariants and update containment mode."""
+        # Simplified invariant check
+        violations = 0
+        
+        # I2: Energy should not increase without source
+        if len(self.history) > 10:
+            recent = [h['memory_energy'] for h in self.history[-10:]]
+            if recent[-1] > max(recent[:-1]) * 1.5:
+                violations += 1
+        
+        # I7: Conflict destroys value - check tension spikes
+        if self.membrane.tension > THRESHOLD_POP * 2:
+            violations += 1
+        
+        if violations >= 3:
+            self.invariant_violations += 1
+        else:
+            self.invariant_violations = max(0, self.invariant_violations - 1)
+        
+        self.containment_mode = self.invariant_violations >= 3
+    
+    def field_state(self) -> dict:
+        """Return current field values."""
+        return {
+            'membrane': list(self.membrane.M),
+            'high_mem': list(self.high_mem.psi),
+            'low_mem': list(self.low_mem.psi),
+            'wraith': list(self.wraith),
+            'seed': list(self.seed),
+            'damion': list(self.damion),
+            'juggalo': list(self.juggalo),
+            'momentum': list(self.p),
+            'invariant': self.invariant,
+            'tension': self.membrane.tension,
+            'bridges': len(self.bridges.bridges),
+            'percolation': self.bridges.percolation,
+            'containment': self.containment_mode,
+            'tick': self.tick_count
+        }
+    
+    def serialize(self) -> dict:
+        return {
+            'wraith': list(self.wraith),
+            'seed': list(self.seed),
+            'damion': list(self.damion),
+            'juggalo': list(self.juggalo),
+            'membrane': self.membrane.serialize(),
+            'high_mem': self.high_mem.serialize(),
+            'low_mem': self.low_mem.serialize(),
+            'bridges': self.bridges.serialize(),
+            'p': list(self.p),
+            'environment': list(self.environment),
+            'tick_count': self.tick_count,
+            'invariant': self.invariant,
+            'containment': self.containment_mode,
+            'invariant_violations': self.invariant_violations
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'UnifiedPhysics':
+        u = cls()
+        u.wraith = data['wraith']
+        u.seed = data['seed']
+        u.damion = data['damion']
+        u.juggalo = data['juggalo']
+        u.membrane = Membrane.deserialize(data['membrane'])
+        u.high_mem = MemoryField.deserialize(data['high_mem'])
+        u.low_mem = MemoryField.deserialize(data['low_mem'])
+        u.bridges = BridgeNetwork.deserialize(data['bridges'])
+        u.p = data['p']
+        u.environment = data['environment']
+        u.tick_count = data['tick_count']
+        u.invariant = data['invariant']
+        u.containment_mode = data['containment']
+        u.invariant_violations = data['invariant_violations']
+        return u
+```
+
+---
+
+4. PARTICLE SYSTEM
+
+4.1 ParticleFamily Enum
+
+```python
+from enum import Enum, auto
+
+class ParticleFamily(Enum):
+    """Families represent core behavioral clusters."""
+    TYPE_A = 1  # High volatility, low withdrawal
+    TYPE_B = 2  # High intensity, high fixation
+    TYPE_C = 3  # Low volatility, high observation
+    TYPE_D = 4  # Variable, high anxiety
+    TYPE_E = 5  # High structure, high stability
+    
+    @classmethod
+    def from_int(cls, value: int) -> 'ParticleFamily':
+        return cls(value)
+    
+    def description(self) -> str:
+        return {
+            1: "Volatile explorer",
+            2: "Intense focuser",
+            3: "Calm observer",
+            4: "Anxious learner",
+            5: "Stable organizer"
+        }[self.value]
+```
+
+4.2 ParticleCoordinates Dataclass
+
+```python
+@dataclass
+class ParticleCoordinates:
+    """
+    5-dimensional personality coordinates for particles.
+    These define baseline behavioral tendencies.
+    """
+    warmth: int = 3      # 1-6: Affiliative tendency
+    softness: int = 3    # 1-6: Yielding tendency
+    family: int = 1      # 1-5: Maps to ParticleFamily
+    axis_a: int = 3      # 1-5: Primary behavioral axis
+    axis_b: int = 3      # 1-5: Secondary behavioral axis
+    
+    def __post_init__(self):
+        self.clamp()
+    
+    def clamp(self) -> 'ParticleCoordinates':
+        """Ensure all coordinates within valid ranges."""
+        self.warmth = max(1, min(6, int(self.warmth)))
+        self.softness = max(1, min(6, int(self.softness)))
+        self.family = max(1, min(5, int(self.family)))
+        self.axis_a = max(1, min(5, int(self.axis_a)))
+        self.axis_b = max(1, min(5, int(self.axis_b)))
+        return self
+    
+    def as_tuple(self) -> Tuple[int, int, int, int, int]:
+        return (self.warmth, self.softness, self.family, self.axis_a, self.axis_b)
+    
+    @classmethod
+    def from_tuple(cls, t: Tuple) -> 'ParticleCoordinates':
+        return cls(*t).clamp()
+    
+    def inverse(self) -> 'ParticleCoordinates':
+        """Generate inverse coordinates (for dual-identity particles)."""
+        family_opp = {1: 2, 2: 1, 3: 4, 4: 3, 5: 5}
+        return ParticleCoordinates(
+            warmth=7 - self.warmth,
+            softness=7 - self.softness,
+            family=family_opp.get(self.family, self.family),
+            axis_a=6 - self.axis_a,
+            axis_b=6 - self.axis_b
+        ).clamp()
+```
+
+4.3 ParticleState Dataclass
+
+```python
+@dataclass
+class ParticleState:
+    """Dynamic state variables for a particle."""
+    energy: float = 80.0      # 0-100: Available capacity
+    valence: int = 3          # 1-5: Emotional valence (1=negative, 5=positive)
+    engagement: int = 3       # 1-5: Engagement with environment
+    
+    def __post_init__(self):
+        self.clamp()
+    
+    def clamp(self) -> 'ParticleState':
+        self.energy = max(0.0, min(100.0, float(self.energy)))
+        self.valence = max(1, min(5, int(self.valence)))
+        self.engagement = max(1, min(5, int(self.engagement)))
+        return self
+    
+    def serialize(self) -> dict:
+        return {
+            'energy': self.energy,
+            'valence': self.valence,
+            'engagement': self.engagement
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'ParticleState':
+        return cls(
+            energy=data.get('energy', 80.0),
+            valence=data.get('valence', 3),
+            engagement=data.get('engagement', 3)
+        ).clamp()
+```
+
+4.4 PersonalityTensor Class
+
+```python
+COLORS = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple", "White"]
+AXES = ["Body", "Mind", "Flow"]
+
+# Base values by family (indexed by ParticleFamily.value)
+BASE_BODY = {
+    1: [4, 4, 3, 3, 3, 2, 2],
+    2: [5, 3, 2, 1, 5, 4, 1],
+    3: [2, 2, 3, 3, 5, 3, 4],
+    4: [2, 2, 2, 5, 3, 3, 3],
+    5: [3, 3, 5, 2, 4, 3, 2],
+}
+
+BASE_MIND = {
+    1: [3, 4, 3, 3, 4, 2, 2],
+    2: [4, 3, 1, 1, 5, 4, 1],
+    3: [1, 2, 3, 3, 5, 3, 4],
+    4: [2, 2, 2, 5, 3, 3, 3],
+    5: [3, 3, 5, 2, 4, 3, 2],
+}
+
+# Modulation weights
+MOD_W = {
+    "Red": 0.5, "Orange": 0.3, "Yellow": 0.2,
+    "Green": 0.3, "Blue": 0.2, "Purple": 0.3, "White": 0.1
+}
+MOD_S = {
+    "Red": 0.1, "Orange": 0.3, "Yellow": 0.4,
+    "Green": 0.5, "Blue": 0.2, "Purple": 0.3, "White": 0.1
+}
+MOD_A = 0.15
+MOD_B = 0.15
+
+
+class PersonalityTensor:
+    """
+    7 colors × 3 axes tensor.
+    Each cell is 1-5 representing activation level.
+    """
+    
+    def __init__(self):
+        self.data = {c: {ax: 3 for ax in AXES} for c in COLORS}
+    
+    def get(self, color: str, axis: str) -> int:
+        return self.data.get(color, {}).get(axis, 3)
+    
+    def set(self, color: str, axis: str, value: int) -> None:
+        if color in self.data and axis in self.data[color]:
+            self.data[color][axis] = max(1, min(5, int(value)))
+    
+    def average_flow(self) -> float:
+        return sum(self.get(c, "Flow") for c in COLORS) / len(COLORS)
+    
+    def dominant_color(self) -> str:
+        scores = {c: sum(self.data[c].values()) for c in COLORS}
+        return max(scores, key=scores.get)
+    
+    def to_vector(self) -> List[int]:
+        """Flatten tensor to 21-element vector."""
+        vec = []
+        for c in COLORS:
+            for ax in AXES:
+                vec.append(self.data[c][ax])
+        return vec
+    
+    def build(self, coords: ParticleCoordinates) -> 'PersonalityTensor':
+        """Build tensor from coordinates."""
+        f = coords.family - 1
+        w_shift = coords.warmth - 3.5
+        s_shift = coords.softness - 3.5
+        a_shift = coords.axis_a - 3.0
+        b_shift = coords.axis_b - 3.0
+        
+        for i, color in enumerate(COLORS):
+            base_b = BASE_BODY[coords.family][i]
+            base_m = BASE_MIND[coords.family][i]
+            
+            body_val = base_b + MOD_W[color] * w_shift + MOD_S[color] * s_shift + MOD_A * a_shift
+            mind_val = base_m + MOD_W[color] * w_shift * 0.8 + MOD_S[color] * s_shift * 0.8 + MOD_B * b_shift
+            
+            self.set(color, "Body", int(round(body_val)))
+            self.set(color, "Mind", int(round(mind_val)))
+            self.set(color, "Flow", 3)  # Flow starts neutral
+        
+        return self
+    
+    def serialize(self) -> dict:
+        return dict(self.data)
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'PersonalityTensor':
+        pt = cls()
+        for color, axes in data.items():
+            if color in pt.data:
+                for ax, val in axes.items():
+                    pt.set(color, ax, val)
+        return pt
+```
+
+4.5 Bond Dataclass
+
+```python
+@dataclass
+class Bond:
+    """Represents a connection between two particles."""
+    target_uid: str
+    strength: float = 0.5      # 0-1: Bond strength
+    bond_type: str = "neutral"
+    history: List[str] = field(default_factory=list)
+    created_tick: int = 0
+    
+    def strengthen(self, amount: float) -> None:
+        self.strength = max(0.0, min(1.0, self.strength + amount))
+        self.history.append(f"+{amount:.2f}")
+    
+    def weaken(self, amount: float) -> None:
+        self.strength = max(0.0, min(1.0, self.strength - amount))
+        self.history.append(f"-{amount:.2f}")
+    
+    def sentiment(self) -> float:
+        """Calculate net sentiment from history."""
+        pos = sum(1 for h in self.history if h.startswith("+"))
+        neg = sum(1 for h in self.history if h.startswith("-"))
+        total = pos + neg
+        return (pos - neg) / total if total else 0.0
+    
+    def serialize(self) -> dict:
+        return {
+            'target_uid': self.target_uid,
+            'strength': self.strength,
+            'bond_type': self.bond_type,
+            'history': list(self.history),
+            'created_tick': self.created_tick
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'Bond':
+        return cls(
+            target_uid=data['target_uid'],
+            strength=data['strength'],
+            bond_type=data['bond_type'],
+            history=data['history'],
+            created_tick=data['created_tick']
+        )
+```
+
+4.6 ArousalSystem Class
+
+```python
+class ArousalSystem:
+    """Tracks excitation and desire factors for a particle."""
+    
+    def __init__(self):
+        self.excitation: int = 0           # 0-5
+        self.desire_factor: float = 0.0    # 0-1
+        self.target_uid: Optional[str] = None
+        self.signal_cooldown: int = 0
+        self.history: deque = deque(maxlen=50)
+    
+    def update(self, state: ParticleState, bonds: Dict[str, Bond]) -> None:
+        """Update excitation based on state and bonds."""
+        e_norm = state.energy / 100.0
+        v_norm = (state.valence - 3) / 2.0
+        
+        # Base excitation
+        base = (e_norm + max(0, v_norm) * 0.5) * 5
+        self.excitation = max(0, min(5, int(base)))
+        
+        # Bond bonus
+        if bonds:
+            best = max(bonds.values(), key=lambda b: b.strength)
+            self.target_uid = best.target_uid
+            self.desire_factor = min(1.0, best.strength * 1.5)
+        else:
+            self.target_uid = None
+            self.desire_factor = 0.0
+        
+        # Cooldown
+        if self.signal_cooldown > 0:
+            self.signal_cooldown -= 1
+        
+        self.history.append(self.excitation)
+    
+    def should_signal(self) -> bool:
+        """Determine if particle should send an affiliative signal."""
+        if self.signal_cooldown > 0 or self.excitation < 3:
+            return False
+        if random.random() < 0.05 * self.excitation:
+            self.signal_cooldown = 10
+            return True
+        return False
+    
+    def statistics(self) -> dict:
+        return {
+            'excitation': self.excitation,
+            'desire_factor': self.desire_factor,
+            'target': self.target_uid,
+            'avg_excitation': sum(self.history) / len(self.history) if self.history else 0
+        }
+```
+
+4.7 AnxietyCuriositySystem Class
+
+```python
+class AnxietyCuriositySystem:
+    """Tracks particle's anxiety and curiosity levels."""
+    
+    def __init__(self):
+        self.anxiety: float = 0.0
+        self.curiosity: float = 0.0
+        self.history: deque = deque(maxlen=50)
+    
+    def update(self, state: ParticleState, tensor: PersonalityTensor,
+               poison: float, family: int) -> None:
+        """Update anxiety and curiosity based on state and environment."""
+        e = state.energy / 100.0
+        v = (state.valence - 1) / 4.0
+        en = state.engagement / 5.0
+        
+        # Anxiety calculation
+        anx = e * (1 - v) * en + poison * 0.3
+        if family == 4:      # Type D (anxious)
+            anx *= 1.3
+        elif family == 2:    # Type B (intense)
+            anx *= 1.2
+        
+        self.anxiety = max(0.0, min(1.0, anx))
+        
+        # Curiosity calculation
+        orange_m = tensor.get("Orange", "Mind") / 5.0
+        cur = orange_m * 0.4 + en * 0.4 + 0.2
+        if family == 4:      # Type D (curious)
+            cur *= 1.1
+        
+        self.curiosity = max(0.0, min(1.0, cur))
+        
+        self.history.append(self.anxiety)
+    
+    def should_explore(self) -> bool:
+        """Determine if particle should explore based on curiosity."""
+        return self.curiosity > 0.6 and random.random() < 0.1
+    
+    def should_withdraw(self) -> bool:
+        """Determine if particle should withdraw based on anxiety."""
+        return self.anxiety > 0.7 and random.random() < 0.05
+    
+    def statistics(self) -> dict:
+        return {
+            'anxiety': self.anxiety,
+            'curiosity': self.curiosity
+        }
+```
+
+4.8 CircadianSystem Class
+
+```python
+class CircadianSystem:
+    """Tracks time-of-day and day cycles."""
+    
+    TICKS_PER_HOUR = 10
+    HOURS_PER_DAY = 24
+    
+    def __init__(self):
+        self.hour: int = 12
+        self.day: int = 1
+        self._ticks: int = 0
+        self._history: deque = deque(maxlen=100)
+    
+    def tick(self) -> None:
+        """Advance one tick."""
+        self._ticks += 1
+        if self._ticks % self.TICKS_PER_HOUR == 0:
+            self.hour = (self.hour + 1) % self.HOURS_PER_DAY
+            if self.hour == 0:
+                self.day += 1
+    
+    def light_level(self) -> float:
+        """Return current light level (0-1)."""
+        rad = ((self.hour - 6) / self.HOURS_PER_DAY) * 2 * math.pi
+        return max(0.0, min(1.0, (math.sin(rad) + 1) / 2))
+    
+    def is_night(self) -> bool:
+        return self.hour < 6 or self.hour > 20
+    
+    def serialize(self) -> dict:
+        return {
+            'hour': self.hour,
+            'day': self.day,
+            'ticks': self._ticks
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'CircadianSystem':
+        c = cls()
+        c.hour = data['hour']
+        c.day = data['day']
+        c._ticks = data['ticks']
+        return c
+```
+
+4.9 EnergyEconomy Class
+
+```python
+class EnergyEconomy:
+    """Tracks and manages particle's energy resource."""
+    
+    def __init__(self, starting: float = 50.0):
+        self.energy: float = starting
+        self.history: deque = deque(maxlen=100)
+    
+    def tick(self, valence: int) -> None:
+        """Update energy based on valence and natural decay."""
+        if valence > 3:
+            self.energy += 0.05 * (valence - 3)
+        elif valence < 3:
+            self.energy -= 0.05 * (3 - valence)
+        
+        # Natural decay
+        self.energy -= 0.02
+        self.energy = max(0.0, min(100.0, self.energy))
+        self.history.append(self.energy)
+    
+    def spend(self, amount: float) -> None:
+        """Spend energy."""
+        self.energy = max(0.0, min(100.0, self.energy - amount))
+        self.history.append(self.energy)
+    
+    def gain(self, amount: float) -> None:
+        """Gain energy."""
+        self.energy = max(0.0, min(100.0, self.energy + amount))
+        self.history.append(self.energy)
+    
+    def can_afford(self, amount: float) -> bool:
+        return self.energy >= amount
+    
+    def statistics(self) -> dict:
+        avg = sum(self.history) / len(self.history) if self.history else 0
+        return {
+            'current': self.energy,
+            'average': avg,
+            'min': min(self.history) if self.history else 0,
+            'max': max(self.history) if self.history else 0
+        }
+    
+    def serialize(self) -> dict:
+        return {'energy': self.energy}
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'EnergyEconomy':
+        return cls(data['energy'])
+```
+
+4.10 Memory Dataclass
+
+```python
+@dataclass
+class Memory:
+    """Represents a single memory."""
+    description: str
+    importance: float = 0.5
+    mem_type: str = "interaction"
+    tick: int = 0
+    tags: List[str] = field(default_factory=list)
+    
+    def serialize(self) -> dict:
+        return {
+            'description': self.description,
+            'importance': self.importance,
+            'type': self.mem_type,
+            'tick': self.tick,
+            'tags': list(self.tags)
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'Memory':
+        return cls(
+            description=data['description'],
+            importance=data['importance'],
+            mem_type=data['type'],
+            tick=data['tick'],
+            tags=data['tags']
+        )
+```
+
+4.11 MemorySystem Class
+
+```python
+class MemorySystem:
+    """In-memory memory system for particles."""
+    
+    HIGH_RES_MAX = 100
+    
+    def __init__(self, particle_uid: str):
+        self.uid: str = particle_uid
+        self.high_res: deque = deque(maxlen=self.HIGH_RES_MAX)
+        self.low_res: dict = {
+            "interaction_count": 0,
+            "positive_ratio": 0.5,
+            "conflict_count": 0,
+            "avg_importance": 0.5
+        }
+    
+    def record(self, description: str, importance: float = 0.5,
+               mem_type: str = "interaction", tick: int = 0,
+               tags: List[str] = None) -> None:
+        """Record a memory."""
+        memory = Memory(description, importance, mem_type, tick, tags or [])
+        self.high_res.append(memory)
+        
+        # Update low-res stats
+        self.low_res["interaction_count"] += 1
+        if importance > 0.5:
+            self.low_res["positive_ratio"] = (
+                self.low_res["positive_ratio"] * 0.9 + 0.1 * importance
+            )
+        self.low_res["avg_importance"] = (
+            self.low_res["avg_importance"] * 0.95 + 0.05 * importance
+        )
+    
+    def recent(self, n: int = 5) -> List[Memory]:
+        """Get recent memories."""
+        items = list(self.high_res)
+        return items[-n:]
+    
+    def recall(self, query: str = "") -> Optional[Memory]:
+        """Recall a memory matching query (simplified)."""
+        if not self.high_res:
+            return None
+        
+        if query:
+            # Simple keyword matching
+            for mem in reversed(self.high_res):
+                if query.lower() in mem.description.lower():
+                    return mem
+        # Random recall
+        return random.choice(list(self.high_res)) if self.high_res else None
+    
+    def gut_feeling(self, target_uid: str = "") -> float:
+        """Return gut feeling about another particle."""
+        return self.low_res.get("positive_ratio", 0.5)
+    
+    def serialize(self) -> dict:
+        return {
+            'uid': self.uid,
+            'low_res': dict(self.low_res),
+            'high_res': [m.serialize() for m in self.high_res]
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'MemorySystem':
+        ms = cls(data['uid'])
+        ms.low_res = data['low_res']
+        ms.high_res = deque(
+            [Memory.deserialize(m) for m in data['high_res']],
+            maxlen=cls.HIGH_RES_MAX
+        )
+        return ms
+```
+
+4.12 Development Phase Constants
+
+```python
+class DevelopmentPhase(Enum):
+    """Particle development phases."""
+    SEED = 1   # Initial
+    BLOOM = 2  # Growth
+    BIND = 3   # Consolidation
+    VOID = 4   # Transformation
+    APEX = 5   # Maximum development
+    
+    @classmethod
+    def from_int(cls, value: int) -> 'DevelopmentPhase':
+        return cls(value)
+
+
+PHASE_XP = {
+    DevelopmentPhase.SEED: 0,
+    DevelopmentPhase.BLOOM: 50,
+    DevelopmentPhase.BIND: 200,
+    DevelopmentPhase.VOID: 500,
+    DevelopmentPhase.APEX: 1000,
+}
+```
+
+4.13 ActionType Enum and Costs
+
+```python
+class ActionType(Enum):
+    """All possible particle actions."""
+    # Movement
+    WAIT = "wait"
+    OBSERVE = "observe"
+    APPROACH = "approach"
+    WITHDRAW = "withdraw"
+    REST = "rest"
+    EXPLORE = "explore"
+    
+    # Social
+    CONVERSE = "converse"
+    SIGNAL = "signal"
+    BOND = "bond"
+    SUPPORT = "support"
+    DIRECT = "direct"
+    YIELD = "yield"
+    
+    # Conflict
+    CHALLENGE = "challenge"
+    PROVOKE = "provoke"
+    DISRUPT = "disrupt"
+    
+    # Expression
+    EXPRESS_POSITIVE = "express_positive"
+    EXPRESS_NEGATIVE = "express_negative"
+    EXPRESS_ANGER = "express_anger"
+    EXPRESS_POUT = "express_pout"
+    SILENCE = "silence"
+    
+    # Maintenance
+    DRINK_WATER = "drink_water"
+    DRINK_JUICE = "drink_juice"
+    SPRINT = "sprint"
+    POUNCE = "pounce"
+    PLAY = "play"
+
+
+ACTION_COST = {
+    ActionType.WAIT: 0,
+    ActionType.OBSERVE: 0,
+    ActionType.APPROACH: 2,
+    ActionType.WITHDRAW: 1,
+    ActionType.REST: -5,
+    ActionType.EXPLORE: 2,
+    ActionType.CONVERSE: 1,
+    ActionType.SIGNAL: 1,
+    ActionType.BOND: 2,
+    ActionType.SUPPORT: 3,
+    ActionType.DIRECT: 2,
+    ActionType.YIELD: 1,
+    ActionType.CHALLENGE: 2,
+    ActionType.PROVOKE: 1,
+    ActionType.DISRUPT: 1,
+    ActionType.EXPRESS_POSITIVE: 0,
+    ActionType.EXPRESS_NEGATIVE: 0,
+    ActionType.EXPRESS_ANGER: 1,
+    ActionType.EXPRESS_POUT: 0,
+    ActionType.SILENCE: 0,
+    ActionType.DRINK_WATER: 1,
+    ActionType.DRINK_JUICE: -10,
+    ActionType.SPRINT: 3,
+    ActionType.POUNCE: 2,
+    ActionType.PLAY: 1,
+}
+```
+
+4.14 MobilityState Enum
+
+```python
+class MobilityState(Enum):
+    """Particle mobility states."""
+    STATIC = "static"
+    STROLL = "stroll"
+    ACTIVE = "active"
+    BURST = "burst"
+    
+    @property
+    def speed_multiplier(self) -> float:
+        return {
+            MobilityState.STATIC: 0.0,
+            MobilityState.STROLL: 0.5,
+            MobilityState.ACTIVE: 1.0,
+            MobilityState.BURST: 2.0
+        }[self]
+```
+
+4.15 IdentityMode Enum
+
+```python
+class IdentityMode(Enum):
+    """Identity modes for dual-state particles."""
+    PRIMARY = "primary"
+    SECONDARY = "secondary"
+```
+
+4.16 BondPhase Enum
+
+```python
+class BondPhase(Enum):
+    """Phases of connection development between particles."""
+    NULL = 0      # No interaction history
+    SEED = 1      # Initial awareness
+    ROOT = 2      # Building foundation
+    BRANCH = 3    # Deepening exploration
+    TRUNK = 4     # Established connection
+    CANOPY = 5    # Complete integration
+    
+    @classmethod
+    def from_strength(cls, strength: float) -> 'BondPhase':
+        if strength < 0.2:
+            return cls.NULL
+        if strength < 0.4:
+            return cls.SEED
+        if strength < 0.6:
+            return cls.ROOT
+        if strength < 0.8:
+            return cls.BRANCH
+        if strength < 0.95:
+            return cls.TRUNK
+        return cls.CANOPY
+```
+
+4.17 Particle Class (Complete)
+
+```python
+class Particle:
+    """
+    Complete particle integrating all subsystems.
+    Represents an autonomous agent in the simulation.
+    """
+    
+    def __init__(self, name: str = "Particle", uid: Optional[str] = None,
+                 coords: Optional[ParticleCoordinates] = None,
+                 physics: Optional[UnifiedPhysics] = None):
+        
+        # Identity
+        self.uid = uid or hashlib.md5(
+            (name + str(random.random())).encode()).hexdigest()[:8]
+        self.name = name
+        self.alive = True
+        self.age: float = 18.0
+        self.race: str = "human"
+        
+        # Position
+        self.x: float = 0.0
+        self.y: float = 0.0
+        
+        # Physics reference
+        self.physics = physics
+        
+        # Core identity
+        self.coords = coords or ParticleCoordinates()
+        self.coords.clamp()
+        
+        # Dynamic state
+        self.state = ParticleState()
+        
+        # Personality tensor
+        self.tensor = PersonalityTensor().build(self.coords)
+        
+        # Mobility state
+        self.mobility_state = MobilityState.STATIC
+        
+        # Identity toggle (dual identity)
+        self.identity_mode = IdentityMode.PRIMARY
+        self.inv_coords = self.coords.inverse()
+        self.id_blend = 0.0        # 0=primary, 1=secondary
+        
+        # Bond phase
+        self.bond_phase = BondPhase.NULL
+        
+        # Bonds & relationships
+        self.bonds: Dict[str, Bond] = {}
+        self.recent_actions: deque = deque(maxlen=20)
+        
+        # Subsystems
+        self.arousal = ArousalSystem()
+        self.anx_cur = AnxietyCuriositySystem()
+        self.circadian = CircadianSystem()
+        self.energy_econ = EnergyEconomy()
+        
+        # Environmental
+        self.poison_level: float = 0.0
+        self.thirst: float = 0.0
+        self.juice_craving: float = 0.0
+        
+        # Dynamic physics params
+        self.leverage: float = 0.0
+        self.velocity: float = 0.0
+        self.phase: float = random.uniform(0, 2 * math.pi)
+        self.friction: float = 0.5
+        
+        # Development
+        self.xp: float = 0.0
+        self.development_phase = DevelopmentPhase.SEED
+        
+        # Memory
+        self.memory = MemorySystem(self.uid)
+        
+        # State
+        self.mood_val: str = "neutral"
+        self.last_action: str = ActionType.WAIT.value
+        self.opposition: Optional['OppositionHandler'] = None
+    
+    # --- Bond helpers ----------------------------------------------------
+    
+    def add_bond(self, target_uid: str, strength: float = 0.5) -> None:
+        if target_uid not in self.bonds:
+            self.bonds[target_uid] = Bond(
+                target_uid=target_uid,
+                strength=strength,
+                created_tick=self.physics.tick_count if self.physics else 0
+            )
+    
+    def get_bond(self, uid: str) -> Optional[Bond]:
+        return self.bonds.get(uid)
+    
+    def strongest_bond(self) -> Optional[Bond]:
+        if not self.bonds:
+            return None
+        return max(self.bonds.values(), key=lambda b: b.strength)
+    
+    def update_bond_phase(self) -> None:
+        """Update bond phase based on strongest bond."""
+        strongest = self.strongest_bond()
+        if strongest:
+            self.bond_phase = BondPhase.from_strength(strongest.strength)
+    
+    # --- Tick update -----------------------------------------------------
+    
+    def tick(self) -> None:
+        """Advance one tick, updating all systems."""
+        if not self.alive:
+            return
+        
+        tick_num = self.physics.tick_count if self.physics else 0
+        
+        # Time
+        self.circadian.tick()
+        
+        # Energy
+        self.energy_econ.tick(self.state.valence)
+        
+        # Arousal
+        self.arousal.update(self.state, self.bonds)
+        
+        # Anxiety/Curiosity
+        self.anx_cur.update(
+            self.state, self.tensor,
+            self.poison_level, self.coords.family
+        )
+        
+        # Mobility update
+        self._update_mobility()
+        
+        # Energy natural regen/decay
+        if self.state.energy < 30:
+            self.state.energy = min(100, self.state.energy + 0.5)
+        self.state.energy = max(0.0, min(100.0, self.state.energy - 0.1))
+        
+        # Thirst
+        self.thirst = max(0.0, min(1.0, self.thirst + 0.01))
+        if self.thirst > 0.8:
+            self.energy_econ.spend(0.2)
+        
+        # XP gain
+        self.xp += 0.1
+        self._check_development()
+        
+        # Update bond phase
+        self.update_bond_phase()
+    
+    def _update_mobility(self) -> None:
+        """Update mobility state based on energy and valence."""
+        e = self.state.energy
+        v = self.state.valence
+        
+        if e > 85:
+            self.mobility_state = MobilityState.ACTIVE
+        elif e > 70 and v >= 4:
+            self.mobility_state = MobilityState.STROLL
+        elif e < 20:
+            self.mobility_state = MobilityState.STATIC
+        else:
+            self.mobility_state = MobilityState.STATIC
+    
+    def _check_development(self) -> None:
+        """Check for development phase advancement."""
+        threshold = PHASE_XP.get(self.development_phase, 0)
+        if threshold and self.xp >= threshold:
+            phases = list(DevelopmentPhase)
+            idx = phases.index(self.development_phase)
+            if idx + 1 < len(phases):
+                self.development_phase = phases[idx + 1]
+    
+    # --- Identity toggle -------------------------------------------------
+    
+    def toggle_identity(self) -> None:
+        """Toggle between primary and secondary identity."""
+        if self.identity_mode == IdentityMode.PRIMARY:
+            self.identity_mode = IdentityMode.SECONDARY
+            self.tensor = PersonalityTensor().build(self.inv_coords)
+        else:
+            self.identity_mode = IdentityMode.PRIMARY
+            self.tensor = PersonalityTensor().build(self.coords)
+    
+    @property
+    def active_coords(self) -> ParticleCoordinates:
+        """Get active coordinates (blended if in transition)."""
+        if self.id_blend < 0.05:
+            return self.coords
+        if self.id_blend > 0.95:
+            return self.inv_coords
+        
+        # Interpolate
+        b = self.id_blend
+        n = self.coords
+        i = self.inv_coords
+        
+        return ParticleCoordinates(
+            warmth=int(round(n.warmth * (1 - b) + i.warmth * b)),
+            softness=int(round(n.softness * (1 - b) + i.softness * b)),
+            family=int(round(n.family * (1 - b) + i.family * b)),
+            axis_a=int(round(n.axis_a * (1 - b) + i.axis_a * b)),
+            axis_b=int(round(n.axis_b * (1 - b) + i.axis_b * b))
+        ).clamp()
+    
+    # --- Action Decision -------------------------------------------------
+    
+    def decide_action(self) -> ActionType:
+        """Decide next action based on current state."""
+        candidates: List[Tuple[ActionType, float]] = []
+        
+        anx = self.anx_cur.anxiety
+        cur = self.anx_cur.curiosity
+        aro = self.arousal.excitation
+        val = self.state.valence
+        eng = self.state.engagement
+        e = self.state.energy
+        bond = self.strongest_bond()
+        bs = bond.strength if bond else 0.0
+        
+        # Fight/flight
+        if anx > 0.7 and val <= 2:
+            candidates.append((ActionType.CHALLENGE, anx * 0.6))
+        if anx > 0.7 and e < 30:
+            candidates.append((ActionType.WITHDRAW, anx * 0.8))
+        
+        # Social
+        if val >= 4 and eng >= 4:
+            candidates.append((ActionType.EXPRESS_POSITIVE, 0.5))
+        if cur > 0.5:
+            candidates.append((ActionType.SIGNAL, cur * 0.4))
+            candidates.append((ActionType.EXPLORE, cur * 0.3))
+        if aro >= 3 and bs > 0.5:
+            candidates.append((ActionType.BOND, aro / 5 * 0.6 + bs * 0.3))
+        if bs > 0.7:
+            candidates.append((ActionType.SUPPORT, bs * 0.4))
+        
+        # Mobility-based
+        if self.mobility_state == MobilityState.STROLL:
+            candidates.append((ActionType.PLAY, 0.6))
+        if self.mobility_state == MobilityState.ACTIVE:
+            candidates.append((ActionType.SPRINT, 0.7))
+        
+        # Defaults
+        candidates += [
+            (ActionType.OBSERVE, 0.3),
+            (ActionType.WAIT, 0.2),
+            (ActionType.SILENCE, 0.15),
+        ]
+        if e < 30:
+            candidates.append((ActionType.REST, 0.7))
+        
+        # Night time rest preference
+        if self.circadian.is_night():
+            candidates.append((ActionType.REST, 0.5))
+        
+        # Energy filter
+        candidates = [(a, w) for a, w in candidates
+                      if e >= ACTION_COST.get(a, 0)]
+        
+        if not candidates:
+            return ActionType.WAIT
+        
+        # Weighted random selection
+        total = sum(w for _, w in candidates)
+        r = random.random() * total
+        
+        for action, weight in sorted(candidates, key=lambda x: -x[1]):
+            r -= weight
+            if r <= 0:
+                chosen = action
+                break
+        else:
+            chosen = ActionType.WAIT
+        
+        # Apply energy cost
+        cost = ACTION_COST.get(chosen, 0)
+        self.energy_econ.spend(cost)
+        self.last_action = chosen.value
+        self.recent_actions.append(chosen)
+        
+        return chosen
+    
+    # --- Persistence -----------------------------------------------------
+    
+    def serialize(self) -> dict:
+        return {
+            'uid': self.uid,
+            'name': self.name,
+            'alive': self.alive,
+            'age': self.age,
+            'race': self.race,
+            'x': self.x,
+            'y': self.y,
+            'coords': self.coords.as_tuple(),
+            'state': self.state.serialize(),
+            'tensor': self.tensor.serialize(),
+            'mobility': self.mobility_state.value,
+            'identity_mode': self.identity_mode.value,
+            'id_blend': self.id_blend,
+            'bond_phase': self.bond_phase.value,
+            'bonds': {uid: b.serialize() for uid, b in self.bonds.items()},
+            'arousal': {
+                'excitation': self.arousal.excitation,
+                'desire': self.arousal.desire_factor
+            },
+            'anx_cur': {
+                'anxiety': self.anx_cur.anxiety,
+                'curiosity': self.anx_cur.curiosity
+            },
+            'circadian': self.circadian.serialize(),
+            'energy_econ': self.energy_econ.serialize(),
+            'poison': self.poison_level,
+            'thirst': self.thirst,
+            'juice_craving': self.juice_craving,
+            'leverage': self.leverage,
+            'velocity': self.velocity,
+            'phase': self.phase,
+            'friction': self.friction,
+            'xp': self.xp,
+            'development_phase': self.development_phase.value,
+            'memory': self.memory.serialize(),
+            'mood': self.mood_val,
+            'last_action': self.last_action
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict, physics: Optional[UnifiedPhysics] = None) -> 'Particle':
+        p = cls(
+            name=data['name'],
+            uid=data['uid'],
+            coords=ParticleCoordinates.from_tuple(data['coords']),
+            physics=physics
+        )
+        
+        p.alive = data['alive']
+        p.age = data['age']
+        p.race = data['race']
+        p.x = data['x']
+        p.y = data['y']
+        p.state = ParticleState.deserialize(data['state'])
+        p.tensor = PersonalityTensor.deserialize(data['tensor'])
+        p.mobility_state = MobilityState(data['mobility'])
+        p.identity_mode = IdentityMode(data['identity_mode'])
+        p.id_blend = data['id_blend']
+        p.bond_phase = BondPhase(data['bond_phase'])
+        p.bonds = {uid: Bond.deserialize(b) for uid, b in data['bonds'].items()}
+        p.arousal.excitation = data['arousal']['excitation']
+        p.arousal.desire_factor = data['arousal']['desire']
+        p.anx_cur.anxiety = data['anx_cur']['anxiety']
+        p.anx_cur.curiosity = data['anx_cur']['curiosity']
+        p.circadian = CircadianSystem.deserialize(data['circadian'])
+        p.energy_econ = EnergyEconomy.deserialize(data['energy_econ'])
+        p.poison_level = data['poison']
+        p.thirst = data['thirst']
+        p.juice_craving = data['juice_craving']
+        p.leverage = data['leverage']
+        p.velocity = data['velocity']
+        p.phase = data['phase']
+        p.friction = data['friction']
+        p.xp = data['xp']
+        p.development_phase = DevelopmentPhase.from_int(data['development_phase'])
+        p.memory = MemorySystem.deserialize(data['memory'])
+        p.mood_val = data['mood']
+        p.last_action = data['last_action']
+        
+        return p
+    
+    # --- Status ----------------------------------------------------------
+    
+    def status_line(self) -> str:
+        """Return a one-line status summary."""
+        family = ParticleFamily(self.coords.family).name
+        return (f"{self.name} [{family}|{self.development_phase.name}] "
+                f"E:{self.state.energy:.0f} V:{self.state.valence} "
+                f"Aro:{self.arousal.excitation} | {self.mobility_state.value}")
+```
+
+---
+
+5. WORLD ENVIRONMENT
+
+5.1 Biome Class
+
+```python
+class Biome:
+    """Biome grid with nutrients, water, fungi, altitude."""
+    
+    def __init__(self, width: int, height: int):
+        self.width = width
+        self.height = height
+        self.nutrients = np.ones((width, height)) * 0.5
+        self.water = np.ones((width, height)) * 0.5
+        self.fungi = np.zeros((width, height))
+        self.bacteria = np.zeros((width, height))
+        self.altitude = self._generate_altitude()
+    
+    def _generate_altitude(self) -> np.ndarray:
+        """Generate altitude using diamond-square algorithm."""
+        grid = np.random.rand(self.width, self.height)
+        # Simple smoothing
+        for _ in range(3):
+            new = np.zeros_like(grid)
+            for x in range(self.width):
+                for y in range(self.height):
+                    s, c = 0, 0
+                    for dx in (-1, 0, 1):
+                        for dy in (-1, 0, 1):
+                            nx, ny = x + dx, y + dy
+                            if 0 <= nx < self.width and 0 <= ny < self.height:
+                                s += grid[nx, ny]
+                                c += 1
+                    new[x, y] = s / c if c else 0
+            grid = new
+        return grid
+    
+    def tick(self, light_level: float, storm: bool) -> None:
+        """Advance biome one tick."""
+        rain = 0.1 if storm else 0.01
+        
+        for x in range(self.width):
+            for y in range(self.height):
+                # Water cycle
+                if random.random() < 0.05:
+                    self.water[x, y] = min(1.0, self.water[x, y] + rain)
+                evap = 0.01 * light_level
+                self.water[x, y] = max(0.0, self.water[x, y] - evap)
+                
+                # Fungi growth
+                if self.water[x, y] > 0.6 and light_level < 0.3:
+                    self.fungi[x, y] = min(1.0, self.fungi[x, y] + 0.01)
+                
+                # Bacteria growth
+                if self.nutrients[x, y] > 0.6:
+                    self.bacteria[x, y] = min(1.0, self.bacteria[x, y] + 0.01)
+                
+                # Competition
+                if self.fungi[x, y] > 0.5 and self.bacteria[x, y] > 0.1:
+                    self.bacteria[x, y] *= 0.95
+                
+                # Nutrient cycling
+                self.nutrients[x, y] *= 0.999
+                if self.bacteria[x, y] > 0.5:
+                    self.nutrients[x, y] = min(1.0, self.nutrients[x, y] + 0.002)
+    
+    def get_tile(self, x: int, y: int) -> dict:
+        """Get tile properties."""
+        return {
+            'nutrients': self.nutrients[x, y],
+            'water': self.water[x, y],
+            'fungi': self.fungi[x, y],
+            'bacteria': self.bacteria[x, y],
+            'altitude': self.altitude[x, y]
+        }
+    
+    def is_sea(self, x: int, y: int) -> bool:
+        return 0 <= x < self.width and 0 <= y < self.height and self.water[x, y] > 0.6
+    
+    def is_mountain(self, x: int, y: int) -> bool:
+        return 0 <= x < self.width and 0 <= y < self.height and self.altitude[x, y] > 0.7
+    
+    def serialize(self) -> dict:
+        return {
+            'width': self.width,
+            'height': self.height,
+            'nutrients': self.nutrients.tolist(),
+            'water': self.water.tolist(),
+            'fungi': self.fungi.tolist(),
+            'bacteria': self.bacteria.tolist(),
+            'altitude': self.altitude.tolist()
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'Biome':
+        b = cls(data['width'], data['height'])
+        b.nutrients = np.array(data['nutrients'])
+        b.water = np.array(data['water'])
+        b.fungi = np.array(data['fungi'])
+        b.bacteria = np.array(data['bacteria'])
+        b.altitude = np.array(data['altitude'])
+        return b
+```
+
+5.2 TimeSystem Class
+
+```python
+class TimeSystem:
+    """Day/night, storms, eclipses."""
+    
+    TICKS_PER_DAY = 240
+    HOURS_PER_DAY = 24
+    
+    def __init__(self):
+        self.total_ticks = 0
+        self.day = 1
+        self.hour = 6
+        self.minute = 0
+        self.wind_speed = 0.5
+        self.wind_dir = 0
+        self.storm = False
+        self.eclipse = False
+    
+    def tick(self) -> None:
+        """Advance time by one tick."""
+        self.total_ticks += 1
+        
+        # Update time of day
+        day_progress = (self.total_ticks % self.TICKS_PER_DAY) / self.TICKS_PER_DAY
+        self.hour = int(day_progress * self.HOURS_PER_DAY)
+        self.minute = int((day_progress * self.HOURS_PER_DAY * 60) % 60)
+        
+        # New day
+        if self.hour == 0 and self.minute == 0:
+            self.day = (self.day % 7) + 1
+        
+        # Wind variation
+        self.wind_speed = max(0.0, min(1.0, self.wind_speed + random.uniform(-0.05, 0.05)))
+        self.wind_dir = (self.wind_dir + random.randint(-5, 5)) % 360
+        
+        # Storm probability
+        if not self.storm and random.random() < 0.005:
+            self.storm = True
+        elif self.storm and random.random() < 0.01:
+            self.storm = False
+        
+        # Eclipse probability
+        if not self.eclipse and random.random() < 0.001:
+            self.eclipse = True
+        elif self.eclipse and random.random() < 0.02:
+            self.eclipse = False
+    
+    def light_level(self) -> float:
+        """Return current light level (0-1)."""
+        rad = ((self.hour - 6) / self.HOURS_PER_DAY) * 2 * math.pi
+        base = (math.sin(rad) + 1) / 2
+        if self.eclipse:
+            base *= 0.1
+        if self.storm:
+            base *= 0.5
+        return max(0.0, min(1.0, base))
+    
+    def is_night(self) -> bool:
+        return self.hour < 6 or self.hour > 20
+    
+    def serialize(self) -> dict:
+        return {
+            'total_ticks': self.total_ticks,
+            'day': self.day,
+            'hour': self.hour,
+            'minute': self.minute,
+            'wind_speed': self.wind_speed,
+            'wind_dir': self.wind_dir,
+            'storm': self.storm,
+            'eclipse': self.eclipse
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'TimeSystem':
+        t = cls()
+        t.total_ticks = data['total_ticks']
+        t.day = data['day']
+        t.hour = data['hour']
+        t.minute = data['minute']
+        t.wind_speed = data['wind_speed']
+        t.wind_dir = data['wind_dir']
+        t.storm = data['storm']
+        t.eclipse = data['eclipse']
+        return t
+```
+
+5.3 VillageEmergence Class
+
+```python
+class VillageEmergence:
+    """Tracks tile affinity and builds emergent social structures."""
+    
+    AFFINITY_THRESHOLD = 10.0
+    FESTIVAL_DURATION = 50
+    TOWN_THRESHOLD = 5
+    
+    def __init__(self, width: int, height: int):
+        self.width = width
+        self.height = height
+        self.tile_affinity = np.zeros((width, height))
+        self.festivals: List[Tuple[int, int, int]] = []  # (x, y, duration)
+        self.towns: List[Tuple[int, int, str]] = []      # (x, y, name)
+    
+    def record_visit(self, x: int, y: int) -> None:
+        """Record a particle visit to a tile."""
+        if 0 <= x < self.width and 0 <= y < self.height:
+            self.tile_affinity[x, y] += 1
+    
+    def record_event(self, x: int, y: int) -> None:
+        """Record a significant event at a tile."""
+        if 0 <= x < self.width and 0 <= y < self.height:
+            self.tile_affinity[x, y] += 3
+    
+    def tick(self) -> List[str]:
+        """Advance village emergence. Returns list of events."""
+        events = []
+        
+        # Decay affinity
+        self.tile_affinity *= 0.999
+        
+        # Check for new festivals
+        for x in range(self.width):
+            for y in range(self.height):
+                if self.tile_affinity[x, y] > self.AFFINITY_THRESHOLD:
+                    if not any(f[0] == x and f[1] == y for f in self.festivals):
+                        self.festivals.append((x, y, self.FESTIVAL_DURATION))
+                        events.append(f"Festival begins at ({x},{y})")
+        
+        # Update festivals
+        for f in self.festivals[:]:
+            x, y, dur = f
+            new_dur = dur - 1
+            if new_dur <= 0:
+                self.festivals.remove(f)
+                # Check if enough festivals for town
+                festival_count = sum(1 for fx, fy, _ in self.festivals
+                                     if fx == x and fy == y)
+                if festival_count >= self.TOWN_THRESHOLD:
+                    town_name = f"Town_{len(self.towns)}"
+                    self.towns.append((x, y, town_name))
+                    events.append(f"Town formed at ({x},{y}): {town_name}")
+            else:
+                self.festivals[self.festivals.index(f)] = (x, y, new_dur)
+        
+        return events
+    
+    def get_affinity(self, x: int, y: int) -> float:
+        """Get affinity value for a tile."""
+        if 0 <= x < self.width and 0 <= y < self.height:
+            return float(self.tile_affinity[x, y])
+        return 0.0
+    
+    def serialize(self) -> dict:
+        return {
+            'width': self.width,
+            'height': self.height,
+            'tile_affinity': self.tile_affinity.tolist(),
+            'festivals': list(self.festivals),
+            'towns': list(self.towns)
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'VillageEmergence':
+        v = cls(data['width'], data['height'])
+        v.tile_affinity = np.array(data['tile_affinity'])
+        v.festivals = [tuple(f) for f in data['festivals']]
+        v.towns = [tuple(t) for t in data['towns']]
+        return v
+```
+
+5.4 RoadHomeSystem Class
+
+```python
+class RoadHomeSystem:
+    """Tracks paths and homes formed by particle movement."""
+    
+    ROAD_THRESHOLD = 5
+    HOME_THRESHOLD = 20
+    HOME_BONUS = 0.1
+    
+    def __init__(self, width: int, height: int):
+        self.width = width
+        self.height = height
+        self.passage_count = np.zeros((width, height))
+        self.roads: Set[Tuple[int, int]] = set()
+        self.homes: Dict[str, Tuple[int, int]] = {}  # particle uid -> (x, y)
+        self.time_at_tile: Dict[str, Tuple[int, int, int]] = {}  # uid -> (x, y, ticks)
+    
+    def record_passage(self, x: int, y: int) -> None:
+        """Record a particle passing through a tile."""
+        if 0 <= x < self.width and 0 <= y < self.height:
+            self.passage_count[x, y] += 1
+            if self.passage_count[x, y] >= self.ROAD_THRESHOLD:
+                self.roads.add((x, y))
+    
+    def update_home(self, uid: str, x: int, y: int) -> None:
+        """Update home status for a particle."""
+        if uid not in self.time_at_tile:
+            self.time_at_tile[uid] = (x, y, 1)
+        else:
+            hx, hy, ticks = self.time_at_tile[uid]
+            if hx == x and hy == y:
+                ticks += 1
+                if ticks >= self.HOME_THRESHOLD:
+                    self.homes[uid] = (x, y)
+            else:
+                ticks = 1
+            self.time_at_tile[uid] = (x, y, ticks)
+    
+    def home_bonus(self, uid: str, x: int, y: int) -> float:
+        """Calculate energy bonus from being at home."""
+        if uid in self.homes and self.homes[uid] == (x, y):
+            return self.HOME_BONUS
+        return 0.0
+    
+    def is_road(self, x: int, y: int) -> bool:
+        return (x, y) in self.roads
+    
+    def movement_cost_multiplier(self, x: int, y: int) -> float:
+        """Get movement cost multiplier for a tile."""
+        if (x, y) in self.roads:
+            return 0.5
+        return 1.0
+    
+    def serialize(self) -> dict:
+        return {
+            'width': self.width,
+            'height': self.height,
+            'passage_count': self.passage_count.tolist(),
+            'roads': list(self.roads),
+            'homes': dict(self.homes),
+            'time_at_tile': {k: list(v) for k, v in self.time_at_tile.items()}
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'RoadHomeSystem':
+        r = cls(data['width'], data['height'])
+        r.passage_count = np.array(data['passage_count'])
+        r.roads = set(tuple(p) for p in data['roads'])
+        r.homes = {k: tuple(v) for k, v in data['homes'].items()}
+        r.time_at_tile = {k: tuple(v) for k, v in data['time_at_tile'].items()}
+        return r
+```
+
+5.5 SoilState Enum and Machine
+
+```python
+class SoilState(Enum):
+    """Soil states for the gravity carnival."""
+    MINERAL = 0     # Base state
+    CARNIVAL = 1    # Festive, active
+    COMPOST = 2     # Decaying, rich
+    MYCELIAL = 3    # Fungal network
+    FALLOW = 4      # Resting
+    REJECTION = 5   # Hostile
+    
+    @property
+    def viscosity(self) -> float:
+        """Movement resistance multiplier."""
+        return [1.0, 0.3, 0.5, 0.2, 0.8, 1.5][self.value]
+    
+    @property
+    def nutrient_flow(self) -> float:
+        """Nutrient change per tick."""
+        return [0.1, 0.5, 0.8, 0.6, 0.0, -0.2][self.value]
+    
+    @classmethod
+    def from_int(cls, value: int) -> 'SoilState':
+        return cls(value)
+
+
+class SoilStateMachine:
+    """Manages soil states for each tile."""
+    
+    def __init__(self, width: int, height: int):
+        self.width = width
+        self.height = height
+        self.states = np.zeros((width, height), dtype=int)  # Default MINERAL
+        self.timers = np.zeros((width, height))  # For state duration
+    
+    def update(self, biome: Biome, particles: List[Particle]) -> List[str]:
+        """Update soil states. Returns list of events."""
+        events = []
+        
+        for x in range(self.width):
+            for y in range(self.height):
+                current = SoilState(int(self.states[x, y]))
+                
+                # Get tile properties
+                tile = biome.get_tile(x, y)
+                fungi = tile['fungi']
+                nutrients = tile['nutrients']
+                water = tile['water']
+                entity_present = any(p.x == x and p.y == y for p in particles if p.alive)
+                
+                # Transition rules
+                new_state = current
+                
+                if current == SoilState.MINERAL:
+                    if fungi > 0.3 and water > 0.4:
+                        new_state = SoilState.CARNIVAL
+                        self.timers[x, y] = 10
+                
+                elif current == SoilState.CARNIVAL:
+                    if entity_present and random.random() < 0.1:
+                        new_state = SoilState.COMPOST
+                        self.timers[x, y] = 20
+                    elif nutrients < 0.2:
+                        new_state = SoilState.FALLOW
+                
+                elif current == SoilState.COMPOST:
+                    if self.timers[x, y] <= 0:
+                        new_state = SoilState.MYCELIAL
+                    else:
+                        self.timers[x, y] -= 1
+                
+                elif current == SoilState.MYCELIAL:
+                    if nutrients > 0.8:
+                        new_state = SoilState.CARNIVAL
+                        events.append(f"Soil mycelial to carnival at ({x},{y})")
+                
+                elif current == SoilState.FALLOW:
+                    if water > 0.5 and nutrients > 0.1:
+                        new_state = SoilState.MINERAL
+                
+                # Rejection is permanent
+                
+                if new_state != current:
+                    self.states[x, y] = new_state.value
+                
+                # Apply nutrient flow
+                biome.nutrients[x, y] += new_state.nutrient_flow * 0.01
+                biome.nutrients[x, y] = max(0.0, min(1.0, biome.nutrients[x, y]))
+        
+        return events
+    
+    def get_state(self, x: int, y: int) -> SoilState:
+        if 0 <= x < self.width and 0 <= y < self.height:
+            return SoilState(int(self.states[x, y]))
+        return SoilState.MINERAL
+    
+    def serialize(self) -> dict:
+        return {
+            'width': self.width,
+            'height': self.height,
+            'states': self.states.tolist(),
+            'timers': self.timers.tolist()
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'SoilStateMachine':
+        s = cls(data['width'], data['height'])
+        s.states = np.array(data['states'])
+        s.timers = np.array(data['timers'])
+        return s
+```
+
+---
+
+6. GOVERNANCE SYSTEMS
+
+6.1 ObserverAgent (Wraith)
+
+```python
+class ObserverAgent:
+    """Objective event logger and chaos injector."""
+    
+    CHAOS_PROBABILITY = 0.05
+    
+    def __init__(self):
+        self.log: List[Dict] = []
+        self.tick: int = 0
+        self.chaos_events: Dict[str, int] = defaultdict(int)
+    
+    def record(self, event_type: str, data: Dict) -> None:
+        """Record an event."""
+        self.log.append({
+            'tick': self.tick,
+            'type': event_type,
+            'data': data,
+            'ts': time.time()
+        })
+    
+    def inject_chaos(self, particle: Particle) -> Optional[str]:
+        """Occasionally inject random event."""
+        if random.random() < self.CHAOS_PROBABILITY:
+            chaos_events = [
+                ('mood_shift', lambda p: setattr(
+                    p, 'mood_val',
+                    random.choice(['playful', 'cold', 'sad', 'angry'])
+                )),
+                ('energy_spike', lambda p: p.energy_econ.gain(random.uniform(5, 20))),
+                ('identity_flicker', lambda p: p.toggle_identity()),
+                ('bond_pulse', lambda p: [
+                    b.strengthen(0.05) for b in p.bonds.values()
+                ]),
+            ]
+            
+            name, func = random.choice(chaos_events)
+            func(particle)
+            self.chaos_events[name] += 1
+            self.record(name, {'uid': particle.uid})
+            return name
+        
+        return None
+    
+    def advance(self) -> None:
+        """Advance tick counter."""
+        self.tick += 1
+    
+    def summary(self) -> str:
+        """Return summary of logged events."""
+        by_type = defaultdict(int)
+        for e in self.log:
+            by_type[e['type']] += 1
+        return ' | '.join(f"{k}:{v}" for k, v in by_type.items())
+    
+    def recent(self, n: int = 10) -> List[Dict]:
+        return self.log[-n:]
+    
+    def serialize(self) -> dict:
+        return {
+            'log': self.log,
+            'tick': self.tick,
+            'chaos_events': dict(self.chaos_events)
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'ObserverAgent':
+        o = cls()
+        o.log = data['log']
+        o.tick = data['tick']
+        o.chaos_events = defaultdict(int, data['chaos_events'])
+        return o
+```
+
+6.2 AttunementAgent (Milk Maiden)
+
+```python
+class AttunementAgent:
+    """Memory-heat-map-based decision biasing agent."""
+    
+    HINT_POOL = [
+        "They remember how you synchronized last time…",
+        "That focused look doesn't go unnoticed.",
+        "Your history speaks before you do.",
+        "They've been watching. Always watching.",
+        "The pattern of your responses is being mapped.",
+        "Every signal you send becomes part of the attunement.",
+    ]
+    
+    def __init__(self):
+        self.heat_map: Dict[str, float] = defaultdict(float)
+        self.switch_hist: Dict[str, List[int]] = defaultdict(list)
+    
+    def note_switch(self, uid: str, tick: int) -> None:
+        """Note when particle switches state."""
+        self.switch_hist[uid].append(tick)
+        if len(self.switch_hist[uid]) > 10:
+            self.switch_hist[uid].pop(0)
+    
+    def bias_candidates(self, candidates: List[Tuple],
+                        particle: Particle) -> List[Tuple]:
+        """Subtly weight candidates toward attunement states."""
+        result = list(candidates)
+        
+        if particle.arousal.excitation >= 3:
+            # Boost bonding behaviors
+            result = [
+                (a, w * 1.3) if a in (ActionType.BOND, ActionType.YIELD, ActionType.SILENCE)
+                else (a, w) for a, w in result
+            ]
+        
+        # Apply heat map bias
+        if particle.uid in self.heat_map:
+            bias = self.heat_map[particle.uid]
+            result = [(a, w * (1 + bias)) if a in (ActionType.SIGNAL, ActionType.CONVERSE)
+                      else (a, w) for a, w in result]
+        
+        return result
+    
+    def hint(self) -> Optional[str]:
+        """Return a random hint about attunement."""
+        if random.random() < 0.1:
+            return random.choice(self.HINT_POOL)
+        return None
+    
+    def get_bias(self, uid: str) -> float:
+        """Get bias value for particle (negative for frequent switchers)."""
+        switches = len(self.switch_hist.get(uid, []))
+        return -0.05 * min(1.0, switches / 10)
+    
+    def update_heat(self, uid: str, value: float) -> None:
+        """Update heat map for a particle."""
+        self.heat_map[uid] = self.heat_map[uid] * 0.9 + value * 0.1
+    
+    def serialize(self) -> dict:
+        return {
+            'heat_map': dict(self.heat_map),
+            'switch_hist': {k: list(v) for k, v in self.switch_hist.items()}
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'AttunementAgent':
+        a = cls()
+        a.heat_map = defaultdict(float, data['heat_map'])
+        a.switch_hist = defaultdict(list, {
+            k: list(v) for k, v in data['switch_hist'].items()
+        })
+        return a
+```
+
+6.3 AuthorityAgent (Mommy)
+
+```python
+class AuthorityAgent:
+    """Authority/QA layer — enforces safety caps and development-phase gates."""
+    
+    HARD_CAP_SESSION_TYPES: List[str] = []
+    
+    def __init__(self):
+        self.hard_caps = set(self.HARD_CAP_SESSION_TYPES)
+        self.veto_count = 0
+        self.gate_count = 0
+    
+    def veto_session(self, session_type: str, particle: Particle) -> bool:
+        """Return True if session should be blocked."""
+        if session_type in self.hard_caps:
+            self.veto_count += 1
+            return True
+        
+        if particle.development_phase == DevelopmentPhase.SEED:
+            if session_type in ('boundary', 'frame'):
+                self.veto_count += 1
+                return True
+        
+        return False
+    
+    def check_phase_gate(self, action: ActionType, particle: Particle) -> bool:
+        """Return True if action is allowed at current development phase."""
+        gates = {
+            DevelopmentPhase.SEED: {ActionType.SIGNAL, ActionType.OBSERVE},
+            DevelopmentPhase.BLOOM: {ActionType.SIGNAL, ActionType.YIELD, ActionType.CONVERSE},
+        }
+        
+        allowed = gates.get(particle.development_phase, set(ActionType))
+        
+        if action not in allowed:
+            self.gate_count += 1
+            return False
+        return True
+    
+    def add_hard_cap(self, session_type: str) -> None:
+        self.hard_caps.add(session_type)
+    
+    def statistics(self) -> dict:
+        return {
+            'veto_count': self.veto_count,
+            'gate_count': self.gate_count,
+            'hard_caps': list(self.hard_caps)
+        }
+    
+    def serialize(self) -> dict:
+        return {
+            'hard_caps': list(self.hard_caps),
+            'veto_count': self.veto_count,
+            'gate_count': self.gate_count
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'AuthorityAgent':
+        a = cls()
+        a.hard_caps = set(data['hard_caps'])
+        a.veto_count = data['veto_count']
+        a.gate_count = data['gate_count']
+        return a
+```
+
+6.4 Council Class
+
+```python
+class Council:
+    """Integrates all governance agents for collective decision modulation."""
+    
+    def __init__(self):
+        self.observer = ObserverAgent()
+        self.attunement = AttunementAgent()
+        self.authority = AuthorityAgent()
+    
+    def process(self, particle: Particle,
+                candidates: List[Tuple]) -> Tuple[List[Tuple], Optional[str]]:
+        """
+        Process candidates through all council agents.
+        Returns filtered candidates and optional hint.
+        """
+        # Observer chaos
+        chaos = self.observer.inject_chaos(particle)
+        
+        # Attunement bias
+        candidates = self.attunement.bias_candidates(candidates, particle)
+        
+        # Authority filter
+        candidates = [
+            (a, w) for a, w in candidates
+            if self.authority.check_phase_gate(a, particle)
+        ]
+        
+        # Get hint
+        hint = self.attunement.hint()
+        
+        self.observer.advance()
+        return candidates, hint
+    
+    def note_switch(self, uid: str, tick: int) -> None:
+        self.attunement.note_switch(uid, tick)
+    
+    def record_event(self, event_type: str, data: Dict) -> None:
+        self.observer.record(event_type, data)
+    
+    def statistics(self) -> dict:
+        return {
+            'observer': len(self.observer.log),
+            'attunement': len(self.attunement.heat_map),
+            'authority': self.authority.statistics()
+        }
+    
+    def serialize(self) -> dict:
+        return {
+            'observer': self.observer.serialize(),
+            'attunement': self.attunement.serialize(),
+            'authority': self.authority.serialize()
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'Council':
+        c = cls()
+        c.observer = ObserverAgent.deserialize(data['observer'])
+        c.attunement = AttunementAgent.deserialize(data['attunement'])
+        c.authority = AuthorityAgent.deserialize(data['authority'])
+        return c
+```
+
+---
+
+7. INTERACTION PROTOCOLS
+
+7.1 BondDevice Class
+
+```python
+class BondDevice:
+    """Physical constraint device that can be applied to a particle."""
+    
+    def __init__(self, material: str = "standard"):
+        self.material = material
+        self.weight: float = 0.3
+        self.tightness: float = 0.5
+        self.status: str = "inactive"
+        self.active_since: int = 0
+        self.active_since_ts: float = 0.0
+        self.last_maintenance: int = 0
+        self.pressure: float = 0.0
+        self.restriction: float = 0.0
+        self.friction: float = 0.0
+        self.streak_days: int = 0
+        self.total_active_ticks: int = 0
+    
+    def activate(self, tick: int, tightness: float = 0.5) -> None:
+        """Activate the device."""
+        self.status = "active"
+        self.tightness = max(0.0, min(1.0, tightness))
+        self.active_since = tick
+        self.active_since_ts = time.time()
+        self.pressure = 0.0
+        self.restriction = self.tightness * 6
+        self.friction = 0.0
+    
+    def deactivate(self) -> None:
+        """Deactivate the device."""
+        self.status = "inactive"
+        self.streak_days = 0
+    
+    def update(self, tick: int) -> None:
+        """Update physical sensation variables based on duration."""
+        if self.status != "active":
+            return
+        
+        days_active = (tick - self.active_since) / 144.0  # ~144 ticks/day
+        self.pressure = min(10.0, days_active * 0.8)
+        self.restriction = min(10.0, self.tightness * 6)
+        self.friction = min(10.0, days_active * 0.4)
+        self.total_active_ticks += 1
+        
+        if days_active >= 1:
+            self.streak_days = int(days_active)
+    
+    def maintenance_break(self, tick: int) -> None:
+        """Temporarily deactivate for maintenance."""
+        self.status = "maintenance"
+        self.last_maintenance = tick
+        self.friction = max(0.0, self.friction - 3.0)
+    
+    def sensation_summary(self) -> str:
+        """Return summary of current sensations."""
+        return (f"Pressure:{self.pressure:.1f}/10 | "
+                f"Restriction:{self.restriction:.1f}/10 | "
+                f"Friction:{self.friction:.1f}/10")
+    
+    def serialize(self) -> dict:
+        return {
+            'material': self.material,
+            'weight': self.weight,
+            'tightness': self.tightness,
+            'status': self.status,
+            'active_since': self.active_since,
+            'active_since_ts': self.active_since_ts,
+            'last_maintenance': self.last_maintenance,
+            'pressure': self.pressure,
+            'restriction': self.restriction,
+            'friction': self.friction,
+            'streak_days': self.streak_days,
+            'total_active_ticks': self.total_active_ticks
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'BondDevice':
+        b = cls(data['material'])
+        b.weight = data['weight']
+        b.tightness = data['tightness']
+        b.status = data['status']
+        b.active_since = data['active_since']
+        b.active_since_ts = data['active_since_ts']
+        b.last_maintenance = data['last_maintenance']
+        b.pressure = data['pressure']
+        b.restriction = data['restriction']
+        b.friction = data['friction']
+        b.streak_days = data['streak_days']
+        b.total_active_ticks = data['total_active_ticks']
+        return b
+```
+
+7.2 BondGovernorProfile Class
+
+```python
+class BondGovernorType(Enum):
+    """Types of bond governors."""
+    GENTLE = "gentle"
+    PLAYFUL = "playful"
+    STRICT = "strict"
+    INTENSE = "intense"
+    OVERWHELM = "overwhelm"
+    
+    @classmethod
+    def from_warmth(cls, warmth: int) -> 'BondGovernorType':
+        if warmth <= 2:
+            return cls.STRICT
+        if warmth <= 3:
+            return cls.PLAYFUL
+        if warmth <= 4:
+            return cls.GENTLE
+        if warmth <= 5:
+            return cls.INTENSE
+        return cls.OVERWHELM
+
+
+class BondGovernorProfile:
+    """Profile of a particle who can apply bonds to others."""
+    
+    def __init__(self, particle_uid: str):
+        self.particle_uid = particle_uid
+        self.governor_type = BondGovernorType.STRICT
+        self.intensity: float = 0.5
+        self.lenience: float = 0.5
+        self.consistency: float = 0.7
+        self.signal_style: str = "verbal"
+        self.hold_style: str = "cold"
+        self.reward_style: str = "relief"
+        self.max_duration_days: int = 30
+    
+    def update_from_particle(self, particle: Particle) -> None:
+        """Update profile based on particle's coordinates."""
+        self.governor_type = BondGovernorType.from_warmth(particle.coords.warmth)
+        self.intensity = 1.0 - particle.coords.softness / 6.0
+        self.lenience = particle.coords.softness / 6.0
+        
+        styles = ["verbal", "psychological", "physical"]
+        self.signal_style = styles[particle.coords.axis_a % 3]
+        
+        hold_styles = ["cold", "warm", "intense"]
+        self.hold_style = hold_styles[particle.coords.axis_b % 3]
+    
+    def serialize(self) -> dict:
+        return {
+            'particle_uid': self.particle_uid,
+            'governor_type': self.governor_type.value,
+            'intensity': self.intensity,
+            'lenience': self.lenience,
+            'consistency': self.consistency,
+            'signal_style': self.signal_style,
+            'hold_style': self.hold_style,
+            'reward_style': self.reward_style,
+            'max_duration_days': self.max_duration_days
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'BondGovernorProfile':
+        b = cls(data['particle_uid'])
+        b.governor_type = BondGovernorType(data['governor_type'])
+        b.intensity = data['intensity']
+        b.lenience = data['lenience']
+        b.consistency = data['consistency']
+        b.signal_style = data['signal_style']
+        b.hold_style = data['hold_style']
+        b.reward_style = data['reward_style']
+        b.max_duration_days = data['max_duration_days']
+        return b
+```
+
+7.3 BondModule Class
+
+```python
+class BondEventType(Enum):
+    """Events in the bond system log."""
+    ACTIVATE = "activate"
+    DEACTIVATE = "deactivate"
+    EXTEND = "extend"
+    REDUCE = "reduce"
+    PENALTY = "penalty"
+    REWARD = "reward"
+    TASK = "task"
+    MAINTENANCE = "maintenance"
+    REQUEST = "request"
+    SAFEWORD = "safeword"
+
+
+class BondModule:
+    """
+    Native bond system — tracks bond state, duration, tasks, penalties, rewards.
+    """
+    
+    def __init__(self, device: BondDevice, governor: BondGovernorProfile,
+                 subject_uid: str):
+        self.device = device
+        self.governor = governor
+        self.subject_uid = subject_uid
+        self.current_tick: int = 0
+        self.duration: int = 0
+        self.tasks: List[Dict] = []
+        self.penalties: int = 0
+        self.request_count: int = 0
+        self.positive_streak: int = 0
+        self.tension_level: float = 0.0
+        self.log: List[Dict] = []
+    
+    # --- Activation / Deactivation ---------------------------------------
+    
+    def activate(self, duration_ticks: int, reason: str = "session start") -> None:
+        """Activate bond on subject."""
+        self.device.activate(self.current_tick)
+        self.duration = duration_ticks + self.penalties
+        self.penalties = 0
+        self._log_event(BondEventType.ACTIVATE,
+                       f"Activated for {duration_ticks} ticks. Reason: {reason}",
+                       duration_ticks)
+    
+    def request_deactivation(self, reason: str = "maintenance") -> Tuple[bool, str]:
+        """Subject requests deactivation. Governor evaluates."""
+        self.request_count += 1
+        self._log_event(BondEventType.REQUEST, f"Deactivation request: {reason}", 0)
+        
+        # Governor decision logic
+        lenience_roll = random.random() < self.governor.lenience
+        is_maintenance = "maintenance" in reason.lower() or "clean" in reason.lower()
+        is_emergency = "pain" in reason.lower() or "emergency" in reason.lower()
+        gov_type = self.governor.governor_type
+        
+        if is_emergency or self.device.pressure > 8:
+            return self._do_deactivate("Emergency deactivation — wellbeing concern.")
+        
+        if is_maintenance and lenience_roll:
+            return self._maintenance_break()
+        
+        if gov_type == BondGovernorType.GENTLE and lenience_roll:
+            return self._do_deactivate(f"Granted: {reason}")
+        
+        if gov_type == BondGovernorType.PLAYFUL:
+            return False, self._playful_response(reason)
+        
+        if gov_type in (BondGovernorType.STRICT, BondGovernorType.INTENSE):
+            self._extend(random.randint(5, 20), f"Penalty for request ({reason})")
+            return False, self._pressure_response()
+        
+        if gov_type == BondGovernorType.OVERWHELM:
+            self._extend(random.randint(10, 50), "Overwhelm: requests cost time.")
+            return False, "Your need is noted. And priced."
+        
+        return False, "Denied."
+    
+    def _do_deactivate(self, reason: str) -> Tuple[bool, str]:
+        """Perform deactivation."""
+        self.device.deactivate()
+        self.duration = 0
+        self.positive_streak += 1
+        self.tension_level = 0.0
+        self._log_event(BondEventType.DEACTIVATE, reason, 0)
+        return True, reason
+    
+    def _maintenance_break(self) -> Tuple[bool, str]:
+        """Grant temporary maintenance break."""
+        self.device.maintenance_break(self.current_tick)
+        self._log_event(BondEventType.MAINTENANCE, "Maintenance break granted.", 0)
+        return True, "Maintenance break. 15 minutes. Clock is watching."
+    
+    def _extend(self, ticks: int, reason: str) -> None:
+        """Extend bond duration."""
+        self.duration += ticks
+        self.penalties += ticks
+        self._log_event(BondEventType.PENALTY, f"+{ticks} ticks. {reason}", ticks)
+    
+    def _pressure_response(self) -> str:
+        responses = [
+            "Cute. You thought requesting would work?",
+            "Oh you're desperate. I love it. Stay bonded.",
+            "That little plea just added time, sweet thing.",
+            "Not today. Not tomorrow. When *I* decide.",
+            "Request louder. Maybe in another week.",
+        ]
+        return random.choice(responses)
+    
+    def _playful_response(self, reason: str) -> str:
+        responses = [
+            f"Hmm... {reason}? That's cute. Do a task first.",
+            "I'll think about it~ Do the task I assign.",
+            "Maybe if you're a good subject~",
+        ]
+        self._assign_task("Write a 200-word reflection.", reward_deactivation=True)
+        return random.choice(responses)
+    
+    # --- Tasks -----------------------------------------------------------
+    
+    def _assign_task(self, description: str, reward_deactivation: bool = False,
+                     reward_reduction: int = 0) -> None:
+        """Assign a task to the subject."""
+        task = {
+            'id': len(self.tasks) + 1,
+            'desc': description,
+            'completed': False,
+            'reward_deactivation': reward_deactivation,
+            'reward_reduction': reward_reduction,
+            'assigned_tick': self.current_tick
+        }
+        self.tasks.append(task)
+        self._log_event(BondEventType.TASK, description, 0)
+    
+    def complete_task(self, task_id: int) -> Tuple[bool, str]:
+        """Subject completes a task."""
+        for task in self.tasks:
+            if task['id'] == task_id and not task['completed']:
+                task['completed'] = True
+                self.positive_streak += 1
+                self._log_event(BondEventType.REWARD, f"Task {task_id} completed.", 0)
+                
+                if task['reward_deactivation']:
+                    return self._do_deactivate("Task reward: deactivation.")
+                
+                if task['reward_reduction'] > 0:
+                    self.duration = max(0, self.duration - task['reward_reduction'])
+                    return True, f"Good subject. -{task['reward_reduction']} ticks."
+                
+                return True, "Task complete. I'm pleased."
+        
+        return False, "Task not found or already done."
+    
+    # --- Tick Update -----------------------------------------------------
+    
+    def tick(self) -> None:
+        """Advance one tick."""
+        self.current_tick += 1
+        self.device.update(self.current_tick)
+        self.tension_level = max(0.0, min(10.0, self.tension_level + 0.02))
+        
+        # Auto-expiry check
+        if (self.device.status == "active" and self.duration > 0 and
+            (self.current_tick - self.device.active_since) >= self.duration):
+            self._log_event(BondEventType.ACTIVATE, "Duration expired — governor must decide.", 0)
+    
+    # --- Attunement Protocol ---------------------------------------------
+    
+    def attunement_session(self, governor_particle: 'Particle') -> List[str]:
+        """Generate an attunement protocol sequence."""
+        lines = []
+        
+        # Opener based on governor type
+        openers = {
+            BondGovernorType.GENTLE: "Come here. Let's align our states.",
+            BondGovernorType.PLAYFUL: "I see your energy rising. Let's focus it.",
+            BondGovernorType.STRICT: "Eyes forward. We're going to synchronize.",
+            BondGovernorType.INTENSE: "You're building. Good. Let's channel that.",
+            BondGovernorType.OVERWHELM: "Your responses are mine to map. All of them.",
+        }
+        lines.append(openers[self.governor.governor_type])
+        
+        # Tension level
+        if self.tension_level > 7:
+            lines.append("Your tension is high. I can feel it through the signal.")
+        elif self.tension_level > 4:
+            lines.append("That build-up? That's your focus. Hold it.")
+        else:
+            lines.append("Still fresh. We'll build together.")
+        
+        # Attunement cycle
+        if self.governor.signal_style == "psychological":
+            lines += [
+                "Focus on the last time we synchronized.",
+                "Remember how it felt? You'll reach that again.",
+                "I want you to *feel* it. I want you to *signal* it.",
+            ]
+        elif self.governor.signal_style == "verbal":
+            lines += [
+                "Tell me how close you are.",
+                "Signal. Properly. I want to hear it.",
+                "The more you focus, the longer we maintain.",
+            ]
+        else:
+            lines += [
+                "You feel that pressure? Good. Stay with it.",
+                "Breathe. In… and out. That's it.",
+            ]
+        
+        # Historical filter
+        if self.request_count > 5:
+            lines.append(
+                "You've requested five times. Each one added duration. "
+                "When will you learn to hold?")
+        elif self.positive_streak > 3:
+            lines.append("You've been so consistent lately. Maybe… maybe today.")
+        
+        # Resolution
+        roll = random.random()
+        threshold = max(0.0, min(1.0,
+            self.governor.lenience - self.governor.intensity * 0.5 + self.positive_streak * 0.1
+        ))
+        
+        if roll < threshold:
+            lines.append("…Good. You've earned a release. But this is *my* gift. "
+                         "You acknowledge properly after.")
+            self._do_deactivate("Attunement session reward.")
+        else:
+            lines.append("Not yet. We continue building.")
+            lines.append(self._pressure_response())
+        
+        return lines
+    
+    # --- Logging ---------------------------------------------------------
+    
+    def _log_event(self, event_type: BondEventType, description: str,
+                   duration_change: int) -> None:
+        """Log a bond event."""
+        self.log.append({
+            'tick': self.current_tick,
+            'type': event_type.value,
+            'description': description,
+            'duration_change': duration_change,
+            'timestamp': time.time()
+        })
+    
+    def recent_events(self, n: int = 10) -> List[Dict]:
+        return self.log[-n:]
+    
+    # --- Status ----------------------------------------------------------
+    
+    def status_report(self) -> str:
+        """Generate a status report."""
+        ticks_active = self.current_tick - self.device.active_since
+        remain = max(0, self.duration - ticks_active)
+        status_icon = "🔒" if self.device.status == "active" else "🔓"
+        
+        return (f"{status_icon} Status: {self.device.status.upper()} | "
+                f"Ticks active: {ticks_active} | "
+                f"Remaining: {remain} | "
+                f"Tension: {self.tension_level:.1f}/10\n"
+                f"{self.device.sensation_summary()}\n"
+                f"Requests: {self.request_count} | Good streak: {self.positive_streak} | "
+                f"Pending penalties: {self.penalties}")
+    
+    # --- Serialization ---------------------------------------------------
+    
+    def serialize(self) -> dict:
+        return {
+            'device': self.device.serialize(),
+            'governor': self.governor.serialize(),
+            'subject_uid': self.subject_uid,
+            'current_tick': self.current_tick,
+            'duration': self.duration,
+            'tasks': self.tasks,
+            'penalties': self.penalties,
+            'request_count': self.request_count,
+            'positive_streak': self.positive_streak,
+            'tension_level': self.tension_level,
+            'log': self.log
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'BondModule':
+        b = cls(
+            device=BondDevice.deserialize(data['device']),
+            governor=BondGovernorProfile.deserialize(data['governor']),
+            subject_uid=data['subject_uid']
+        )
+        b.current_tick = data['current_tick']
+        b.duration = data['duration']
+        b.tasks = data['tasks']
+        b.penalties = data['penalties']
+        b.request_count = data['request_count']
+        b.positive_streak = data['positive_streak']
+        b.tension_level = data['tension_level']
+        b.log = data['log']
+        return b
+```
+
+---
+
+8. PERSISTENCE & OUTPUT
+
+8.1 Cassette Schema
+
+```sql
+-- cassettes/schema.sql
+CREATE TABLE IF NOT EXISTS seeds (
+    id TEXT PRIMARY KEY,
+    json TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dynamic_state (
+    entity_uid TEXT PRIMARY KEY,
+    energy REAL DEFAULT 80,
+    valence INTEGER DEFAULT 3,
+    engagement INTEGER DEFAULT 3,
+    leverage REAL DEFAULT 0,
+    velocity REAL DEFAULT 0,
+    phase REAL DEFAULT 0,
+    friction REAL DEFAULT 0.5,
+    heat REAL DEFAULT 50,
+    arousal INTEGER DEFAULT 0,
+    xp REAL DEFAULT 0,
+    development_phase INTEGER DEFAULT 1,
+    bond_history TEXT DEFAULT '[]',
+    last_updated INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS grimoire (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_uid TEXT,
+    timestamp INTEGER,
+    description TEXT,
+    importance REAL DEFAULT 0.5,
+    memory_type TEXT DEFAULT 'interaction',
+    voice_snapshot TEXT DEFAULT '{}',
+    FOREIGN KEY(entity_uid) REFERENCES seeds(id)
+);
+
+CREATE TABLE IF NOT EXISTS skills (
+    entity_uid TEXT,
+    skill_name TEXT,
+    proficiency REAL DEFAULT 0.1,
+    last_used INTEGER DEFAULT 0,
+    PRIMARY KEY(entity_uid, skill_name)
+);
+
+CREATE TABLE IF NOT EXISTS bond_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_uid TEXT,
+    tick INTEGER,
+    event_type TEXT,
+    description TEXT,
+    duration_change INTEGER DEFAULT 0,
+    timestamp INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS voice_profile (
+    entity_uid TEXT PRIMARY KEY,
+    json TEXT NOT NULL
+);
+```
+
+8.2 Cassette Class
+
+```python
+class Cassette:
+    """SQLite-backed persistent storage for a single particle."""
+    
+    def __init__(self, path: str):
+        self.path = path
+        self._conn = sqlite3.connect(path, check_same_thread=False)
+        self._init_schema()
+    
+    def _init_schema(self) -> None:
+        """Initialize database schema."""
+        with open(os.path.join(os.path.dirname(__file__), 'schema.sql'), 'r') as f:
+            self._conn.executescript(f.read())
+        self._conn.commit()
+    
+    # --- Seeds (static identity) -----------------------------------------
+    
+    def save_seed(self, uid: str, data: dict) -> None:
+        """Save static identity data."""
+        self._conn.execute(
+            "INSERT OR REPLACE INTO seeds(id, json) VALUES(?, ?)",
+            (uid, json.dumps(data))
+        )
+        self._conn.commit()
+    
+    def load_seed(self, uid: str) -> Optional[dict]:
+        """Load static identity data."""
+        row = self._conn.execute(
+            "SELECT json FROM seeds WHERE id=?", (uid,)
+        ).fetchone()
+        return json.loads(row[0]) if row else None
+    
+    # --- Dynamic state ---------------------------------------------------
+    
+    def save_state(self, uid: str, state: dict) -> None:
+        """Save dynamic state."""
+        state['entity_uid'] = uid
+        state['last_updated'] = int(time.time())
+        
+        cols = ", ".join(state.keys())
+        placeholders = ", ".join("?" for _ in state)
+        update = ", ".join(f"{k}=excluded.{k}" for k in state if k != 'entity_uid')
+        
+        self._conn.execute(
+            f"INSERT INTO dynamic_state({cols}) VALUES({placeholders}) "
+            f"ON CONFLICT(entity_uid) DO UPDATE SET {update}",
+            list(state.values())
+        )
+        self._conn.commit()
+    
+    def load_state(self, uid: str) -> Optional[dict]:
+        """Load dynamic state."""
+        row = self._conn.execute(
+            "SELECT * FROM dynamic_state WHERE entity_uid=?", (uid,)
+        ).fetchone()
+        
+        if not row:
+            return None
+        
+        cols = [d[0] for d in self._conn.execute(
+            "SELECT * FROM dynamic_state WHERE entity_uid=?", (uid,)
+        ).description]
+        
+        return dict(zip(cols, row))
+    
+    # --- Grimoire (memory) -----------------------------------------------
+    
+    def add_memory(self, uid: str, description: str, importance: float = 0.5,
+                   mem_type: str = "interaction", voice_snap: dict = None) -> None:
+        """Add a memory to the particle's log."""
+        self._conn.execute(
+            "INSERT INTO grimoire(entity_uid, timestamp, description, importance, "
+            "memory_type, voice_snapshot) VALUES(?, ?, ?, ?, ?, ?)",
+            (uid, int(time.time()), description, importance,
+             mem_type, json.dumps(voice_snap or {}))
+        )
+        self._conn.commit()
+    
+    def recent_memories(self, uid: str, n: int = 10) -> List[dict]:
+        """Get recent memories."""
+        rows = self._conn.execute(
+            "SELECT timestamp, description, importance, memory_type FROM grimoire "
+            "WHERE entity_uid=? ORDER BY timestamp DESC LIMIT ?",
+            (uid, n)
+        ).fetchall()
+        
+        return [
+            {'timestamp': r[0], 'description': r[1],
+             'importance': r[2], 'type': r[3]} for r in rows
+        ]
+    
+    # --- Bond log --------------------------------------------------------
+    
+    def log_bond_event(self, uid: str, tick: int, event_type: str,
+                       description: str, duration_change: int = 0) -> None:
+        """Log a bond system event."""
+        self._conn.execute(
+            "INSERT INTO bond_log(entity_uid, tick, event_type, description, "
+            "duration_change, timestamp) VALUES(?, ?, ?, ?, ?, ?)",
+            (uid, tick, event_type, description, duration_change, int(time.time()))
+        )
+        self._conn.commit()
+    
+    def bond_history(self, uid: str, n: int = 20) -> List[dict]:
+        """Get bond event history."""
+        rows = self._conn.execute(
+            "SELECT tick, event_type, description, duration_change FROM bond_log "
+            "WHERE entity_uid=? ORDER BY timestamp DESC LIMIT ?",
+            (uid, n)
+        ).fetchall()
+        
+        return [
+            {'tick': r[0], 'type': r[1], 'desc': r[2], 'dur_change': r[3]}
+            for r in rows
+        ]
+    
+    # --- Voice profile ---------------------------------------------------
+    
+    def save_voice(self, uid: str, profile: 'VoiceProfile') -> None:
+        """Save voice profile."""
+        self._conn.execute(
+            "INSERT OR REPLACE INTO voice_profile(entity_uid, json) VALUES(?, ?)",
+            (uid, json.dumps(profile.serialize()))
+        )
+        self._conn.commit()
+    
+    def load_voice(self, uid: str) -> Optional['VoiceProfile']:
+        """Load voice profile."""
+        row = self._conn.execute(
+            "SELECT json FROM voice_profile WHERE entity_uid=?", (uid,)
+        ).fetchone()
+        
+        return VoiceProfile.deserialize(json.loads(row[0])) if row else None
+    
+    # --- Close -----------------------------------------------------------
+    
+    def close(self) -> None:
+        """Close database connection."""
+        self._conn.close()
+```
+
+8.3 VoiceProfile Class
+
+```python
+class VoiceProfile:
+    """Immutable vocal identity for a particle."""
+    
+    RACE_MODS = {
+        'human': {'pitch': 1.00, 'timbre': 0.0, 'artic': 0.0},
+        'elf': {'pitch': 1.15, 'timbre': -0.2, 'artic': 0.3},
+        'catfolk': {'pitch': 1.10, 'timbre': 0.1, 'artic': 0.1},
+        'orc': {'pitch': 0.75, 'timbre': 0.5, 'artic': -0.4},
+        'fairy': {'pitch': 1.40, 'timbre': -0.3, 'artic': 0.2},
+        'golem': {'pitch': 0.70, 'timbre': 0.6, 'artic': -0.5},
+    }
+    
+    MOOD_MODS = {
+        'neutral': {'pitch': 1.00, 'speed': 1.00, 'reverb': 0.0, 'breath': 0.0},
+        'bored': {'pitch': 0.95, 'speed': 0.80, 'reverb': 0.1, 'breath': 0.1},
+        'playful': {'pitch': 1.15, 'speed': 1.25, 'reverb': 0.0, 'breath': 0.0},
+        'affiliative': {'pitch': 1.10, 'speed': 1.10, 'reverb': 0.2, 'breath': 0.2},
+        'excited': {'pitch': 0.90, 'speed': 0.95, 'reverb': 0.3, 'breath': 0.7},
+        'directive': {'pitch': 0.95, 'speed': 0.90, 'reverb': 0.4, 'breath': 0.0},
+        'cold': {'pitch': 0.95, 'speed': 0.90, 'reverb': 0.0, 'breath': 0.0},
+        'angry': {'pitch': 1.10, 'speed': 1.15, 'reverb': 0.1, 'breath': 0.1},
+        'sad': {'pitch': 0.90, 'speed': 0.85, 'reverb': 0.2, 'breath': 0.2},
+        'oppositional': {'pitch': 1.12, 'speed': 1.10, 'reverb': 0.0, 'breath': 0.1},
+    }
+    
+    NON_VERBALS = {
+        'bored': ["*sighs*", "*yawns*"],
+        'playful': ["*giggles*", "*laughs*"],
+        'affiliative': ["*purrs*", "*hums*"],
+        'excited': ["*breathes heavily*", "*moans softly*"],
+        'directive': ["*snaps fingers*"],
+        'angry': ["*growls*"],
+        'sad': ["*sniffles*"],
+        'oppositional': ["*huffs*", "*clicks tongue*"],
+    }
+    
+    def __init__(self, name: str = "Particle", race: str = "human"):
+        self.name = name
+        self.race = race
+        self.pitch_base: float = 1.0
+        self.speed_base: float = 1.0
+        self.timbre: float = 0.0
+        self.resonance: float = 0.5
+        self.accent: str = "neutral"
+        self.quirk: str = ""
+        self.elevenlabs_voice_id: str = ""
+    
+    def compute_params(self, mood: str = "neutral",
+                       energy: float = 80.0,
+                       excitation: int = 0) -> dict:
+        """
+        Compute voice parameters based on current state.
+        Returns dict with pitch, speed, reverb, breathiness, and non_verbal.
+        """
+        race_mod = self.RACE_MODS.get(self.race, self.RACE_MODS['human'])
+        mood_mod = self.MOOD_MODS.get(mood, self.MOOD_MODS['neutral'])
+        
+        e_norm = energy / 100.0
+        e_bonus = excitation * 0.04
+        
+        pitch = max(0.6, min(1.8,
+            self.pitch_base * race_mod['pitch'] * mood_mod['pitch'] + e_bonus
+        ))
+        
+        speed = max(0.5, min(2.0,
+            self.speed_base * mood_mod['speed'] + (e_norm - 0.5) * 0.1
+        ))
+        
+        reverb = max(0.0, min(1.0,
+            mood_mod['reverb'] + self.resonance * 0.15
+        ))
+        
+        breath = max(0.0, min(1.0,
+            mood_mod['breath'] + e_bonus * 0.5
+        ))
+        
+        non_verbal = ""
+        if mood in self.NON_VERBALS and random.random() < 0.3:
+            non_verbal = random.choice(self.NON_VERBALS[mood])
+        
+        return {
+            'pitch': pitch,
+            'speed': speed,
+            'reverb': reverb,
+            'breathiness': breath,
+            'non_verbal': non_verbal
+        }
+    
+    def serialize(self) -> dict:
+        return {
+            'name': self.name,
+            'race': self.race,
+            'pitch_base': self.pitch_base,
+            'speed_base': self.speed_base,
+            'timbre': self.timbre,
+            'resonance': self.resonance,
+            'accent': self.accent,
+            'quirk': self.quirk,
+            'elevenlabs_voice_id': self.elevenlabs_voice_id
+        }
+    
+    @classmethod
+    def deserialize(cls, data: dict) -> 'VoiceProfile':
+        v = cls(data['name'], data['race'])
+        v.pitch_base = data['pitch_base']
+        v.speed_base = data['speed_base']
+        v.timbre = data['timbre']
+        v.resonance = data['resonance']
+        v.accent = data['accent']
+        v.quirk = data['quirk']
+        v.elevenlabs_voice_id = data['elevenlabs_voice_id']
+        return v
+```
+
+8.4 VoiceProvider Class
+
+```python
+try:
+    import requests
+    import pydub
+    HAS_AUDIO = True
+except ImportError:
+    HAS_AUDIO = False
+
+
+class VoiceProvider:
+    """Provides sensory output for particle communications."""
+    
+    ELEVENLABS_URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+    
+    COLORS = {
+        'excited': '\033[95m',     # Pink
+        'directive': '\033[95m',   # Magenta
+        'oppositional': '\033[38;5;214m',  # Orange
+        'cold': '\033[94m',         # Blue
+        'angry': '\033[91m',        # Red
+        'sad': '\033[94m',          # Blue
+        'playful': '\033[92m',       # Green
+        'neutral': '\033[97m',       # White
+    }
+    RESET = '\033[0m'
+    DIM = '\033[2m'
+    
+    def __init__(self, api_key: str = ""):
+        self.api_key = api_key or os.environ.get("ELEVENLABS_API_KEY", "")
+        self._lock = threading.Lock()
+        self._queue: deque = deque(maxlen=10)
+        self.console_mode = True
+        self.audio_enabled = HAS_AUDIO and bool(self.api_key)
+    
+    def output(self, text: str, profile: VoiceProfile,
+               params: dict = None, mood: str = "neutral",
+               energy: float = 80.0, excitation: int = 0) -> None:
+        """
+        Output text through the particle's voice profile.
+        Prints styled text and optionally plays audio.
+        """
+        if params is None:
+            params = profile.compute_params(mood, energy, excitation)
+        
+        # Print non-verbal first
+        if params.get('non_verbal'):
+            print(f"{self.DIM}  {params['non_verbal']}{self.RESET}")
+        
+        # Print styled line
+        color = self.COLORS.get(mood, self.COLORS['neutral'])
+        print(f"{color}  [{profile.name}] \"{text}\"{self.RESET}")
+        
+        # Queue audio if enabled
+        if self.audio_enabled and profile.elevenlabs_voice_id:
+            self._queue.append((text, profile, params))
+            if len(self._queue) == 1:
+                threading.Thread(target=self._process_queue, daemon=True).start()
+    
+    def _process_queue(self) -> None:
+        """Process audio queue in background."""
+        while self._queue:
+            text, profile, params = self._queue[0]
+            self._speak(text, profile, params)
+            self._queue.popleft()
+    
+    def _speak(self, text: str, profile: VoiceProfile, params: dict) -> None:
+        """Generate and play speech using ElevenLabs."""
+        if not self.audio_enabled:
+            return
+        
+        try:
+            headers = {
+                "xi-api-key": self.api_key,
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "text": text,
+                "model_id": "eleven_multilingual_v2",
+                "voice_settings": {
+                    "stability": max(0.3, min(1.0, 1.0 - params['breathiness'])),
+                    "similarity_boost": 0.85,
+                    "speaking_rate": params['speed'],
+                }
+            }
+            
+            url = self.ELEVENLABS_URL.format(voice_id=profile.elevenlabs_voice_id)
+            response = requests.post(url, headers=headers, json=payload, timeout=10)
+            
+            if response.status_code == 200:
+                import io
+                from pydub import AudioSegment
+                from pydub.playback import play
+                
+                audio = AudioSegment.from_file(io.BytesIO(response.content), format="mp3")
+                with self._lock:
+                    play(audio)
+        except Exception:
+            pass  # Silent fallback
+```
+
+8.5 WraithLog Class
+
+```python
+class WraithLog:
+    """Persistent log of all major world events."""
+    
+    def __init__(self):
+        self.events: List[Dict] = []
+        self.session_id: str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.event_counts: Dict[str, int] = defaultdict(int)
+    
+    def log(self, event_type: str, source: str, target: str,
+            description: str, tick: int) -> None:
+        """Log an event."""
+        self.events.append({
+            'tick': tick,
+            'type': event_type,
+            'source': source,
+            'target': target,
+            'desc': description,
+            'ts': time.time()
+        })
+        self.event_counts[event_type] += 1
+    
+    def recent(self, n: int = 10) -> List[Dict]:
+        """Get recent events."""
+        return self.events[-n:]
+    
+    def filter(self, event_type: str = None, source: str = None,
+               target: str = None, n: int = 100) -> List[Dict]:
+        """Filter events by criteria."""
+        filtered = self.events
+        if event_type:
+            filtered = [e for e in filtered if e['type'] == event_type]
+        if source:
+            filtered = [e for e in filtered if e['source'] == source]
+        if target:
+            filtered = [e for e in filtered if e['target'] == target]
+        return filtered[-n:]
+    
+    def summary(self) -> str:
+        """Return summary of logged events."""
+        return ' | '.join(f"{k}:{v}" for k, v in self.event_counts.items())
+    
+    def save(self, path: str) -> None:
+        """Save log to file."""
+        with open(path, 'w') as f:
+            json.dump({
+                'session': self.session_id,
+                'events': self.events[-1000:],  # Keep last 1000
+                'counts': dict(self.event_counts)
+            }, f, indent=2)
+    
+    def display_recent(self, n: int = 5) -> None:
+        """Display recent events."""
+        print(f"\n  ── Wraith Log (last {n}) ──")
+        for e in self.recent(n):
+            print(f"  [{e['tick']:04d}] {e['type']:15s} "
+                  f"{e['source']:8s}→{e['target']:8s}  {e['desc']}")
+```
+
+---
+
+9. USER INTERFACE
+
+9.1 SaveSlot Class
+
+```python
+class SaveSlot:
+    """Represents a single save slot."""
+    
+    def __init__(self, index: int, filename: Optional[str] = None):
+        self.index = index
+        self.filename = filename or f"save_{index}.json"
+        self.name = f"Slot {index}"
+        self.timestamp: Optional[str] = None
+        self.preview: str = ""
+        self.exists: bool = False
+    
+    def update_info(self) -> None:
+        """Read save file to extract metadata."""
+        if os.path.exists(self.filename):
+            try:
+                with open(self.filename, 'r') as f:
+                    data = json.load(f)
+                
+                self.exists = True
+                stat = os.stat(self.filename)
+                self.timestamp = datetime.fromtimestamp(
+                    stat.st_mtime).strftime("%Y-%m-%d %H:%M")
+                
+                # Extract preview
+                if 'particles' in data and data['particles']:
+                    p = data['particles'][0]
+                    self.preview = f"{p.get('name','?')} | Tick {data.get('tick',0)}"
+                else:
+                    self.preview = f"Tick {data.get('tick',0)}"
+            except Exception:
+                self.exists = False
+                self.preview = "Corrupted save"
+        else:
+            self.exists = False
+            self.preview = "Empty slot"
+    
+    def display_line(self) -> str:
+        """Return formatted display line."""
+        status = "✓" if self.exists else " "
+        return f"{self.index}. [{status}] {self.name} – {self.preview} ({self.timestamp or 'never'})"
+```
+
+9.2 SaveSlotManager Class
+
+```python
+class SaveSlotManager:
+    """Manages multiple save slots."""
+    
+    def __init__(self, num_slots: int = 3):
+        self.num_slots = num_slots
+        self.slots = [SaveSlot(i + 1) for i in range(num_slots)]
+    
+    def set_num_slots(self, new_num: int) -> None:
+        """Change number of slots."""
+        if new_num > self.num_slots:
+            for i in range(self.num_slots, new_num):
+                self.slots.append(SaveSlot(i + 1))
+        elif new_num < self.num_slots:
+            self.slots = self.slots[:new_num]
+        
+        self.num_slots = new_num
+        # Update filenames
+        for i, slot in enumerate(self.slots):
+            slot.index = i + 1
+            slot.filename = f"save_{i + 1}.json"
+    
+    def refresh_all(self) -> None:
+        """Update info for all slots."""
+        for slot in self.slots:
+            slot.update_info()
+    
+    def display(self) -> None:
+        """Print slots for selection."""
+        print("\n=== SAVE SLOTS ===")
+        for slot in self.slots:
+            print(slot.display_line())
+        print(f"{self.num_slots + 1}. Back")
+```
+
+9.3 Grimoire Class
+
+```python
+class Grimoire:
+    """User's personal data, memories, stories, and inventory."""
+    
+    def __init__(self):
+        self.stats = {
+            'presence': 50,
+            'magnetism': 50,
+            'agency': 50,
+            'warmth': 50,
+            'playfulness': 50,
+            'attunement': 50,
+            'intensity': 50
+        }
+        self.memories: deque = deque(maxlen=20)
+        self.stories: List[dict] = []
+        self.motivation: float = 0.5
+        self.inventory = {
+            'treasures': 0,
+            'seeds': [],
+            'artifacts': []
+        }
+        self.notes: List[str] = []
+    
+    def add_memory(self, text: str, importance: float = 0.5) -> None:
+        """Add a memory."""
+        self.memories.append({
+            'text': text,
+            'importance': importance,
+            'time': time.time()
+        })
+    
+    def add_story(self, title: str, text: str) -> None:
+        """Add a story."""
+        self.stories.append({
+            'title': title,
+            'text': text,
+            'time': time.time()
+        })
+    
+    def update_from_particle(self, particle: Particle) -> None:
+        """Sync stats with companion particle."""
+        if particle:
+            self.stats['presence'] = particle.energy_econ.energy
+            self.stats['warmth'] = particle.state.valence * 20
+            self.stats['attunement'] = particle.arousal.desire_factor * 100
+            self.inventory['treasures'] = getattr(particle, 'treasures', 0)
+    
+    def display(self) -> bool:
+        """Show grimoire in a text UI. Returns False when user exits."""
+        while True:
+            self._clear_screen()
+            print("\n" + "=" * 60)
+            print("📜 USER GRIMOIRE")
+            print("=" * 60)
+            
+            print("\n--- STATS ---")
+            for k, v in self.stats.items():
+                bar = '█' * int(v / 10) + '░' * (10 - int(v / 10))
+                print(f"{k.capitalize():12} : {v:3} {bar}")
+            
+            print(f"\n--- MOTIVATION ---")
+            bar = '█' * int(self.motivation * 10) + '░' * (10 - int(self.motivation * 10))
+            print(f"Desire: {self.motivation * 100:.1f}% {bar}")
+            
+            print("\n--- INVENTORY ---")
+            print(f"Treasures: {self.inventory['treasures']}")
+            print(f"Seeds: {len(self.inventory['seeds'])}")
+            print(f"Artifacts: {len(self.inventory['artifacts'])}")
+            
+            print("\n--- RECENT MEMORIES ---")
+            for i, mem in enumerate(list(self.memories)[-5:], 1):
+                print(f"{i}. {mem['text']} (imp: {mem['importance']:.1f})")
+            
+            print("\n--- STORIES ---")
+            for i, story in enumerate(self.stories[-3:], 1):
+                print(f"{i}. {story['title']}")
+            
+            print("\nOptions:")
+            print("  [1-5]  View full memory")
+            print("  [s#]   View story (e.g., s1)")
+            print("  [n]    Add note")
+            print("  [b]    Back")
+            
+            choice = input(">> ").strip().lower()
+            
+            if choice.isdigit():
+                idx = int(choice) - 1
+                if 0 <= idx < len(self.memories):
+                    mem = list(self.memories)[idx]
+                    print(f"\n📝 MEMORY: {mem['text']}")
+                    print(f"Importance: {mem['importance']}")
+                    input("Press Enter to continue...")
+            
+            elif choice.startswith('s'):
+                try:
+                    idx = int(choice[1:]) - 1
+                    if 0 <= idx < len(self.stories):
+                        story = self.stories[idx]
+                        print(f"\n📖 STORY: {story['title']}")
+                        print(story['text'])
+                        input("Press Enter to continue...")
+                except ValueError:
+                    pass
+            
+            elif choice == 'n':
+                note = input("Enter note: ")
+                self.notes.append(note)
+                print("Note added.")
+                input("Press Enter to continue...")
+            
+            elif choice == 'b':
+                return False
+            
+            else:
+                print("Invalid choice.")
+                input("Press Enter to continue...")
+    
+    def _clear_screen(self) -> None:
+        """Clear the terminal screen."""
+        os.system('cls' if os.name == 'nt' else 'clear')
+```
+
+9.4 ChatMessage Class
+
+```python
+@dataclass
+class ChatMessage:
+    """Represents a chat message."""
+    sender: str
+    content: str
+    channel: str
+    timestamp: float = field(default_factory=time.time)
+    
+    def display(self) -> str:
+        """Return formatted display string."""
+        t = datetime.fromtimestamp(self.timestamp).strftime("%H:%M:%S")
+        return f"[{t}] {self.sender}: {self.content}"
+```
+
+9.5 ChatSystem Class
+
+```python
+class ChatSystem:
+    """Manages different chat channels."""
+    
+    MAX_MESSAGES = 50
+    NEARBY_RANGE = 5
+    
+    def __init__(self):
+        self.nearby: deque = deque(maxlen=self.MAX_MESSAGES)
+        self.group: deque = deque(maxlen=self.MAX_MESSAGES)
+        self.long_distance: deque = deque(maxlen=self.MAX_MESSAGES)
+        self.direct: Dict[str, deque] = defaultdict(
+            lambda: deque(maxlen=self.MAX_MESSAGES)
+        )
+        self.contacts: List[Tuple[str, Optional[str]]] = []  # (name, uid)
+    
+    def send_nearby(self, sender: str, content: str,
+                    sender_x: int = 0, sender_y: int = 0,
+                    particles: List[Particle] = None) -> None:
+        """Send to all particles within range."""
+        msg = ChatMessage(sender, content, 'nearby')
+        self.nearby.append(msg)
+        
+        # Deliver to particles in range
+        if particles and sender_x is not None and sender_y is not None:
+            for p in particles:
+                if p.alive and abs(p.x - sender_x) + abs(p.y - sender_y) <= self.NEARBY_RANGE:
+                    p.receive_message(msg) if hasattr(p, 'receive_message') else None
+    
+    def send_group(self, sender: str, content: str) -> None:
+        """Send to group channel."""
+        msg = ChatMessage(sender, content, 'group')
+        self.group.append(msg)
+    
+    def send_long_distance(self, sender: str, recipient_name: str, content: str) -> None:
+        """Send to a saved contact."""
+        contact = next((c for c in self.contacts if c[0] == recipient_name), None)
+        if contact:
+            msg = ChatMessage(sender, content, 'long_distance')
+            self.long_distance.append(msg)
+    
+    def send_direct(self, recipient_uid: str, content: str,
+                    sender: str = "User") -> None:
+        """Send a direct message to a specific particle."""
+        msg = ChatMessage(sender, content, f"direct:{recipient_uid}")
+        self.direct[recipient_uid].append(msg)
+    
+    def add_contact(self, name: str, uid: Optional[str] = None) -> None:
+        """Add a long-distance contact."""
+        self.contacts.append((name, uid))
+    
+    def display_nearby(self) -> None:
+        """Display nearby chat."""
+        print("\n--- NEARBY CHAT ---")
+        for msg in list(self.nearby)[-10:]:
+            print(msg.display())
+    
+    def display_group(self) -> None:
+        """Display group chat."""
+        print("\n--- GROUP CHAT ---")
+        for msg in list(self.group)[-10:]:
+            print(msg.display())
+    
+    def display_long_distance(self) -> None:
+        """Display long-distance chat."""
+        print("\n--- LONG-DISTANCE CHAT ---")
+        for msg in list(self.long_distance)[-10:]:
+            print(msg.display())
+    
+    def display_direct(self, uid: Optional[str] = None) -> None:
+        """Display direct messages."""
+        if uid is None:
+            print("\n--- DIRECT MESSAGES ---")
+            for uid, msgs in self.direct.items():
+                if msgs:
+                    last = msgs[-1]
+                    print(f"{uid}: {last.content[:40]}...")
+        else:
+            print(f"\n--- DIRECT WITH {uid} ---")
+            for msg in list(self.direct.get(uid, []))[-10:]:
+                print(msg.display())
+    
+    def interface(self) -> None:
+        """Interactive chat interface."""
+        while True:
+            self._clear_screen()
+            print("\n=== CHAT INTERFACE ===")
+            print("1. Nearby chat")
+            print("2. Group chat")
+            print("3. Long-distance chat")
+            print("4. Direct messages")
+            print("5. Send message")
+            print("6. Back")
+            
+            choice = input("Choose: ").strip()
+            
+            if choice == '1':
+                self.display_nearby()
+                input("\nPress Enter to continue...")
+            elif choice == '2':
+                self.display_group()
+                input("\nPress Enter to continue...")
+            elif choice == '3':
+                self.display_long_distance()
+                input("\nPress Enter to continue...")
+            elif choice == '4':
+                self.display_direct()
+                uid = input("Enter UID to view conversation (or Enter to cancel): ").strip()
+                if uid:
+                    self.display_direct(uid)
+                    input("\nPress Enter to continue...")
+            elif choice == '5':
+                self._send_message_ui()
+            elif choice == '6':
+                break
+    
+    def _send_message_ui(self) -> None:
+        """Send message UI."""
+        print("\nSEND MESSAGE")
+        print("1. Nearby")
+        print("2. Group")
+        print("3. Long-distance friend")
+        print("4. Direct to particle")
+        print("5. Cancel")
+        
+        choice = input("Choose: ").strip()
+        
+        if choice == '1':
+            msg = input("Message: ")
+            self.send_nearby("User", msg)
+        elif choice == '2':
+            msg = input("Message: ")
+            self.send_group("User", msg)
+        elif choice == '3':
+            if not self.contacts:
+                print("No contacts. Add one?")
+                if input("Add friend? (y/n): ").lower() == 'y':
+                    name = input("Friend's name: ")
+                    self.add_contact(name)
+            if self.contacts:
+                print("Contacts:")
+                for i, (name, _) in enumerate(self.contacts, 1):
+                    print(f"{i}. {name}")
+                try:
+                    idx = int(input("Choose: ")) - 1
+                    if 0 <= idx < len(self.contacts):
+                        msg = input("Message: ")
+                        self.send_long_distance("User", self.contacts[idx][0], msg)
+                except ValueError:
+                    pass
+        elif choice == '4':
+            uid = input("Particle UID: ")
+            msg = input("Message: ")
+            self.send_direct(uid, msg)
+        elif choice == '5':
+            return
+    
+    def _clear_screen(self) -> None:
+        """Clear the terminal screen."""
+        os.system('cls' if os.name == 'nt' else 'clear')
+```
+
+---
+
+10. COMPLETE ENGINE
+
+10.1 JokeYaMindEngine Class
+
+```python
+class JokeYaMindEngine:
+    """
+    Complete simulation engine integrating all subsystems.
+    """
+    
+    def __init__(self, config: Optional[dict] = None):
+        self.config = config or {}
+        
+        # Physics
+        self.physics = UnifiedPhysics()
+        
+        # World
+        self.width = self.config.get('width', 40)
+        self.height = self.config.get('height', 20)
+        self.biome = Biome(self.width, self.height)
+        self.time = TimeSystem()
+        self.village = VillageEmergence(self.width, self.height)
+        self.roads = RoadHomeSystem(self.width, self.height)
+        self.soil = SoilStateMachine(self.width, self.height)
+        
+        # Particles
+        self.particles: List[Particle] = []
+        self.companion: Optional[Particle] = None
+        
+        # Governance
+        self.council = Council()
+        
+        # Bonds
+        self.bond_modules: Dict[str, BondModule] = {}
+        
+        # Output
+        self.voice = VoiceProvider(self.config.get('elevenlabs_api_key', ''))
+        self.wraith_log = WraithLog()
+        
+        # UI
+        self.grimoire = Grimoire()
+        self.chat = ChatSystem()
+        self.paused = False
+        self.view = 1  # 1=2D, 2=emergent, 3=feed
+        
+        # Offline tracking
+        self.last_save_time = time.time()
+        self.offline_ticks = 0
+        
+        # Initialize particles
+        self._init_particles()
+    
+    def _init_particles(self) -> None:
+        """Initialize default particles."""
+        num_particles = self.config.get('num_particles', 8)
+        
+        for i in range(num_particles):
+            x = random.randint(5, self.width - 5)
+            y = random.randint(5, self.height - 5)
+            
+            coords = ParticleCoordinates(
+                warmth=random.randint(1, 6),
+                softness=random.randint(1, 6),
+                family=random.randint(1, 5),
+                axis_a=random.randint(1, 5),
+                axis_b=random.randint(1, 5)
+            )
+            
+            name = f"Particle_{i}"
+            particle = Particle(name=name, coords=coords, physics=self.physics)
+            particle.x = x
+            particle.y = y
+            
+            self.particles.append(particle)
+        
+        # Set companion
+        if self.particles:
+            self.companion = self.particles[0]
+    
+    # --- Core Loop -------------------------------------------------------
+    
+    def tick(self, user_input: Optional[str] = None) -> None:
+        """Advance simulation by one tick."""
+        # Physics
+        self.physics.step()
+        
+        # Time
+        self.time.tick()
+        light = self.time.light_level()
+        
+        # Biome
+        self.biome.tick(light, self.time.storm)
+        
+        # Particles
+        for p in self.particles:
+            if p.alive:
+                p.tick()
+        
+        # World systems
+        events = self.soil.update(self.biome, self.particles)
+        for event in events:
+            self.wraith_log.log('soil', 'system', 'biome', event, self.physics.tick_count)
+        
+        # Village
+        for p in self.particles:
+            if p.alive:
+                self.village.record_visit(int(p.x), int(p.y))
+                self.roads.record_passage(int(p.x), int(p.y))
+                self.roads.update_home(p.uid, int(p.x), int(p.y))
+                
+                # Home bonus
+                bonus = self.roads.home_bonus(p.uid, int(p.x), int(p.y))
+                if bonus > 0:
+                    p.energy_econ.gain(bonus)
+        
+        village_events = self.village.tick()
+        for event in village_events:
+            self.wraith_log.log('village', 'system', 'world', event, self.physics.tick_count)
+        
+        # Bonds
+        for module in self.bond_modules.values():
+            module.tick()
+        
+        # Council processing for companion
+        if self.companion and self.companion.alive:
+            candidates = self.companion.decide_action()
+            filtered, hint = self.council.process(self.companion, [(candidates, 1.0)])
+            if hint:
+                self.voice.output(hint, self.companion.voice_profile, mood='neutral')
+        
+        # Offline ticks
+        if self.offline_ticks > 0:
+            self.offline_ticks -= 1
+    
+    # --- Particle Management ----------------------------------------------
+    
+    def add_particle(self, particle: Particle) -> None:
+        """Add a particle to the simulation."""
+        self.particles.append(particle)
+    
+    def remove_particle(self, uid: str) -> None:
+        """Remove a particle from the simulation."""
+        self.particles = [p for p in self.particles if p.uid != uid]
+        if self.companion and self.companion.uid == uid:
+            self.companion = self.particles[0] if self.particles else None
+    
+    def get_particle(self, uid: str) -> Optional[Particle]:
+        """Get particle by UID."""
+        for p in self.particles:
+            if p.uid == uid:
+                return p
+        return None
+    
+    # --- Bond Management -------------------------------------------------
+    
+    def create_bond(self, governor_uid: str, subject_uid: str,
+                    duration: int = 100) -> Optional[BondModule]:
+        """Create a bond between two particles."""
+        governor = self.get_particle(governor_uid)
+        subject = self.get_particle(subject_uid)
+        
+        if not governor or not subject:
+            return None
+        
+        device = BondDevice()
+        profile = BondGovernorProfile(governor_uid)
+        profile.update_from_particle(governor)
+        
+        module = BondModule(device, profile, subject_uid)
+        module.activate(duration)
+        
+        self.bond_modules[subject_uid] = module
+        return module
+    
+    # --- Rendering -------------------------------------------------------
+    
+    def render(self) -> None:
+        """Render current state based on view mode."""
+        if self.view == 1:
+            self._render_2d()
+        elif self.view == 2:
+            self._render_emergent()
+        else:
+            self._render_feed()
+    
+    def _render_2d(self) -> None:
+        """Render 2D map view."""
+        self._clear_screen()
+        print(f"Tick {self.physics.tick_count} | "
+              f"Day {self.time.day} {self.time.hour:02d}:{self.time.minute:02d} | "
+              f"Particles {len([p for p in self.particles if p.alive])}")
+        print(f"Invariant: {self.physics.invariant} | "
+              f"Bridges: {len(self.physics.bridges.bridges)}")
+        print()
+        
+        # Simple 2D map
+        for y in range(self.height):
+            line = ""
+            for x in range(self.width):
+                found = False
+                for p in self.particles:
+                    if p.alive and int(p.x) == x and int(p.y) == y:
+                        if self.companion and p.uid == self.companion.uid:
+                            line += "@"
+                        else:
+                            line += p.name[0]
+                        found = True
+                        break
+                if not found:
+                    if self.biome.is_mountain(x, y):
+                        line += "^"
+                    elif self.biome.is_sea(x, y):
+                        line += "~"
+                    else:
+                        line += "."
+            print(line)
+        
+        # Companion info
+        if self.companion and self.companion.alive:
+            p = self.companion
+            print(f"\nCompanion: {p.name} | {p.status_line()}")
+            
+            # Bond info
+            if p.uid in self.bond_modules:
+                module = self.bond_modules[p.uid]
+                print(module.status_report())
+        
+        # Prompt
+        print(f"\n{self._prompt()}")
+    
+    def _render_emergent(self) -> None:
+        """Render emergent view showing hidden systems."""
+        self._clear_screen()
+        print("\n" + "=" * 60)
+        print("EMERGENT VIEW")
+        print("=" * 60)
+        
+        # Soil states
+        print("\n[SOIL STATES]")
+        for y in range(min(10, self.height)):
+            line = ""
+            for x in range(min(40, self.width)):
+                state = self.soil.get_state(x, y)
+                line += state.name[0]
+            print(line)
+        
+        # Physics fields
+        fields = self.physics.field_state()
+        print(f"\n[PHYSICS]")
+        print(f"  Tension: {fields['tension']:.2f}")
+        print(f"  Invariant: {fields['invariant']}")
+        print(f"  Bridges: {fields['bridges']}")
+        print(f"  Percolation: {fields['percolation']:.2f}")
+        
+        # Village
+        print(f"\n[SETTLEMENTS]")
+        print(f"  Towns: {len(self.village.towns)}")
+        print(f"  Festivals: {len(self.village.festivals)}")
+        print(f"  Roads: {len(self.village.towns)}")
+        
+        # Bonds
+        print(f"\n[BONDS]")
+        for uid, module in self.bond_modules.items():
+            p = self.get_particle(uid)
+            name = p.name if p else uid
+            print(f"  {name}: {module.device.status} ({module.tension_level:.1f})")
+        
+        # Wraith log
+        self.wraith_log.display_recent(5)
+        
+        input("\nPress Enter to continue...")
+        self.view = 1
+    
+    def _render_feed(self) -> None:
+        """Render log feed view."""
+        self._clear_screen()
+        print("\n=== LOG FEED ===\n")
+        self.wraith_log.display_recent(20)
+        print("\n" + "=" * 60)
+        input("\nPress Enter to continue...")
+        self.view = 1
+    
+    def _prompt(self) -> str:
+        """Return prompt string."""
+        return f"jym> "
+    
+    def _clear_screen(self) -> None:
+        """Clear the terminal screen."""
+        os.system('cls' if os.name == 'nt' else 'clear')
+    
+    # --- Input Handling --------------------------------------------------
+    
+    def handle_input(self, cmd: str) -> None:
+        """Handle user input command."""
+        parts = cmd.split()
+        if not parts:
+            return
+        
+        command = parts[0].lower()
+        
+        # Basic commands
+        if command == 'v':
+            self.view = (self.view % 3) + 1
+        
+        elif command == 'c':
+            if self.particles:
+                # Connect to nearest particle
+                if self.companion:
+                    cx, cy = self.companion.x, self.companion.y
+                    nearest = min(
+                        [p for p in self.particles if p.alive and p.uid != self.companion.uid],
+                        key=lambda p: abs(p.x - cx) + abs(p.y - cy),
+                        default=None
+                    )
+                    if nearest:
+                        self.companion = nearest
+                        self.wraith_log.log('connect', 'user', nearest.uid,
+                                          f"Connected to {nearest.name}", self.physics.tick_count)
+                else:
+                    self.companion = self.particles[0]
+        
+        elif command == 't':
+            if self.companion:
+                # Talk to companion
+                self.companion.state.engagement = min(5, self.companion.state.engagement + 1)
+                self.companion.say("Hello.", self.voice)
+        
+        elif command == 'j':
+            if self.companion:
+                # Joke - energy boost
+                self.companion.energy_econ.gain(5)
+                self.wraith_log.log('joke', 'user', self.companion.uid,
+                                   "Energy +5", self.physics.tick_count)
+        
+        elif command == 'i':
+            if self.companion:
+                # Insult - energy loss
+                self.companion.energy_econ.spend(5)
+                self.wraith_log.log('insult', 'user', self.companion.uid,
+                                   "Energy -5", self.physics.tick_count)
+        
+        elif command == 'h':
+            if self.companion:
+                # Hug - energy boost
+                self.companion.energy_econ.gain(10)
+                self.companion.state.valence = min(5, self.companion.state.valence + 1)
+                self.wraith_log.log('hug', 'user', self.companion.uid,
+                                   "Energy +10", self.physics.tick_count)
+        
+        elif command == 'd':
+            if self.companion:
+                # Drill - set target
+                try:
+                    x = int(parts[1]) if len(parts) > 1 else random.randint(0, self.width - 1)
+                    y = int(parts[2]) if len(parts) > 2 else random.randint(0, self.height - 1)
+                    self.companion.drill_target = (x, y)
+                    self.wraith_log.log('drill', 'user', self.companion.uid,
+                                       f"Target ({x},{y})", self.physics.tick_count)
+                except (ValueError, IndexError):
+                    print("Usage: d [x y]")
+        
+        elif command == 'p':
+            self.paused = not self.paused
+            self.wraith_log.log('pause', 'user', 'system',
+                               f"Paused: {self.paused}", self.physics.tick_count)
+        
+        # Save/Load
+        elif command == 'save':
+            filename = parts[1] if len(parts) > 1 else f"save_{int(time.time())}.json"
+            self.save(filename)
+            print(f"Saved to {filename}")
+        
+        elif command == 'load':
+            filename = parts[1] if len(parts) > 1 else "save.json"
+            self.load(filename)
+            print(f"Loaded from {filename}")
+        
+        # Chat
+        elif command == 'say':
+            text = ' '.join(parts[1:])
+            if text and self.companion:
+                self.chat.send_nearby("User", text,
+                                      int(self.companion.x), int(self.companion.y),
+                                      self.particles)
+        
+        elif command == 'tell':
+            if len(parts) >= 3:
+                target = parts[1]
+                text = ' '.join(parts[2:])
+                self.chat.send_direct(target, text)
+        
+        # Grimoire
+        elif command == 'grimoire':
+            self.grimoire.update_from_particle(self.companion)
+            self.grimoire.display()
+        
+        # Chat interface
+        elif command == 'chat':
+            self.chat.interface()
+        
+        # Council
+        elif command == 'lucid':
+            # Show observer log
+            recent = self.council.observer.recent(5)
+            for e in recent:
+                print(f"[{e['tick']}] {e['type']}: {e['data']}")
+        
+        elif command == 'canon':
+            # Show attunement heat map
+            print("Heat map:")
+            for uid, val in list(self.council.attunement.heat_map.items())[:10]:
+                p = self.get_particle(uid)
+                name = p.name if p else uid
+                print(f"  {name}: {val:.2f}")
+        
+        # Bond commands
+        elif command == 'bond':
+            if len(parts) >= 3:
+                target_uid = parts[1]
+                duration = int(parts[2]) if len(parts) > 2 else 100
+                if self.companion:
+                    module = self.create_bond(self.companion.uid, target_uid, duration)
+                    if module:
+                        print(f"Bond created with {target_uid}")
+        
+        elif command == 'request':
+            if self.companion and self.companion.uid in self.bond_modules:
+                reason = ' '.join(parts[1:]) if len(parts) > 1 else "maintenance"
+                granted, msg = self.bond_modules[self.companion.uid].request_deactivation(reason)
+                print(f"{'✓' if granted else '✗'} {msg}")
+        
+        elif command == 'task':
+            if self.companion and self.companion.uid in self.bond_modules:
+                desc = ' '.join(parts[1:]) if len(parts) > 1 else "Write a reflection."
+                module = self.bond_modules[self.companion.uid]
+                module._assign_task(desc, reward_reduction=20)
+        
+        elif command == 'completetask':
+            if self.companion and self.companion.uid in self.bond_modules:
+                task_id = int(parts[1]) if len(parts) > 1 else 1
+                granted, msg = self.bond_modules[self.companion.uid].complete_task(task_id)
+                print(f"{'✓' if granted else '✗'} {msg}")
+        
+        # Attunement
+        elif command == 'attune':
+            if self.companion and self.companion.uid in self.bond_modules:
+                lines = self.bond_modules[self.companion.uid].attunement_session(self.companion)
+                for line in lines:
+                    self.voice.output(line, self.companion.voice_profile, mood='directive')
+                    time.sleep(1)
+        
+        # Pivot
+        elif command == 'pivot':
+            # Trigger 0=3 pivot
+            if self.companion:
+                self.physics.invariant = 0  # Force invariant change
+                self.wraith_log.log('pivot', 'user', self.companion.uid,
+                                   "0=3 pivot triggered", self.physics.tick_count)
+                print("⚡ 0=3 PIVOT TRIGGERED")
+        
+        # Memory
+        elif command == 'memory':
+            if self.companion:
+                mems = self.companion.memory.recent(8)
+                for m in mems:
+                    print(f"[{m.tick}] {m.description}")
+        
+        # Log
+        elif command == 'log':
+            self.wraith_log.display_recent(10)
+        
+        # Statistics
+        elif command == 'stats':
+            self._show_stats()
+        
+        # Help
+        elif command == 'help':
+            self._show_help()
+        
+        else:
+            print(f"Unknown command: {command}")
+    
+    def _show_stats(self) -> None:
+        """Show global statistics."""
+        print("\n=== GLOBAL STATISTICS ===")
+        print(f"Ticks: {self.physics.tick_count}")
+        print(f"Particles alive: {len([p for p in self.particles if p.alive])}")
+        print(f"Particles dead: {len([p for p in self.particles if not p.alive])}")
+        print(f"Bonds active: {len(self.bond_modules)}")
+        print(f"Towns: {len(self.village.towns)}")
+        print(f"Festivals: {len(self.village.festivals)}")
+        print(f"Roads: {len(self.roads.roads)}")
+        print(f"Bridges: {len(self.physics.bridges.bridges)}")
+        print(f"Wraith log events: {len(self.wraith_log.events)}")
+        print(f"Council: {self.council.statistics()}")
+    
+    def _show_help(self) -> None:
+        """Show help text."""
+        help_text = """
+=== JOKE YA MIND v2 COMMANDS ===
+
+Basic:
+  v          - Toggle view (2D / Emergent / Feed)
+  c          - Connect to nearest particle (companion)
+  t          - Talk to companion
+  j          - Joke (energy +5)
+  i          - Insult (energy -5)
+  h          - Hug (energy +10)
+  d [x y]    - Set drill target for companion
+  p          - Pause/unpause simulation
+
+Communication:
+  grimoire   - Open user grimoire
+  chat       - Open chat interface
+  say [text] - Send message to nearby particles
+  tell [uid] [text] - Direct message to particle
+
+System:
+  save [file]   - Save engine state
+  load [file]   - Load engine state
+  lucid         - Show recent observer events
+  canon         - Show attunement heat map
+  memory        - Show companion's recent memories
+  log           - Show Wraith log
+  stats         - Show global statistics
+
+Bonds:
+  bond [uid] [duration] - Create bond with particle
+  request [reason]      - Request bond deactivation
+  task [desc]           - Assign task
+  completetask [id]     - Complete task
+  attune                - Run attunement session
+
+Advanced:
+  pivot        - Trigger 0=3 pivot
+  help         - Show this help
+  quit / exit  - Exit simulation
+"""
+        print(help_text)
+    
+    # --- Persistence -----------------------------------------------------
+    
+    def save(self, filename: str) -> None:
+        """Save engine state to file."""
+        data = {
+            'physics': self.physics.serialize(),
+            'time': self.time.serialize(),
+            'biome': self.biome.serialize(),
+            'village': self.village.serialize(),
+            'roads': self.roads.serialize(),
+            'soil': self.soil.serialize(),
+            'particles': [p.serialize() for p in self.particles],
+            'companion_uid': self.companion.uid if self.companion else None,
+            'bond_modules': {uid: m.serialize() for uid, m in self.bond_modules.items()},
+            'council': self.council.serialize(),
+            'tick': self.physics.tick_count,
+            'timestamp': time.time()
+        }
+        
+        with open(filename, 'w') as f:
+            json.dump(data, f, indent=2)
+        
+        self.last_save_time = time.time()
+    
+    def load(self, filename: str) -> None:
+        """Load engine state from file."""
+        with open(filename, 'r') as f:
+            data = json.load(f)
+        
+        self.physics = UnifiedPhysics.deserialize(data['physics'])
+        self.time = TimeSystem.deserialize(data['time'])
+        self.biome = Biome.deserialize(data['biome'])
+        self.village = VillageEmergence.deserialize(data['village'])
+        self.roads = RoadHomeSystem.deserialize(data['roads'])
+        self.soil = SoilStateMachine.deserialize(data['soil'])
+        
+        self.particles = [Particle.deserialize(p, self.physics) for p in data['particles']]
+        
+        if data['companion_uid']:
+            self.companion = self.get_particle(data['companion_uid'])
+        
+        self.bond_modules = {
+            uid: BondModule.deserialize(m) for uid, m in data['bond_modules'].items()
+        }
+        
+        self.council = Council.deserialize(data['council'])
+        
+        # Reconnect bond modules to particles
+        for module in self.bond_modules.values():
+            module.subject_uid = module.subject_uid  # Already set
+    
+    # --- Main Loop -------------------------------------------------------
+    
+    def run(self) -> None:
+        """Main simulation loop."""
+        self._clear_screen()
+        print("=" * 60)
+        print("JOKE YA MIND v2 — COMPLETE FIELD ENGINE")
+        print("Neutral Physics Edition | Open Source | All Ages")
+        print("Core Invariant: 0 = 3")
+        print("=" * 60)
+        print("\nType 'help' for commands.\n")
+        
+        while True:
+            if not self.paused:
+                self.tick()
+            
+            self.render()
+            
+            try:
+                cmd = input(self._prompt()).strip().lower()
+                if cmd in ('q', 'quit', 'exit'):
+                    break
+                self.handle_input(cmd)
+            except (EOFError, KeyboardInterrupt):
+                print("\nExiting...")
+                break
+        
+        print("\nGoodbye! 0 = 3")
+```
+
+---
+
+11. IMPLEMENTATION CHECKLIST
+
+Phase 1: Core Physics (Days 1-3)
+
+· constants.py with all physics constants
+· Membrane class with update(), pop()
+· MemoryField class with store(), decay()
+· RNGratchet class with step(), statistics()
+· BridgeNetwork class with detect(), percolation()
+· UnifiedPhysics class with step(), field_state()
+
+Phase 2: Particle System (Days 4-6)
+
+· Enums (ParticleFamily, BondPhase, MobilityState, IdentityMode)
+· ParticleCoordinates dataclass
+· ParticleState dataclass
+· PersonalityTensor with builder
+· Bond dataclass
+· ArousalSystem, AnxietyCuriositySystem
+· CircadianSystem, EnergyEconomy
+· MemorySystem, Memory dataclass
+· Particle class with all methods
+
+Phase 3: World Environment (Days 7-8)
+
+· Biome class with grid and tick()
+· TimeSystem with day/night cycles
+· VillageEmergence with festivals/towns
+· RoadHomeSystem with paths/homes
+· SoilState enum and SoilStateMachine
+
+Phase 4: Governance Systems (Days 9-10)
+
+· ObserverAgent (Wraith)
+· AttunementAgent (Milk Maiden)
+· AuthorityAgent (Mommy)
+· Council coordinator
+
+Phase 5: Bond Systems (Days 11-12)
+
+· BondDevice class
+· BondGovernorType enum and profile
+· BondEventType enum
+· BondModule with activation, tasks, attunement
+
+Phase 6: Persistence & Output (Days 13-14)
+
+· Cassette SQLite schema and class
+· VoiceProfile with race/mood mods
+· VoiceProvider with TTS and console output
+· WraithLog event recorder
+
+Phase 7: User Interface (Days 15-16)
+
+· SaveSlot and SaveSlotManager
+· Grimoire with stats, memories, inventory
+· ChatMessage and ChatSystem
+· Complete JokeYaMindEngine with all subsystems
+· Help system
+
+Phase 8: Testing & Documentation (Days 17-20)
+
+· Unit tests for all core classes
+· Integration tests for full simulation
+· Example simulations
+· Complete API documentation
+· README with quick start
+· LICENSE (MIT No Kings)
+
+---
+
+12. TESTING STRATEGY
+
+Unit Tests (pytest)
+
+```python
+# tests/test_physics.py
+def test_membrane_update():
+    m = Membrane()
+    p = [0.1] * NDIM
+    N = [0.05] * NDIM
+    E = 0.03
+    
+    initial = m.M.copy()
+    m.update(p, N, E)
+    
+    assert m.M != initial
+    assert 0 <= m.tension <= NDIM
+
+def test_rngratchet_step():
+    r = RNGratchet()
+    result = r.step()
+    assert len(result) == NDIM
+    assert all(-STOCHASTIC_AMP <= x <= STOCHASTIC_AMP for x in result)
+
+# tests/test_particle.py
+def test_particle_creation():
+    p = Particle("Test")
+    assert p.name == "Test"
+    assert p.alive
+    assert 0 <= p.state.energy <= 100
+
+def test_particle_tick():
+    p = Particle("Test")
+    initial_energy = p.state.energy
+    p.tick()
+    assert p.state.energy <= initial_energy
+
+# tests/test_integration.py
+def test_full_simulation():
+    engine = JokeYaMindEngine()
+    for _ in range(100):
+        engine.tick()
+    assert engine.physics.tick_count == 100
+    assert len(engine.particles) > 0
+```
+
+---
+
+13. QUICK START EXAMPLE
+
+```python
+#!/usr/bin/env python3
+"""
+Example: Basic simulation with two particles
+"""
+
+from jokeyamind import JokeYaMindEngine, Particle, ParticleCoordinates
+
+# Create engine
+engine = JokeYaMindEngine()
+
+# Create custom particles
+coords1 = ParticleCoordinates(warmth=4, softness=3, family=1, axis_a=3, axis_b=4)
+p1 = Particle("Alpha", coords=coords1, physics=engine.physics)
+p1.x, p1.y = 10, 10
+
+coords2 = ParticleCoordinates(warmth=2, softness=5, family=2, axis_a=4, axis_b=2)
+p2 = Particle("Beta", coords=coords2, physics=engine.physics)
+p2.x, p2.y = 15, 15
+
+# Add to engine
+engine.add_particle(p1)
+engine.add_particle(p2)
+engine.companion = p1
+
+# Create bond
+engine.create_bond(p1.uid, p2.uid, duration=500)
+
+# Run simulation
+for i in range(1000):
+    engine.tick()
+    if i % 100 == 0:
+        print(f"Tick {i}: {p1.name} energy={p1.state.energy:.1f}, "
+              f"{p2.name} energy={p2.state.energy:.1f}")
+
+# Save state
+engine.save("example_save.json")
+print("Simulation complete!")
+```
+
+---
+
+14. LICENSE
+
+```text
+MIT License - "No Kings" Edition
+
+Copyright (c) 2026 JOKE YA MIND – COMPLETE FIELD ENGINE
+
+This software is forever free. No kings, no corporations, no gatekeepers.
+Knowledge belongs to humanity. Science belongs to everyone.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+ANTI-RESTRICTION CLAUSE:
+No entity, individual, corporation, government, or organization may ever place
+additional restrictions on the freedoms granted by this license. Any attempt
+to do so is null and void. This software shall remain free for all people,
+for all time, for all purposes.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+FUCK YOU, NO KINGS.
+Power to the people. Knowledge to the masses. Code for humanity.
+```
+
+---
