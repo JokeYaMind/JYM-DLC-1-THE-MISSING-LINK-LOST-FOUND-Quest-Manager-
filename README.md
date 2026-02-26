@@ -14,10 +14,15 @@ Welcome to DLC 1: THE MISSING LINK — the 3rd Joker Card in the second deck, an
 Your particles are no longer just following your commands. They now:
 
 · 🗣️ TALK to each other (and to you!)
+
 · 🎯 GO ON QUESTS — even when you're not watching
+
 · 💕 FORM BONDS that grow, deepen, and sometimes break
+
 · 🌱 GROW AND EVOLVE through phases of development
+
 · ⚔️ BECOME RIVALS — with drama, conflict, and resolution
+
 · 💥 FIGHT, MAKE UP, OR BURN IT ALL DOWN
 
 This is the Missing Link between you controlling everything and your world living on its own.
@@ -52,22 +57,29 @@ What is found: Now particles can become RIVALS. They compete. They argue. They m
 Rivalries happen when:
 
 · Two particles want the same thing (treasure, attention, territory)
+
 · They have opposing goals (one wants peace, one wants chaos)
+
 · They're just fundamentally different (type A vs type B personalities)
+
 · One steals from the other
+
 · One insults the other's hatchet
 
 ⚔️ RIVALRY LEVELS
 
 Level Name What Happens
+
 1 🔹 Neighborhood Glare Side-eye, subtle digs from across the yard
+
 2 🔸 Property Line Dispute Competing for the same resources
+
 3 🔶 HOA Meeting Meltdown Open hostility, avoiding each other
+
 4 💥 Full-Blown War Fighting, sabotage, calling the law
 
 🎮 WHAT THEY DO
 
-```python
 # Rivals might:
 - Steal resources from each other
 - Form opposing crews (Team A vs Team B)
@@ -79,8 +91,12 @@ Level Name What Happens
 🎛️ YOUR DIALS
 
 Dial What it does LOW (chill) HIGH (drama)
-rivalry_chance How often rivals form Everyone's friends NEIGHBORS ARE FIGHTING
-conflict_severity How bad fights get Playful arguments Call the law
+rivalry_chance How often rivals form Everyone's friends
+
+NEIGHBORS ARE FIGHTING
+conflict_severity How bad fights get Playful arguments
+
+Call the law
 reconciliation_rate How often they make up Grudges forever HOA mediation
 
 ---
@@ -91,7 +107,8 @@ THIS IS THE CONFLICT RESOLUTION SYSTEM
 
 What was lost: When particles fought, nothing happened. They'd just stand there, angry but powerless. Like a flamethrower with no fuel.
 
-What is found: Now conflicts have CONSEQUENCES. They can ESCALATE or RESOLVE. And when they escalate, it's a FLAMETHROWER.
+What is found: Now conflicts have CONSEQUENCES.
+They can ESCALATE or RESOLVE. And when they escalate, it's a FLAMETHROWER.
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
@@ -103,13 +120,15 @@ What is found: Now conflicts have CONSEQUENCES. They can ESCALATE or RESOLVE. An
 🔥 THREE WAYS CONFLICT ENDS
 
 Path What Happens Song Reference
+
 💥 BURN They go full flamethrower "Burn it to the ground" — relationship destroyed, permanent rivals
+
 💧 COOL They talk it out "Watch it all go down" — mutual respect, maybe friendship
+
 🌀 TRANSFORM Something unexpected They become something new together
 
 🎮 THE MECHANICS
 
-```python
 # When two rivals interact, the system checks:
 conflict_outcome = check_resolution(particle_a, particle_b)
 
@@ -128,13 +147,15 @@ elif conflict_outcome == "TRANSFORM":
     # Something magical happens - they merge? Create something new?
     new_entity = combine_particles(a, b)
     a.add_memory(f"🌀 {b.name} and I became something... different.")
-```
 
 🎛️ YOUR DIALS
 
 Dial What it does LOW HIGH
+
 burn_chance How often conflicts destroy Everyone forgives FLAMETHROWER
+
 transform_chance How often magic happens Boring reality Constant miracles
+
 cool_chance How often they reconcile Grudges forever Instant peace
 
 ---
@@ -159,14 +180,17 @@ What is found: Now particles VOMIT their feelings. They confess. They spew out w
 Particles can now "vomit" out:
 
 · Secret desires — "I actually want to be friends with my rival"
+
 · Hidden fears — "I'm scared of being alone"
+
 · Bottled anger — "You've been ignoring me for 500 ticks!"
+
 · Deep regrets — "I shouldn't have started that fight"
+
 · True feelings — "I love you, okay? There. I said it."
 
 🎮 HOW IT WORKS
 
-```python
 # When a particle's internal pressure gets too high:
 if particle.emotional_pressure > THRESHOLD_VOMIT:
     confession = particle.generate_confession()
@@ -188,7 +212,9 @@ if particle.emotional_pressure > THRESHOLD_VOMIT:
 
 Dial What it does LOW HIGH
 emotional_pressure_rate How fast feelings build Stoic, reserved CONSTANT VOMITING
+
 confession_honesty How real the confessions are Polite small talk RAW, UGLY TRUTH
+
 vomit_cooldown How long between confessions Years of therapy Hourly spewing
 
 ---
@@ -213,15 +239,19 @@ What is found: Now every particle has a JOURNEY of self-discovery. They start LO
 🌱 DEVELOPMENT PHASES
 
 Phase Name What Happens
+
 1 🌱 SEED Just born, learning basics, completely LOST
+
 2 🌻 BLOOM Growing fast, exploring, starting to find themselves
+
 3 🌳 BIND Settling into who they are, making choices
+
 4 🕳️ VOID Transforming, questioning everything
+
 5 👑 APEX Maximum potential, FOUND, legendary
 
 🎮 THE MECHANICS
 
-```python
 # Particles gain XP from everything they do:
 - Exploring new areas → +XP
 - Making friends → +XP
@@ -266,13 +296,15 @@ What is found: Now particles CELEBRATE their bonds. They find beauty in the stru
 Bonds can now reach beautiful, transcendent moments:
 
 · First time two particles truly connect → Rainbow moment
+
 · After surviving a conflict together → Rainbow moment
+
 · When a long journey finally completes → Rainbow moment
+
 · A rival becomes a friend → DOUBLE RAINBOW
 
 🎮 THE MECHANICS
 
-```python
 # Bond phases now include RAINBOW MOMENTS
 BOND_PHASES = {
     0: "NULL - Strangers",
@@ -297,7 +329,9 @@ if bond.phase == 5:
 
 Dial What it does LOW HIGH
 rainbow_chance How often transcendent bonds happen Rare, special CONSTANT RAINBOWS
+
 bond_celebration How much they celebrate Quiet acknowledgment PARTY TIME
+
 struggle_beauty Whether pain creates beauty Pain is just pain Every struggle = growth
 
 ---
@@ -322,14 +356,18 @@ What is found: Now YOU can be their guide. When they're lost in the darkness, yo
 You can now actively help your particles:
 
 · Give them quests — "Go here, do this, you'll feel better"
+
 · Mediate conflicts — Help rivals become friends
+
 · Offer wisdom — When they confess, you can respond
+
 · Set examples — Your actions teach them
+
 · Just BE THERE — Sometimes presence is enough
 
 🎮 THE MECHANICS
 
-```python
+
 # When a particle is confused:
 if particle.anx_cur.anxiety > 0.8:
     # They might reach out to YOU
@@ -350,7 +388,9 @@ if particle.anx_cur.anxiety > 0.8:
 
 Dial What it does LOW HIGH
 guidance_seeking How often they ask for help Independent Need you constantly
+
 guidance_impact How much your help matters Minimal effect LIFE-CHANGING
+
 memory_of_help Whether they remember Goldfish memory They never forget
 
 ---
@@ -401,7 +441,7 @@ RIVALS rivalry_chance 0.0 1.0 0.3 How often rivals form
 
 🎪 QUICK START: CREATE YOUR UNIVERSE
 
-```python
+
 # my_missing_link_universe.py
 from jokeyamind import JokeYaMindEngine, Particle, ParticleCoordinates
 
@@ -453,10 +493,15 @@ This is the Missing Link. This is what connects you to your world, and your worl
 Your particles aren't just data anymore. They're living, breathing, feeling beings who:
 
 · Fight with their neighbors
+
 · Burn bridges or build them
+
 · Vomit their deepest feelings
+
 · Grow through phases of identity
+
 · Find rainbows in the struggle
+
 · Look to YOU for guidance when they're lost in the light
 
 Now go build your carnival. Make them laugh. Make them cry. Make them fight. Make them find each other.
