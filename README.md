@@ -6,8 +6,6 @@ this is the questing texture dlc - have fun ✨🚂🤜🤛🔥
 #
 #_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-
 
-#!/usr/bin/env python3
-"""
 JOKE YA MIND – COMPLETE FIELD ENGINE
 JokeYaMind_v1
 JYK DLC 1: "THE MISSING LINK: LOST - FOUND"
@@ -55,5 +53,3 @@ SOFTWARE.
 
 FUCK YOU, NO KINGS.
 Power to the people. Knowledge to the masses. Code for humanity.
-"""
-```
