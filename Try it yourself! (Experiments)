@@ -37,7 +37,6 @@ What happens: Two particles with opposing symbols (flags) meet. Violence erupts.
 
 Your dials:
 
-```python
 # In your JokeYaMind config
 rivalry_config = {
     'trigger_distance': 3,        # How close before they notice each other
@@ -89,7 +88,7 @@ conflict_config = {
 
 Try this:
 
-```python
+
 def handle_conflict(particle_a, particle_b):
     if random.random() < conflict_config['shout_chance']:
         # They shout
@@ -123,7 +122,7 @@ What happens: Each side has a motive. In your simulation, particles act based on
 
 Your dials:
 
-```python
+
 motive_config = {
     'pride_factor': 0.8,            # How strongly they defend symbols
     'challenge_response': 'fight',   # 'fight', 'flee', or 'ignore'
@@ -133,7 +132,7 @@ motive_config = {
 
 Try this:
 
-```python
+
 # Assign motives
 redneck.motives = {'pride': 0.9, 'tradition': 0.8}
 juggalo.motives = {'justice': 0.9, 'anti-racism': 0.9}
@@ -171,7 +170,7 @@ unity_config = {
 
 Try this:
 
-```python
+
 # After a conflict, check if they can unite
 if redneck.energy < 20 and juggalo.energy < 20:
     # Broken and battered, they might find common ground
@@ -208,7 +207,7 @@ What this means: You can change ANY parameter. Want a world where rivalries neve
 
 Your ultimate control panel:
 
-```python
+
 # Everything is a dial
 universe_dials = {
     # RIVALRY DIALS (from Confederate Flag)
@@ -230,7 +229,6 @@ universe_dials = {
 
 Try this:
 
-```python
 # Reset your universe with a single config
 my_world = JokeYaMindEngine(universe_dials)
 my_world.run()
@@ -253,7 +251,7 @@ What this means: Your particles can become ANYTHING. Assign them roles, skills, 
 
 Your dials:
 
-```python
+
 role_config = {
     'available_roles': ['rock_star', 'brain_surgeon', 'scuba_diver', 'prisoner', 'astronaut', 'cannibal', 'vegan', 'lazy_bum'],
     'role_switch_cost': 10,           # Energy cost to change roles
@@ -268,7 +266,7 @@ role_config = {
 
 Try this:
 
-```python
+
 # Let a particle try on different roles
 particle = my_world.particles[0]
 for role in ['rock_star', 'brain_surgeon', 'lazy_bum']:
@@ -294,7 +292,7 @@ What this means: Particles can be insulted, but they can also build resilience. 
 
 Your dials:
 
-```python
+
 resilience_config = {
     'insult_damage': 5,               # Energy lost when insulted
     'resilience_growth': 0.01,         # How much they toughen after each insult
@@ -305,7 +303,7 @@ resilience_config = {
 
 Try this:
 
-```python
+
 def insult_particle(insulter, target):
     target.energy -= resilience_config['insult_damage']
     target.memory.add(f"{insulter.name} called me shit for brains")
@@ -336,7 +334,6 @@ What this means: After enough growth, particles can achieve APEX phase—they be
 
 Your dials:
 
-```python
 apex_config = {
     'missing_link_xp': 1000,           # XP needed for APEX
     'glow_brightness': 0.9,             # 0-1: How much they shine
@@ -351,7 +348,7 @@ apex_config = {
 
 Try this:
 
-```python
+
 # Track a particle's journey to APEX
 particle = Particle(name="LostSoul")
 while particle.xp < apex_config['missing_link_xp']:
@@ -372,7 +369,7 @@ particle.energy_regen *= apex_config['incredible_bonus']['energy_regen']
 
 Let's simulate the entire journey—from violent rivalry to ultimate empowerment—using both songs.
 
-```python
+
 # full_experiment.py
 from jokeyamind import JokeYaMindEngine, Particle, ParticleCoordinates
 
@@ -470,7 +467,6 @@ This ain't one of those.
 
 The flag we fly in this carnival has no borders, no boundaries, no "you can't sit with us." It's the flag that stands for bravery—the bravery to create, to explore, to be weird, to be yourself, to let your freak flag fly HIGH.
 
-```python
 # In our universe, everyone is welcome
 if user.has_any_flag():
     user.is_welcome = True  # Always
@@ -618,7 +614,7 @@ Track Album What It Taught Us
 
 If there's one dial we hope you never turn down, it's this one:
 
-```python
+
 # Always keep this at MAX
 your_imagination.boundaries = 0.0
 your_creativity.limits = None
