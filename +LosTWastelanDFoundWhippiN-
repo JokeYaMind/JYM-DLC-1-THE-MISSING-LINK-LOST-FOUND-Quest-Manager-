@@ -9665,4 +9665,1365 @@ class DecaySystem:
             },
         }
 
+"""
+DLC Hooks
+=========
+Integration layer that connects DLC to base engine.
+
+Hooks extend the base V3_carnival engine without modifying it.
+This is the GameBoy cartridge connector.
+"""
+
+from .entity_hooks import register_entity_hooks
+from .engine_hooks import register_engine_hooks
+from .biome_hooks import register_biome_hooks
+
+__all__ = [
+    "register_entity_hooks",
+    "register_engine_hooks",
+    "register_biome_hooks",
+]
+
+"""
+Entity Hooks
+============
+Extensions to the Entity class.
+
+These hooks add DLC component support to entities
+without modifying the base Entity class.
+
+Hook Pattern:
+1. Check if entity has the extension
+2. Add extension methods/properties
+3. Register for DLC systems
+"""
+
+from typing import Dict, Any, List, Optional, Callable, TYPE_CHECKING
+
+from ..core.component import Component, ComponentHolder
+from ..components.faygo import FaygoComponent, FaygoMode, FaygoFlavor
+from ..components.madrox import MadroxComponent
+from ..components.carnie import CarnieComponent
+from ..components.danger_state import DangerStateComponent, DangerState
+from ..components.loyalty import LoyaltyComponent, LoyaltyAction
+from ..components.authority import AuthorityComponent, AuthorityLevel
+from ..components.hidden_potential import HiddenPotentialComponent
+from ..components.toxicity import ToxicityComponent, ToxicityType
+
+
+def register_entity_hooks(engine) -> List[str]:
+    """
+    Register all entity-related hooks.
+    
+    This patches the Entity class to support DLC components.
+    
+    Args:
+        engine: The V3_carnival GameEngine
+        
+    Returns:
+        List of registered hook names
+    """
+    hooks_registered = []
+    
+    # Get Entity class from engine
+    Entity = engine.Entity if hasattr(engine, 'Entity') else None
+    
+    if Entity is None:
+        # Create a mock for standalone testing
+        class Entity:
+            """Base Entity class (hooked version)."""
+            _entity_id_counter = 0
+            
+            def __init__(self, *args, **kwargs):
+                Entity._entity_id_counter += 1
+                self.entity_id = f"entity_{Entity._entity_id_counter}"
+                self._components = {}
+                self._tick = 0
+        
+        engine.Entity = Entity
+    
+    # Add ComponentHolder mixin
+    Entity = _add_component_holder(Entity)
+    hooks_registered.append("Entity.component_holder")
+    
+    # Add component accessor properties
+    Entity = _add_component_properties(Entity)
+    hooks_registered.append("Entity.component_properties")
+    
+    # Add DLC-specific methods
+    Entity = _add_dlc_methods(Entity)
+    hooks_registered.append("Entity.dlc_methods")
+    
+    # Store hooked class
+    engine.Entity = Entity
+    
+    return hooks_registered
+
+
+def _add_component_holder(Entity):
+    """Add ComponentHolder mixin to Entity."""
+    
+    # Store original __init__
+    _original_init = Entity.__init__ if hasattr(Entity, '__init__') else None
+    
+    def __init__(self, *args, **kwargs):
+        # Call original init
+        if _original_init:
+            _original_init(self, *args, **kwargs)
+        
+        # Initialize component holder
+        if not hasattr(self, '_components'):
+            self._components: Dict[str, Component] = {}
+        if not hasattr(self, '_component_history'):
+            self._component_history: List[Dict] = []
+    
+    Entity.__init__ = __init__
+    
+    # Add component methods
+    def add_component(self, component: Component) -> Component:
+        """Add a component to this entity."""
+        component_type = component.__class__.__name__
+        
+        # Archive existing (0 = 3)
+        if component_type in self._components:
+            old = self._components[component_type]
+            self._component_history.append({
+                "component": old,
+                "action": "replaced",
+                "tick": getattr(self, '_tick', 0),
+            })
+            old.deactivate()
+        
+        component.attach(self)
+        self._components[component_type] = component
+        return component
+    
+    def get_component(self, component_type: str) -> Optional[Component]:
+        """Get a component by type name."""
+        return self._components.get(component_type)
+    
+    def has_component(self, component_type: str) -> bool:
+        """Check if entity has a component type."""
+        return component_type in self._components
+    
+    def remove_component(self, component_type: str) -> Optional[Component]:
+        """Remove a component (soft delete - archives it)."""
+        if component_type not in self._components:
+            return None
+        
+        component = self._components[component_type]
+        
+        self._component_history.append({
+            "component": component,
+            "action": "removed",
+            "tick": getattr(self, '_tick', 0),
+        })
+        
+        component.detach()
+        del self._components[component_type]
+        return component
+    
+    def get_all_components(self) -> Dict[str, Component]:
+        """Get all components."""
+        return self._components.copy()
+    
+    Entity.add_component = add_component
+    Entity.get_component = get_component
+    Entity.has_component = has_component
+    Entity.remove_component = remove_component
+    Entity.get_all_components = get_all_components
+    
+    return Entity
+
+
+def _add_component_properties(Entity):
+    """Add convenient component accessor properties."""
+    
+    @property
+    def faygo(self) -> Optional[FaygoComponent]:
+        """Get Faygo component."""
+        return self.get_component("FaygoComponent")
+    
+    @property
+    def madrox(self) -> Optional[MadroxComponent]:
+        """Get Madrox component."""
+        return self.get_component("MadroxComponent")
+    
+    @property
+    def carnie(self) -> Optional[CarnieComponent]:
+        """Get Carnie component."""
+        return self.get_component("CarnieComponent")
+    
+    @property
+    def danger_state(self) -> Optional[DangerStateComponent]:
+        """Get DangerState component."""
+        return self.get_component("DangerStateComponent")
+    
+    @property
+    def loyalty(self) -> Optional[LoyaltyComponent]:
+        """Get Loyalty component."""
+        return self.get_component("LoyaltyComponent")
+    
+    @property
+    def authority(self) -> Optional[AuthorityComponent]:
+        """Get Authority component."""
+        return self.get_component("AuthorityComponent")
+    
+    @property
+    def hidden_potential(self) -> Optional[HiddenPotentialComponent]:
+        """Get HiddenPotential component."""
+        return self.get_component("HiddenPotentialComponent")
+    
+    @property
+    def toxicity(self) -> Optional[ToxicityComponent]:
+        """Get Toxicity component."""
+        return self.get_component("ToxicityComponent")
+    
+    @property
+    def is_in_danger(self) -> bool:
+        """Check if entity is in any danger state."""
+        ds = self.danger_state
+        return ds.is_in_danger if ds else False
+    
+    @property
+    def is_overthinking(self) -> bool:
+        """Check if entity is overthinking."""
+        mx = self.madrox
+        return mx.is_overthinking if mx else False
+    
+    @property
+    def anxiety_level(self) -> float:
+        """Get entity's anxiety level."""
+        mx = self.madrox
+        return mx.anxiety_level if mx else 0.0
+    
+    """
+Entity Hooks
+============
+Extensions to the Entity class.
+
+These hooks add DLC component support to entities
+without modifying the base Entity class.
+
+Hook Pattern:
+1. Check if entity has the extension
+2. Add extension methods/properties
+3. Register for DLC systems
+"""
+
+from typing import Dict, Any, List, Optional, Callable, TYPE_CHECKING
+
+from ..core.component import Component, ComponentHolder
+from ..components.faygo import FaygoComponent, FaygoMode, FaygoFlavor
+from ..components.madrox import MadroxComponent
+from ..components.carnie import CarnieComponent
+from ..components.danger_state import DangerStateComponent, DangerState
+from ..components.loyalty import LoyaltyComponent, LoyaltyAction
+from ..components.authority import AuthorityComponent, AuthorityLevel
+from ..components.hidden_potential import HiddenPotentialComponent
+from ..components.toxicity import ToxicityComponent, ToxicityType
+
+
+def register_entity_hooks(engine) -> List[str]:
+    """
+    Register all entity-related hooks.
+    
+    This patches the Entity class to support DLC components.
+    
+    Args:
+        engine: The V3_carnival GameEngine
+        
+    Returns:
+        List of registered hook names
+    """
+    hooks_registered = []
+    
+    # Get Entity class from engine
+    Entity = engine.Entity if hasattr(engine, 'Entity') else None
+    
+    if Entity is None:
+        # Create a mock for standalone testing
+        class Entity:
+            """Base Entity class (hooked version)."""
+            _entity_id_counter = 0
+            
+            def __init__(self, *args, **kwargs):
+                Entity._entity_id_counter += 1
+                self.entity_id = f"entity_{Entity._entity_id_counter}"
+                self._components = {}
+                self._tick = 0
+        
+        engine.Entity = Entity
+    
+    # Add ComponentHolder mixin
+    Entity = _add_component_holder(Entity)
+    hooks_registered.append("Entity.component_holder")
+    
+    # Add component accessor properties
+    Entity = _add_component_properties(Entity)
+    hooks_registered.append("Entity.component_properties")
+    
+    # Add DLC-specific methods
+    Entity = _add_dlc_methods(Entity)
+    hooks_registered.append("Entity.dlc_methods")
+    
+    # Store hooked class
+    engine.Entity = Entity
+    
+    return hooks_registered
+
+
+def _add_component_holder(Entity):
+    """Add ComponentHolder mixin to Entity."""
+    
+    # Store original __init__
+    _original_init = Entity.__init__ if hasattr(Entity, '__init__') else None
+    
+    def __init__(self, *args, **kwargs):
+        # Call original init
+        if _original_init:
+            _original_init(self, *args, **kwargs)
+        
+        # Initialize component holder
+        if not hasattr(self, '_components'):
+            self._components: Dict[str, Component] = {}
+        if not hasattr(self, '_component_history'):
+            self._component_history: List[Dict] = []
+    
+    Entity.__init__ = __init__
+    
+    # Add component methods
+    def add_component(self, component: Component) -> Component:
+        """Add a component to this entity."""
+        component_type = component.__class__.__name__
+        
+        # Archive existing (0 = 3)
+        if component_type in self._components:
+            old = self._components[component_type]
+            self._component_history.append({
+                "component": old,
+                "action": "replaced",
+                "tick": getattr(self, '_tick', 0),
+            })
+            old.deactivate()
+        
+        component.attach(self)
+        self._components[component_type] = component
+        return component
+    
+    def get_component(self, component_type: str) -> Optional[Component]:
+        """Get a component by type name."""
+        return self._components.get(component_type)
+    
+    def has_component(self, component_type: str) -> bool:
+        """Check if entity has a component type."""
+        return component_type in self._components
+    
+    def remove_component(self, component_type: str) -> Optional[Component]:
+        """Remove a component (soft delete - archives it)."""
+        if component_type not in self._components:
+            return None
+        
+        component = self._components[component_type]
+        
+        self._component_history.append({
+            "component": component,
+            "action": "removed",
+            "tick": getattr(self, '_tick', 0),
+        })
+        
+        component.detach()
+        del self._components[component_type]
+        return component
+    
+    def get_all_components(self) -> Dict[str, Component]:
+        """Get all components."""
+        return self._components.copy()
+    
+    Entity.add_component = add_component
+    Entity.get_component = get_component
+    Entity.has_component = has_component
+    Entity.remove_component = remove_component
+    Entity.get_all_components = get_all_components
+    
+    return Entity
+
+
+def _add_component_properties(Entity):
+    """Add convenient component accessor properties."""
+    
+    @property
+    def faygo(self) -> Optional[FaygoComponent]:
+        """Get Faygo component."""
+        return self.get_component("FaygoComponent")
+    
+    @property
+    def madrox(self) -> Optional[MadroxComponent]:
+        """Get Madrox component."""
+        return self.get_component("MadroxComponent")
+    
+    @property
+    def carnie(self) -> Optional[CarnieComponent]:
+        """Get Carnie component."""
+        return self.get_component("CarnieComponent")
+    
+    @property
+    def danger_state(self) -> Optional[DangerStateComponent]:
+        """Get DangerState component."""
+        return self.get_component("DangerStateComponent")
+    
+    @property
+    def loyalty(self) -> Optional[LoyaltyComponent]:
+        """Get Loyalty component."""
+        return self.get_component("LoyaltyComponent")
+    
+    @property
+    def authority(self) -> Optional[AuthorityComponent]:
+        """Get Authority component."""
+        return self.get_component("AuthorityComponent")
+    
+    @property
+    def hidden_potential(self) -> Optional[HiddenPotentialComponent]:
+        """Get HiddenPotential component."""
+        return self.get_component("HiddenPotentialComponent")
+    
+    @property
+    def toxicity(self) -> Optional[ToxicityComponent]:
+        """Get Toxicity component."""
+        return self.get_component("ToxicityComponent")
+    
+    @property
+    def is_in_danger(self) -> bool:
+        """Check if entity is in any danger state."""
+        ds = self.danger_state
+        return ds.is_in_danger if ds else False
+    
+    @property
+    def is_overthinking(self) -> bool:
+        """Check if entity is overthinking."""
+        mx = self.madrox
+        return mx.is_overthinking if mx else False
+    
+    @property
+    def anxiety_level(self) -> float:
+        """Get entity's anxiety level."""
+        mx = self.madrox
+        return mx.anxiety_level if mx else 0.0
+    
+    @property
+    def authority_level(self) -> str:
+        """Get entity's authority level name."""
+        auth = self.authority
+        return auth.level.name if auth else "NORMAL"
+    
+    Entity.faygo = faygo
+    Entity.madrox = madrox
+    Entity.carnie = carnie
+    Entity.danger_state = danger_state
+    Entity.loyalty = loyalty
+    Entity.authority = authority
+    Entity.hidden_potential = hidden_potential
+    Entity.toxicity = toxicity
+    Entity.is_in_danger = is_in_danger
+    Entity.is_overthinking = is_overthinking
+    Entity.anxiety_level = anxiety_level
+    Entity.authority_level = authority_level
+    
+    return Entity
+
+
+def _add_dlc_methods(Entity):
+    """Add DLC-specific helper methods to Entity."""
+    
+    def give_faygo(
+        self,
+        flavor: FaygoFlavor = FaygoFlavor.GRAPE,
+        volume: float = 1.0
+    ) -> FaygoComponent:
+        """Give this entity some Faygo."""
+        component = FaygoComponent(flavor=flavor, volume=volume)
+        self.add_component(component)
+        return component
+    
+    def start_overthinking(self, trigger: str = "") -> Dict[str, Any]:
+        """Start this entity overthinking."""
+        if not self.madrox:
+            self.add_component(MadroxComponent())
+        return self.madrox.start_overthinking(trigger)
+    
+    def stop_overthinking(self, reason: str = "calm") -> Dict[str, Any]:
+        """Stop this entity from overthinking."""
+        if self.madrox:
+            return self.madrox.stop_overthinking(reason)
+        return {"success": False, "reason": "not_overthinking"}
+    
+    def enter_danger(
+        self,
+        state: DangerState,
+        source: str = "",
+        intensity: float = 1.0,
+        tick: int = 0
+    ) -> Dict[str, Any]:
+        """Enter a danger state."""
+        if not self.danger_state:
+            self.add_component(DangerStateComponent())
+        return self.danger_state.enter_state(state, source, intensity, tick)
+    
+    def exit_danger(
+        self,
+        state: DangerState,
+        reason: str = "expired",
+        tick: int = 0
+    ) -> Dict[str, Any]:
+        """Exit a danger state."""
+        if self.danger_state:
+            return self.danger_state.exit_state(state, reason, tick)
+        return {"success": False, "reason": "no_danger_state"}
+    
+    def modify_loyalty(
+        self,
+        target_entity_id: str,
+        action: LoyaltyAction,
+        context: str = "",
+        tick: int = 0
+    ) -> Dict[str, Any]:
+        """Modify loyalty toward another entity."""
+        if not self.loyalty:
+            self.add_component(LoyaltyComponent())
+        return self.loyalty.modify_loyalty(target_entity_id, action, context, tick)
+    
+    def set_authority(
+        self,
+        level: AuthorityLevel,
+        source: str = ""
+    ) -> Dict[str, Any]:
+        """Set authority level."""
+        if not self.authority:
+            self.add_component(AuthorityComponent())
+        return self.authority.grant_authority(level, source)
+    
+    def apply_toxin(
+        self,
+        toxin_type: ToxicityType,
+        severity: float = 0.5,
+        source: str = "",
+        duration: int = None
+    ) -> Dict[str, Any]:
+        """Apply a toxin to this entity."""
+        if not self.toxicity:
+            self.add_component(ToxicityComponent())
+        return self.toxicity.apply_toxin(
+            toxin_type,
+            severity=severity,
+            source=source,
+            duration=duration
+        )
+    
+    def cleanse_toxin(
+        self,
+        amount: float = 0.1,
+        toxin_type: ToxicityType = None
+    ) -> Dict[str, Any]:
+        """Cleanse toxins from this entity."""
+        if self.toxicity:
+            return self.toxicity.cleanse(amount, toxin_type)
+        return {"success": False, "reason": "no_toxicity"}
+    
+    def tick_components(self, current_tick: int = 0):
+        """Tick all components on this entity."""
+        for component in self._components.values():
+            if hasattr(component, 'tick'):
+                component.tick(current_tick)
+        
+        if hasattr(self, '_tick'):
+            self._tick = current_tick
+    
+    Entity.give_faygo = give_faygo
+    Entity.start_overthinking = start_overthinking
+    Entity.stop_overthinking = stop_overthinking
+    Entity.enter_danger = enter_danger
+    Entity.exit_danger = exit_danger
+    Entity.modify_loyalty = modify_loyalty
+    Entity.set_authority = set_authority
+    Entity.apply_toxin = apply_toxin
+    Entity.cleanse_toxin = cleanse_toxin
+    Entity.tick_components = tick_components
+    
+    return Entity
+
+
+def create_entity_with_components(
+    engine,
+    component_configs: List[Dict[str, Any]] = None,
+    **kwargs
+):
+    """
+    Factory function to create an entity with components.
+    
+    Args:
+        engine: The game engine
+        component_configs: List of component configurations
+        **kwargs: Additional entity properties
+        
+    Returns:
+        Entity with components attached
+    """
+    Entity = engine.Entity
+    entity = Entity(**kwargs)
+    
+    if component_configs:
+        for config in component_configs:
+            component_type = config.pop("type")
+            
+            # Map type names to classes
+            component_map = {
+                "FaygoComponent": FaygoComponent,
+                "MadroxComponent": MadroxComponent,
+                "CarnieComponent": CarnieComponent,
+                "DangerStateComponent": DangerStateComponent,
+                "LoyaltyComponent": LoyaltyComponent,
+                "AuthorityComponent": AuthorityComponent,
+                "HiddenPotentialComponent": HiddenPotentialComponent,
+                "ToxicityComponent": ToxicityComponent,
+            }
+            
+            component_class = component_map.get(component_type)
+            if component_class:
+                entity.add_component(component_class(**config))
+    
+    return entity
+
+"""
+Engine Hooks
+============
+Extensions to the GameEngine class.
+
+These hooks add DLC system support to the engine
+without modifying the base GameEngine class.
+
+Hook Pattern:
+1. Check if engine has the extension
+2. Add system management methods
+3. Integrate with engine tick loop
+"""
+
+from typing import Dict, Any, List, Optional, Callable
+import time
+
+from ..core.event import EventManager, DLC_EVENT
+from ..systems.magnetic_fields import MagneticFieldsSystem
+from ..systems.rumor import RumorManager
+from ..systems.party import JuggaloParty
+from ..systems.midway import MidwaySystem
+from ..systems.yellow_bus import YellowBusSystem
+from ..systems.diamond_rain import DiamondRainSystem
+from ..systems.thermodynamics import ThermodynamicsSystem
+from ..ecology.cover_crops import CoverCropManager
+from ..ecology.pests import PestManager
+from ..ecology.predators import PredatorManager
+from ..ecology.decay import DecaySystem
+
+
+def register_engine_hooks(engine) -> List[str]:
+    """
+    Register all engine-related hooks.
+    
+    This patches the GameEngine class to support DLC systems.
+    
+    Args:
+        engine: The V3_carnival GameEngine
+        
+    Returns:
+        List of registered hook names
+    """
+    hooks_registered = []
+    
+    # Add DLC system storage
+    engine = _add_system_storage(engine)
+    hooks_registered.append("Engine.dlc_systems")
+    
+    # Add event manager
+    engine = _add_event_manager(engine)
+    hooks_registered.append("Engine.event_manager")
+    
+    # Add system management methods
+    engine = _add_system_management(engine)
+    hooks_registered.append("Engine.system_management")
+    
+    # Add DLC tick integration
+    engine = _add_tick_integration(engine)
+    hooks_registered.append("Engine.tick_integration")
+    
+    # Add helper methods
+    engine = _add_helper_methods(engine)
+    hooks_registered.append("Engine.helper_methods")
+    
+    return hooks_registered
+
+
+def _add_system_storage(engine):
+    """Add DLC system storage to engine."""
+    
+    if not hasattr(engine, 'dlc_systems'):
+        engine.dlc_systems = {}
+    
+    if not hasattr(engine, 'dlc_components'):
+        engine.dlc_components = {}
+    
+    return engine
+
+
+def _add_event_manager(engine):
+    """Add event manager to engine."""
+    
+    if not hasattr(engine, 'event_manager'):
+        engine.event_manager = EventManager()
+    
+    # Add event emission helper
+    def emit_dlc_event(
+        event_type: DLC_EVENT,
+        source = None,
+        data: Dict = None,
+        queue: bool = False
+    ):
+        """Emit a DLC event."""
+        tick = getattr(engine, '_tick_count', 0)
+        return engine.event_manager.emit(
+            event_type,
+            source=source,
+            data=data or {},
+            tick=tick,
+            queue=queue
+        )
+    
+    engine.emit_dlc_event = emit_dlc_event
+    
+    # Add subscription helper
+    def on_dlc_event(event_type: DLC_EVENT, callback: Callable):
+        """Subscribe to a DLC event."""
+        engine.event_manager.subscribe(event_type, callback)
+    
+    engine.on_dlc_event = on_dlc_event
+    
+    return engine
+
+
+def _add_system_management(engine):
+    """Add system management methods to engine."""
+    
+    def initialize_dlc_systems():
+        """Initialize all DLC systems."""
+        engine.dlc_systems = {
+            "magnetic_fields": MagneticFieldsSystem(),
+            "rumor_manager": RumorManager(),
+            "juggalo_party": JuggaloParty(),
+            "midway": MidwaySystem(),
+            "yellow_bus": YellowBusSystem(),
+            "diamond_rain": DiamondRainSystem(),
+            "thermodynamics": ThermodynamicsSystem(),
+            "cover_crops": CoverCropManager(),
+            "pests": PestManager(),
+            "predators": PredatorManager(),
+            "decay": DecaySystem(),
+        }
+        
+        return list(engine.dlc_systems.keys())
+    
+    def get_dlc_system(name: str):
+        """Get a DLC system by name."""
+        return engine.dlc_systems.get(name)
+    
+    def get_all_dlc_systems() -> Dict:
+        """Get all DLC systems."""
+        return engine.dlc_systems.copy()
+    
+    engine.initialize_dlc_systems = initialize_dlc_systems
+    engine.get_dlc_system = get_dlc_system
+    engine.get_all_dlc_systems = get_all_dlc_systems
+    
+    # Initialize systems if not already done
+    if not engine.dlc_systems:
+        engine.initialize_dlc_systems()
+    
+    return engine
+
+
+def _add_tick_integration(engine):
+    """Add DLC tick integration to engine."""
+    
+    # Store original tick if exists
+    _original_tick = engine.tick if hasattr(engine, 'tick') else None
+    
+    def tick() -> Dict[str, Any]:
+        """Process one engine tick with DLC systems."""
+        # Get or increment tick count
+        if hasattr(engine, '_tick_count'):
+            engine._tick_count += 1
+        else:
+            engine._tick_count = 1
+        
+        current_tick = engine._tick_count
+        
+        results = {
+            "tick": current_tick,
+            "systems": {},
+        }
+        
+        # Call original tick if exists
+        if _original_tick:
+            try:
+                base_result = _original_tick()
+                results["base"] = base_result
+            except Exception as e:
+                results["base_error"] = str(e)
+        
+        # Process DLC systems in order
+        system_order = [
+            "thermodynamics",    # Heat flows first
+            "cover_crops",       # Crops grow
+            "pests",             # Pests spawn/move
+            "predators",         # Predators hunt
+            "decay",             # Decay processes
+            "yellow_bus",        # Energy distribution
+            "diamond_rain",      # Cooling cycle
+            "magnetic_fields",   # Particle physics
+            "rumor_manager",     # Information spread
+            "juggalo_party",     # Party mechanics
+            "midway",            # Carnival games
+        ]
+        
+        for system_name in system_order:
+            system = engine.dlc_systems.get(system_name)
+            if system and hasattr(system, 'tick'):
+                try:
+                    # Special handling for predator system
+                    if system_name == "predators":
+                        pest_manager = engine.dlc_systems.get("pests")
+                        result = system.tick(pest_manager)
+                    else:
+                        result = system.tick()
+                    
+                    results["systems"][system_name] = result
+                except Exception as e:
+                    results["systems"][system_name] = {"error": str(e)}
+        
+        # Process event queue
+        engine.event_manager.process_queue()
+        
+        return results
+    
+    engine.tick = tick
+    
+    # Add tick count property
+    if not hasattr(engine, '_tick_count'):
+        engine._tick_count = 0
+    
+    return engine
+
+
+def _add_helper_methods(engine):
+    """Add helper methods to engine."""
+    
+    def get_global_heat() -> float:
+        """Get global heat level."""
+        thermo = engine.dlc_systems.get("thermodynamics")
+        if thermo:
+            return thermo.average_heat
+        diamond = engine.dlc_systems.get("diamond_rain")
+        if diamond:
+            return diamond.global_heat
+        return 0.0
+    
+    def get_global_chaos() -> float:
+        """Get global chaos level."""
+        party = engine.dlc_systems.get("juggalo_party")
+        if party:
+            return party.get_global_chaos_level()
+        return 0.0
+    
+    def get_ecosystem_summary() -> Dict[str, Any]:
+        """Get summary of ecosystem state."""
+        cover_crops = engine.dlc_systems.get("cover_crops")
+        pests = engine.dlc_systems.get("pests")
+        predators = engine.dlc_systems.get("predators")
+        decay = engine.dlc_systems.get("decay")
+        
+        return {
+            "cover_crops": {
+                "count": len(cover_crops.crops) if cover_crops else 0,
+                "heat_output": cover_crops.get_total_heat_output() if cover_crops else 0,
+                "faygo_output": cover_crops.get_total_faygo_output() if cover_crops else 0,
+            },
+            "pests": {
+                "count": len(pests.pests) if pests else 0,
+                "total_energy": pests.get_total_energy() if pests else 0,
+            },
+            "predators": {
+                "count": len(predators.predators) if predators else 0,
+                "hunting_capacity": predators.get_total_hunting_capacity() if predators else 0,
+            },
+            "decay": {
+                "piles": len(decay.piles) if decay else 0,
+                "nutrients": decay.available_nutrients if decay else 0,
+            },
+        }
+    
+    def add_heat(x: float, y: float, amount: float, source: str = "") -> Dict:
+        """Add heat to a location."""
+        # Add to thermodynamics
+        thermo = engine.dlc_systems.get("thermodynamics")
+        if thermo:
+            thermo.add_heat(x, y, amount, source)
+        
+        # Trigger diamond rain
+        diamond = engine.dlc_systems.get("diamond_rain")
+        if diamond:
+            diamond.add_heat(x, y, amount, source)
+        
+        # Emit event
+        engine.emit_dlc_event(
+            DLC_EVENT.HEAT_GENERATED,
+            source=source,
+            data={"x": x, "y": y, "amount": amount}
+        )
+        
+        return {"success": True, "heat_added": amount}
+    
+    def start_party(host_id: str, x: float = 0, y: float = 0):
+        """Start a Juggalo party."""
+        party = engine.dlc_systems.get("juggalo_party")
+        if party:
+            result = party.start_party(host_id, x, y)
+            engine.emit_dlc_event(
+                DLC_EVENT.PARTY_STARTED,
+                source=host_id,
+                data={"party_id": result.party_id}
+            )
+            return result
+        return None
+    
+    def create_rumor(content: str, source_id: str, tags: List[str] = None):
+        """Create a new rumor."""
+        rumor_mgr = engine.dlc_systems.get("rumor_manager")
+        if rumor_mgr:
+            result = rumor_mgr.create_rumor(content, source_id, tags=tags)
+            engine.emit_dlc_event(
+                DLC_EVENT.RUMOR_STARTED,
+                source=source_id,
+                data={"rumor_id": result.rumor_id}
+            )
+            return result
+        return None
+    
+    engine.get_global_heat = get_global_heat
+    engine.get_global_chaos = get_global_chaos
+    engine.get_ecosystem_summary = get_ecosystem_summary
+    engine.add_heat = add_heat
+    engine.start_party = start_party
+    engine.create_rumor = create_rumor
+    
+    return engine
+
+
+def create_test_engine():
+    """
+    Create a minimal test engine with DLC systems.
+    
+    Useful for testing without the full V3_carnival.
+    """
+    class TestEngine:
+        """Minimal engine for testing."""
+        def __init__(self):
+            self._tick_count = 0
+            self.dlc_systems = {}
+            self.dlc_components = {}
+    
+    engine = TestEngine()
+    register_engine_hooks(engine)
+    
+    return engine
+
+"""
+Biome Hooks
+===========
+Extensions to the Biome class.
+
+These hooks add DLC environmental support to biomes
+without modifying the base Biome class.
+
+Features added:
+- Thermal layers
+- Cover crop zones
+- Pest/predator populations
+- Diamond rain zones
+"""
+
+from typing import Dict, Any, List, Optional
+import math
+
+from ..constants import BIOME_HEAT_BASE, BIOME_NOURISHMENT_BASE, PHI
+from ..enums import ThermalLayer, EcologicalPhase
+
+
+def register_biome_hooks(engine) -> List[str]:
+    """
+    Register all biome-related hooks.
+    
+    This patches the Biome class to support DLC environmental features.
+    
+    Args:
+        engine: The V3_carnival GameEngine
+        
+    Returns:
+        List of registered hook names
+    """
+    hooks_registered = []
+    
+    # Get or create Biome class
+    Biome = engine.Biome if hasattr(engine, 'Biome') else None
+    
+    if Biome is None:
+        # Create a mock for standalone testing
+        class Biome:
+            """Base Biome class (hooked version)."""
+            _biome_id_counter = 0
+            
+            def __init__(self, name: str = "Biome", **kwargs):
+                Biome._biome_id_counter += 1
+                self.biome_id = f"biome_{Biome._biome_id_counter}"
+                self.name = name
+                self.x = 0.0
+                self.y = 0.0
+                self.radius = 50.0
+        
+        engine.Biome = Biome
+    
+    # Add thermal properties
+    Biome = _add_thermal_properties(Biome)
+    hooks_registered.append("Biome.thermal_properties")
+    
+    # Add ecological properties
+    Biome = _add_ecological_properties(Biome)
+    hooks_registered.append("Biome.ecological_properties")
+    
+    # Add environmental methods
+    Biome = _add_environmental_methods(Biome)
+    hooks_registered.append("Biome.environmental_methods")
+    
+    # Store hooked class
+    engine.Biome = Biome
+    
+    return hooks_registered
+
+
+def _add_thermal_properties(Biome):
+    """Add thermal properties to Biome."""
+    
+    # Store original __init__ if exists
+    _original_init = Biome.__init__ if hasattr(Biome, '__init__') else None
+    
+    def __init__(self, *args, **kwargs):
+        if _original_init:
+            _original_init(self, *args, **kwargs)
+        
+        # Thermal state
+        if not hasattr(self, 'heat'):
+            self.heat = BIOME_HEAT_BASE
+        if not hasattr(self, 'moisture'):
+            self.moisture = 50.0
+        if not hasattr(self, 'thermal_layer'):
+            self.thermal_layer = ThermalLayer.SURFACE
+        
+        # Heat sources within biome
+        if not hasattr(self, 'heat_sources'):
+            self.heat_sources: List[Dict] = []
+        
+        # Temperature history
+        if not hasattr(self, 'heat_history'):
+            self.heat_history: List[float] = []
+    
+    Biome.__init__ = __init__
+    
+    @property
+    def temperature(self) -> float:
+        """Get temperature (alias for heat)."""
+        return self.heat
+    
+    @property
+    def is_hot(self) -> bool:
+        """Check if biome is hot."""
+        return self.heat > 50
+    
+    @property
+    def is_cold(self) -> bool:
+        """Check if biome is cold."""
+        return self.heat < 20
+    
+    @property
+    def thermal_comfort(self) -> float:
+        """Get thermal comfort level (0-1)."""
+        # Comfort is highest around 30-40 heat
+        if 25 <= self.heat <= 45:
+            return 1.0
+        elif self.heat < 25:
+            return max(0, 1 - (25 - self.heat) / 25)
+        else:
+            return max(0, 1 - (self.heat - 45) / 55)
+    
+    Biome.temperature = temperature
+    Biome.is_hot = is_hot
+    Biome.is_cold = is_cold
+    Biome.thermal_comfort = thermal_comfort
+    
+    return Biome
+
+
+def _add_ecological_properties(Biome):
+    """Add ecological properties to Biome."""
+    
+    @property
+    def ecological_phase(self) -> EcologicalPhase:
+        """Determine current ecological phase."""
+        if self.heat > 60:
+            return EcologicalPhase.BUILD
+        elif self.moisture > 70:
+            return EcologicalPhase.RISE
+        elif self.heat < 30 and self.moisture > 50:
+            return EcologicalPhase.CRYSTALLIZE
+        else:
+            return EcologicalPhase.RAIN
+    
+    @property
+    def fertility(self) -> float:
+        """Get soil fertility (affects cover crop growth)."""
+        base = BIOME_NOURISHMENT_BASE
+        
+        # Heat affects fertility
+        if self.heat > 60:
+            base *= 0.8  # Too hot
+        elif self.heat < 20:
+            base *= 0.9  # Too cold
+        
+        # Moisture affects fertility
+        if 30 <= self.moisture <= 70:
+            base *= 1.2  # Optimal
+        elif self.moisture < 20:
+            base *= 0.7  # Too dry
+        
+        return min(100, max(0, base))
+    
+    @property
+    def pest_pressure(self) -> float:
+        """Get pest pressure in this biome."""
+        # Based on cover crops and heat
+        base = 0.0
+        
+        if hasattr(self, 'cover_crop_count'):
+            base += self.cover_crop_count * 0.5
+        
+        if self.heat > 50:
+            base += (self.heat - 50) * 0.1
+        
+        if self.moisture > 60:
+            base += (self.moisture - 60) * 0.05
+        
+        return min(10, max(0, base))
+    
+    Biome.ecological_phase = ecological_phase
+    Biome.fertility = fertility
+    Biome.pest_pressure = pest_pressure
+    
+    # Initialize ecological state
+    if not hasattr(Biome, 'cover_crop_count'):
+        Biome.cover_crop_count = 0
+    
+    if not hasattr(Biome, 'pest_population'):
+        Biome.pest_population = 0.0
+    
+    if not hasattr(Biome, 'predator_population'):
+        Biome.predator_population = 0.0
+    
+    return Biome
+
+
+def _add_environmental_methods(Biome):
+    """Add environmental methods to Biome."""
+    
+    def add_heat_source(
+        self,
+        x: float,
+        y: float,
+        output: float,
+        source_id: str = ""
+    ):
+        """Add a heat source to this biome."""
+        self.heat_sources.append({
+            "x": x,
+            "y": y,
+            "output": output,
+            "source_id": source_id,
+        })
+    
+    def remove_heat_source(self, source_id: str) -> bool:
+        """Remove a heat source by ID."""
+        for i, source in enumerate(self.heat_sources):
+            if source.get("source_id") == source_id:
+                self.heat_sources.pop(i)
+                return True
+        return False
+    
+    def get_total_heat_output(self) -> float:
+        """Get total heat output from all sources."""
+        return sum(s.get("output", 0) for s in self.heat_sources)
+    
+    def apply_cooling(self, amount: float):
+        """Apply cooling to this biome."""
+        self.heat = max(0, self.heat - amount)
+    
+    def apply_moisture(self, amount: float):
+        """Add moisture to this biome."""
+        self.moisture = min(100, max(0, self.moisture + amount))
+    
+    def tick_environment(self, current_tick: int = 0):
+        """Process environmental tick for this biome."""
+        # Heat from sources
+        total_output = self.get_total_heat_output()
+        self.heat += total_output * 0.1
+        
+        # Natural cooling
+        self.heat = max(BIOME_HEAT_BASE * 0.5, self.heat * 0.99)
+        
+        # Moisture dynamics
+        if self.heat > 50:
+            # Evaporation
+            self.moisture = max(0, self.moisture - (self.heat - 50) * 0.01)
+        
+        # Record history
+        self.heat_history.append(self.heat)
+        if len(self.heat_history) > 100:
+            self.heat_history.pop(0)
+        
+        # Update thermal layer based on position
+        if hasattr(self, 'x') and hasattr(self, 'y'):
+            dist_from_center = math.sqrt(self.x**2 + self.y**2)
+            
+            if dist_from_center < 20:
+                self.thermal_layer = ThermalLayer.CORE
+            elif dist_from_center < 40:
+                self.thermal_layer = ThermalLayer.MANTLE
+            else:
+                self.thermal_layer = ThermalLayer.SURFACE
+    
+    def get_environment_state(self) -> Dict[str, Any]:
+        """Get current environmental state."""
+        return {
+            "biome_id": getattr(self, 'biome_id', 'unknown'),
+            "name": getattr(self, 'name', 'Unknown'),
+            "heat": round(self.heat, 2),
+            "moisture": round(self.moisture, 2),
+            "thermal_layer": self.thermal_layer.name,
+            "ecological_phase": self.ecological_phase.name,
+            "fertility": round(self.fertility, 2),
+            "pest_pressure": round(self.pest_pressure, 2),
+            "heat_sources": len(self.heat_sources),
+        }
+    
+    def can_support_cover_crops(self) -> bool:
+        """Check if biome can support cover crops."""
+        return (
+            self.fertility > 30 and
+            self.heat < 70 and
+            self.moisture > 10
+        )
+    
+    def get_optimal_cover_crop(self) -> Optional[str]:
+        """Get optimal cover crop type for this biome."""
+        if not self.can_support_cover_crops():
+            return None
+        
+        # Select based on conditions
+        if self.heat > 50:
+            return "SORGHUM"  # Heat tolerant
+        elif self.moisture < 40:
+            return "BUCKWHEAT"  # Drought tolerant
+        elif self.fertility > 70:
+            return "VETCH"  # High fertility
+        else:
+            return "CLOVER"  # General purpose
+    
+    Biome.add_heat_source = add_heat_source
+    Biome.remove_heat_source = remove_heat_source
+    Biome.get_total_heat_output = get_total_heat_output
+    Biome.apply_cooling = apply_cooling
+    Biome.apply_moisture = apply_moisture
+    Biome.tick_environment = tick_environment
+    Biome.get_environment_state = get_environment_state
+    Biome.can_support_cover_crops = can_support_cover_crops
+    Biome.get_optimal_cover_crop = get_optimal_cover_crop
+    
+    return Biome
+
+
+def create_biome(
+    engine,
+    name: str = "Biome",
+    x: float = 0.0,
+    y: float = 0.0,
+    radius: float = 50.0,
+    heat: float = BIOME_HEAT_BASE,
+    moisture: float = 50.0,
+    **kwargs
+):
+    """
+    Factory function to create a biome with DLC features.
+    
+    Args:
+        engine: The game engine
+        name: Biome name
+        x, y: Position
+        radius: Size
+        heat: Initial heat level
+        moisture: Initial moisture level
+        **kwargs: Additional properties
+        
+    Returns:
+        Biome with DLC features
+    """
+    Biome = engine.Biome
+    
+    biome = Biome(name=name, **kwargs)
+    biome.x = x
+    biome.y = y
+    biome.radius = radius
+    biome.heat = heat
+    biome.moisture = moisture
+    
+    return biome
+
+
+def create_midway_biome(engine):
+    """
+    Create the Midway biome.
+    
+    This is the main carnival grounds.
+    """
+    biome = create_biome(
+        engine,
+        name="The Midway",
+        x=60.0,  # Center of carnival
+        y=0.0,
+        radius=100.0,
+        heat=35.0,  # Warm from activities
+        moisture=40.0,  # Moderate
+    )
+    
+    # Add default heat sources
+    biome.add_heat_source(20, 0, 5, "faygo_stand")
+    biome.add_heat_source(40, 0, 8, "mosh_pit")
+    biome.add_heat_source(80, 0, 3, "high_striker")
+    biome.add_heat_source(100, 0, 6, "wheel_of_fate")
+    
+    return biome
+
+
 
