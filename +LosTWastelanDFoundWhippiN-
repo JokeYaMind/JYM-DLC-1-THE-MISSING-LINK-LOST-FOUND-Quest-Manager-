@@ -7730,3 +7730,1939 @@ class ThermodynamicsSystem:
             },
         }
 
+"""
+DLC Ecology
+===========
+The agricultural ecosystem of the Midway.
+
+Cover crops attract pests, pests attract predators,
+predators die and decay, decay nourishes the soil.
+
+This is the circle of carnival life.
+"""
+
+from .cover_crops import CoverCropManager, CoverCropType
+from .pests import PestManager, PestType
+from .predators import PredatorManager, PredatorType
+from .decay import DecaySystem
+
+__all__ = [
+    "CoverCropManager", "CoverCropType",
+    "PestManager", "PestType",
+    "PredatorManager", "PredatorType",
+    "DecaySystem",
+]
+
+"""
+Cover Crops System
+==================
+The foundation of the Midway ecosystem.
+
+Cover crops are plants grown in the Midway that:
+- Generate heat through decomposition
+- Attract pests (energy source)
+- Suppress some pest types
+- Produce Faygo-boosting compounds
+
+8 Types of Cover Crops:
+1. CLOVER - Faygo boost
+2. BUCKWHEAT - Pest suppression
+3. RYE - Balanced
+4. OATS - Fast growth
+5. VETCH - Max Faygo boost
+6. RADISH - Fast decay, heat generation
+7. SUNN_HEMP - Strong pest suppression
+8. SORGHUM - High heat, high Faygo
+
+Design: Cover crops are physics - they grow, die, and feed the system.
+"""
+
+from typing import Dict, Any, List, Optional, Tuple
+from dataclasses import dataclass, field
+from enum import Enum, auto
+import random
+import math
+
+from ..constants import (
+    COVER_CROP_TYPES,
+    COVER_CROP_MAX_YIELD,
+    COVER_CROP_DECAY_RATE,
+    PHI,
+)
+
+
+class CoverCropType(Enum):
+    """The 8 cover crop varieties."""
+    CLOVER = auto()
+    BUCKWHEAT = auto()
+    RYE = auto()
+    OATS = auto()
+    VETCH = auto()
+    RADISH = auto()
+    SUNN_HEMP = auto()
+    SORGHUM = auto()
+
+
+class CropStage(Enum):
+    """Growth stages of a cover crop."""
+    SEED = auto()
+    SPROUT = auto()
+    GROWING = auto()
+    MATURE = auto()
+    FLOWERING = auto()
+    SEEDING = auto()
+    DYING = auto()
+    DEAD = auto()
+
+
+@dataclass
+class CoverCropInstance:
+    """
+    A planted cover crop in the Midway.
+    
+    Crops grow through stages and eventually die,
+    contributing to the ecosystem.
+    """
+    crop_id: str
+    crop_type: CoverCropType
+    x: float
+    y: float
+    area: float = 10.0
+    
+    stage: CropStage = CropStage.SEED
+    health: float = 1.0
+    yield_accumulated: float = 0.0
+    
+    growth_progress: float = 0.0
+    pest_damage: float = 0.0
+    
+    planted_tick: int = 0
+    stage_tick: int = 0
+    
+    # Type-specific properties
+    faygo_boost: float = 1.0
+    pest_suppression: float = 1.0
+    heat_generation: float = 0.5
+    growth_rate: float = 1.0
+    
+    _crop_counter = 0
+    
+    @classmethod
+    def create(
+        cls,
+        crop_type: CoverCropType,
+        x: float,
+        y: float,
+        area: float = 10.0,
+        tick: int = 0
+    ) -> "CoverCropInstance":
+        """Create a new cover crop."""
+        cls._crop_counter += 1
+        
+        # Get type properties
+        type_props = COVER_CROP_TYPES.get(crop_type.name, {})
+        
+        return cls(
+            crop_id=f"crop_{cls._crop_counter}",
+            crop_type=crop_type,
+            x=x,
+            y=y,
+            area=area,
+            planted_tick=tick,
+            stage_tick=tick,
+            faygo_boost=type_props.get("faygo_boost", 1.0),
+            pest_suppression=type_props.get("pest_suppression", 1.0),
+            heat_generation=type_props.get("heat_generation", 0.5),
+            growth_rate=type_props.get("growth_rate", 1.0),
+        )
+    
+    def advance_stage(self, current_tick: int = 0):
+        """Advance to next growth stage."""
+        stage_order = [
+            CropStage.SEED,
+            CropStage.SPROUT,
+            CropStage.GROWING,
+            CropStage.MATURE,
+            CropStage.FLOWERING,
+            CropStage.SEEDING,
+            CropStage.DYING,
+            CropStage.DEAD,
+        ]
+        
+        current_index = stage_order.index(self.stage)
+        if current_index < len(stage_order) - 1:
+            self.stage = stage_order[current_index + 1]
+            self.stage_tick = current_tick
+    
+    def tick(self, current_tick: int = 0) -> Dict[str, Any]:
+        """Process crop tick."""
+        result = {
+            "crop_id": self.crop_id,
+            "stage": self.stage.name,
+        }
+        
+        # Growth based on stage
+        if self.stage in (CropStage.SEED, CropStage.SPROUT, CropStage.GROWING):
+            self.growth_progress += 0.01 * self.growth_rate
+            
+            if self.growth_progress >= 1.0:
+                self.growth_progress = 0.0
+                self.advance_stage(current_tick)
+        
+        # Mature crops accumulate yield
+        elif self.stage == CropStage.MATURE:
+            self.yield_accumulated = min(
+                COVER_CROP_MAX_YIELD,
+                self.yield_accumulated + 0.5 * self.area
+            )
+            
+            # Random advancement
+            if random.random() < 0.02:
+                self.advance_stage(current_tick)
+        
+        # Flowering and seeding
+        elif self.stage in (CropStage.FLOWERING, CropStage.SEEDING):
+            self.yield_accumulated = min(
+                COVER_CROP_MAX_YIELD,
+                self.yield_accumulated + 0.3 * self.area
+            )
+            
+            if random.random() < 0.05:
+                self.advance_stage(current_tick)
+        
+        # Dying
+        elif self.stage == CropStage.DYING:
+            self.health -= 0.05
+            
+            if self.health <= 0:
+                self.advance_stage(current_tick)
+                result["died"] = True
+        
+        # Dead
+        elif self.stage == CropStage.DEAD:
+            result["dead"] = True
+        
+        # Apply pest damage to health
+        self.health = max(0, self.health - self.pest_damage * 0.01)
+        self.pest_damage *= 0.9  # Decay
+        
+        result["health"] = round(self.health, 2)
+        result["yield"] = round(self.yield_accumulated, 2)
+        
+        return result
+    
+    def apply_pest_damage(self, damage: float):
+        """Apply pest damage to the crop."""
+        # Pest suppression reduces damage
+        effective_damage = damage * self.pest_suppression
+        self.pest_damage += effective_damage
+    
+    def get_heat_output(self) -> float:
+        """Get current heat generation."""
+        base_heat = self.heat_generation * self.area * 0.1
+        
+        # Dying/dead crops generate more heat
+        if self.stage == CropStage.DYING:
+            base_heat *= 2.0
+        elif self.stage == CropStage.DEAD:
+            base_heat *= 1.5
+        
+        return base_heat
+    
+    def get_faygo_output(self) -> float:
+        """Get Faygo boost from this crop."""
+        if self.stage not in (CropStage.MATURE, CropStage.FLOWERING):
+            return 0.0
+        
+        return self.faygo_boost * self.yield_accumulated * 0.1
+    
+    def is_expired(self) -> bool:
+        """Check if crop should be removed."""
+        return self.stage == CropStage.DEAD and self.health <= 0
+
+
+class CoverCropManager:
+    """
+    System that manages all cover crops in the Midway.
+    
+    Handles planting, growth, and harvesting.
+    """
+    
+    def __init__(self):
+        self.crops: Dict[str, CoverCropInstance] = {}
+        self.dead_crops: List[CoverCropInstance] = []  # Archive for 0 = 3
+        
+        # Stats
+        self.total_planted = 0
+        self.total_yield_harvested = 0.0
+        self.total_heat_generated = 0.0
+        self.total_faygo_produced = 0.0
+        
+        self._tick_count = 0
+    
+    def plant(
+        self,
+        crop_type: CoverCropType,
+        x: float,
+        y: float,
+        area: float = 10.0
+    ) -> CoverCropInstance:
+        """
+        Plant a cover crop.
+        
+        Args:
+            crop_type: Type of crop
+            x, y: Position
+            area: Planting area
+            
+        Returns:
+            The planted crop
+        """
+        crop = CoverCropInstance.create(
+            crop_type=crop_type,
+            x=x,
+            y=y,
+            area=area,
+            tick=self._tick_count,
+        )
+        
+        self.crops[crop.crop_id] = crop
+        self.total_planted += 1
+        
+        return crop
+    
+    def get_crop(self, crop_id: str) -> Optional[CoverCropInstance]:
+        """Get a crop by ID."""
+        return self.crops.get(crop_id)
+    
+    def get_crops_at(
+        self,
+        x: float,
+        y: float,
+        radius: float = 10.0
+    ) -> List[CoverCropInstance]:
+        """Get all crops within radius of a position."""
+        return [
+            crop for crop in self.crops.values()
+            if math.sqrt((crop.x - x)**2 + (crop.y - y)**2) <= radius
+        ]
+    
+    def get_crops_by_type(self, crop_type: CoverCropType) -> List[CoverCropInstance]:
+        """Get all crops of a specific type."""
+        return [
+            crop for crop in self.crops.values()
+            if crop.crop_type == crop_type
+        ]
+    
+    def get_crops_by_stage(self, stage: CropStage) -> List[CoverCropInstance]:
+        """Get all crops in a specific stage."""
+        return [
+            crop for crop in self.crops.values()
+            if crop.stage == stage
+        ]
+    
+    def harvest(self, crop_id: str) -> Dict[str, Any]:
+        """
+        Harvest a mature crop.
+        
+        Returns yield and removes the crop.
+        """
+        crop = self.crops.get(crop_id)
+        
+        if not crop:
+            return {"success": False, "reason": "not_found"}
+        
+        if crop.stage not in (CropStage.MATURE, CropStage.FLOWERING, CropStage.SEEDING):
+            return {"success": False, "reason": "not_mature"}
+        
+        yield_amount = crop.yield_accumulated
+        faygo_amount = crop.get_faygo_output()
+        
+        # Remove crop
+        del self.crops[crop_id]
+        crop.stage = CropStage.DEAD
+        self.dead_crops.append(crop)
+        
+        # Update stats
+        self.total_yield_harvested += yield_amount
+        self.total_faygo_produced += faygo_amount
+        
+        return {
+            "success": True,
+            "crop_type": crop.crop_type.name,
+            "yield": yield_amount,
+            "faygo_boost": faygo_amount,
+        }
+    
+    def apply_pests_to_area(
+        self,
+        x: float,
+        y: float,
+        pest_pressure: float,
+        radius: float = 10.0
+    ) -> int:
+        """
+        Apply pest pressure to crops in an area.
+        
+        Returns number of crops affected.
+        """
+        crops = self.get_crops_at(x, y, radius)
+        
+        for crop in crops:
+            crop.apply_pest_damage(pest_pressure)
+        
+        return len(crops)
+    
+    def get_total_heat_output(self) -> float:
+        """Get total heat being generated by all crops."""
+        return sum(crop.get_heat_output() for crop in self.crops.values())
+    
+    def get_total_faygo_output(self) -> float:
+        """Get total Faygo boost from all crops."""
+        return sum(crop.get_faygo_output() for crop in self.crops.values())
+    
+    def tick(self) -> Dict[str, Any]:
+        """
+        Process all cover crops for one tick.
+        
+        Returns summary of processing.
+        """
+        self._tick_count += 1
+        
+        expired = []
+        tick_results = []
+        
+        total_heat = 0.0
+        total_faygo = 0.0
+        
+        for crop_id, crop in self.crops.items():
+            result = crop.tick(self._tick_count)
+            tick_results.append(result)
+            
+            # Track outputs
+            total_heat += crop.get_heat_output()
+            total_faygo += crop.get_faygo_output()
+            
+            if crop.is_expired():
+                expired.append(crop_id)
+        
+        # Remove expired crops
+        for crop_id in expired:
+            crop = self.crops.pop(crop_id)
+            self.dead_crops.append(crop)
+        
+        # Update stats
+        self.total_heat_generated += total_heat
+        self.total_faygo_produced += total_faygo
+        
+        # Count by stage
+        stage_counts = {}
+        for stage in CropStage:
+            stage_counts[stage.name] = len(self.get_crops_by_stage(stage))
+        
+        return {
+            "tick": self._tick_count,
+            "active_crops": len(self.crops),
+            "expired_this_tick": len(expired),
+            "total_heat_output": round(total_heat, 2),
+            "total_faygo_output": round(total_faygo, 2),
+            "stage_counts": stage_counts,
+            "stats": {
+                "total_planted": self.total_planted,
+                "total_harvested": self.total_yield_harvested,
+                "total_heat": round(self.total_heat_generated, 2),
+                "total_faygo": round(self.total_faygo_produced, 2),
+            },
+        }
+    
+    def get_crop_health_average(self) -> float:
+        """Get average health of all crops."""
+        if not self.crops:
+            return 0.0
+        return sum(c.health for c in self.crops.values()) / len(self.crops)
+    
+    def get_most_damaged_crops(self, count: int = 5) -> List[CoverCropInstance]:
+        """Get crops with most pest damage."""
+        return sorted(
+            self.crops.values(),
+            key=lambda c: c.pest_damage,
+            reverse=True
+        )[:count]
+    
+    def restore_dead_crop(self, crop_id: str) -> Optional[CoverCropInstance]:
+        """
+        Restore a dead crop (0 = 3 invariant).
+        
+        Returns the restored crop or None.
+        """
+        for i, crop in enumerate(self.dead_crops):
+            if crop.crop_id == crop_id:
+                crop.health = 0.5
+                crop.stage = CropStage.DYING
+                self.crops[crop_id] = crop
+                self.dead_crops.pop(i)
+                return crop
+        return None
+    
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize system state."""
+        return {
+            "tick_count": self._tick_count,
+            "active_crops": len(self.crops),
+            "dead_crops": len(self.dead_crops),
+            "stats": {
+                "planted": self.total_planted,
+                "harvested": self.total_yield_harvested,
+                "heat_generated": self.total_heat_generated,
+                "faygo_produced": self.total_faygo_produced,
+            },
+        }
+
+"""
+Pests System
+============
+The hungry masses of the Midway.
+
+Pests are attracted to cover crops and represent
+the energy that flows through the ecosystem.
+
+4 Types of Pests:
+1. NIBBLER - Small, fast, scatters easily
+2. CHOMPER - Big, slow, persistent
+3. SWARM - Tiny, numerous, spreads fast
+4. GORGON - Massive, rare, devastating
+
+Pests carry "pest energy" that can be harvested by predators
+or scattered by the Yellow Bus.
+
+Design: Pests are physics - they are energy carriers.
+"""
+
+from typing import Dict, Any, List, Optional, Tuple
+from dataclasses import dataclass, field
+from enum import Enum, auto
+import random
+import math
+
+from ..constants import (
+    PEST_TYPES,
+    PEST_ENERGY_VALUE,
+    PEST_SCATTER_HEAT,
+    PHI,
+)
+
+
+class PestType(Enum):
+    """The 4 pest archetypes."""
+    NIBBLER = auto()
+    CHOMPER = auto()
+    SWARM = auto()
+    GORGON = auto()
+
+
+class PestState(Enum):
+    """States a pest can be in."""
+    SPAWNING = auto()
+    FORAGING = auto()
+    FEEDING = auto()
+    FLEEING = auto()
+    DYING = auto()
+    DEAD = auto()
+
+
+@dataclass
+class PestParticle:
+    """
+    A single pest entity.
+    
+    Pests move toward food sources and can be scattered.
+    """
+    pest_id: str
+    pest_type: PestType
+    x: float
+    y: float
+    
+    energy: float = 1.0
+    hunger: float = 0.5
+    state: PestState = PestState.SPAWNING
+    
+    velocity_x: float = 0.0
+    velocity_y: float = 0.0
+    
+    # Type-specific properties
+    appetite: float = 0.5
+    speed: float = 1.0
+    scatter_rate: float = 0.8
+    
+    target_x: Optional[float] = None
+    target_y: Optional[float] = None
+    
+    _pest_counter = 0
+    
+    @classmethod
+    def create(
+        cls,
+        pest_type: PestType,
+        x: float,
+        y: float,
+        energy: float = 1.0
+    ) -> "PestParticle":
+        """Create a new pest."""
+        cls._pest_counter += 1
+        
+        # Get type properties
+        type_props = PEST_TYPES.get(pest_type.name, {})
+        
+        return cls(
+            pest_id=f"pest_{cls._pest_counter}",
+            pest_type=pest_type,
+            x=x,
+            y=y,
+            energy=energy,
+            appetite=type_props.get("appetite", 0.5),
+            speed=type_props.get("speed", 1.0),
+            scatter_rate=type_props.get("scatter_rate", 0.8),
+        )
+    
+    def move_toward_target(self, target_x: float, target_y: float):
+        """Move toward a target position."""
+        dx = target_x - self.x
+        dy = target_y - self.y
+        dist = math.sqrt(dx*dx + dy*dy)
+        
+        if dist < self.speed:
+            self.x = target_x
+            self.y = target_y
+            return True
+        
+        # Move toward target
+        self.x += (dx / dist) * self.speed
+        self.y += (dy / dist) * self.speed
+        return False
+    
+    def scatter(self, intensity: float = 1.0) -> Tuple[float, float]:
+        """
+        Scatter the pest in a random direction.
+        
+        Returns new position.
+        """
+        angle = random.uniform(0, 2 * math.pi)
+        distance = self.scatter_rate * intensity * 5
+        
+        self.velocity_x = math.cos(angle) * distance
+        self.velocity_y = math.sin(angle) * distance
+        self.state = PestState.FLEEING
+        
+        return (self.x + self.velocity_x, self.y + self.velocity_y)
+    
+    def feed(self, food_value: float) -> float:
+        """
+        Feed on a food source.
+        
+        Returns amount consumed.
+        """
+        consumed = min(food_value, self.appetite)
+        self.hunger = max(0, self.hunger - consumed * 0.5)
+        self.energy += consumed * 0.1
+        return consumed
+    
+    def tick(self) -> Dict[str, Any]:
+        """Process pest tick."""
+        result = {
+            "pest_id": self.pest_id,
+            "state": self.state.name,
+        }
+        
+        # State machine
+        if self.state == PestState.SPAWNING:
+            self.state = PestState.FORAGING
+            result["spawned"] = True
+        
+        elif self.state == PestState.FORAGING:
+            # Apply velocity
+            self.x += self.velocity_x
+            self.y += self.velocity_y
+            
+            # Damping
+            self.velocity_x *= 0.9
+            self.velocity_y *= 0.9
+            
+            # Random drift
+            self.velocity_x += random.uniform(-0.2, 0.2)
+            self.velocity_y += random.uniform(-0.2, 0.2)
+            
+            # Hunger grows
+            self.hunger = min(1.0, self.hunger + 0.01)
+        
+        elif self.state == PestState.FEEDING:
+            # Already feeding, handled by feed()
+            pass
+        
+        elif self.state == PestState.FLEEING:
+            # Apply velocity (fast!)
+            self.x += self.velocity_x * 2
+            self.y += self.velocity_y * 2
+            
+            # Damping
+            self.velocity_x *= 0.85
+            self.velocity_y *= 0.85
+            
+            # Check if calmed
+            speed = math.sqrt(self.velocity_x**2 + self.velocity_y**2)
+            if speed < 0.5:
+                self.state = PestState.FORAGING
+        
+        elif self.state == PestState.DYING:
+            self.energy -= 0.1
+            if self.energy <= 0:
+                self.state = PestState.DEAD
+                result["died"] = True
+        
+        # Energy decay
+        self.energy *= 0.999
+        
+        # Starvation
+        if self.hunger >= 1.0 and self.state not in (PestState.DYING, PestState.DEAD):
+            self.state = PestState.DYING
+        
+        result["energy"] = round(self.energy, 2)
+        result["hunger"] = round(self.hunger, 2)
+        result["position"] = (round(self.x, 2), round(self.y, 2))
+        
+        return result
+    
+    def is_expired(self) -> bool:
+        """Check if pest should be removed."""
+        return self.state == PestState.DEAD or self.energy <= 0.1
+    
+    def get_scatter_heat(self) -> float:
+        """Get heat produced when this pest scatters."""
+        return PEST_SCATTER_HEAT * self.energy
+
+
+class PestManager:
+    """
+    System that manages all pests in the Midway.
+    
+    Handles spawning, movement, and interactions.
+    """
+    
+    def __init__(self):
+        self.pests: Dict[str, PestParticle] = {}
+        self.dead_pests: List[PestParticle] = []  # Archive for 0 = 3
+        
+        # Population limits
+        self.max_population = 100
+        
+        # Food sources (cover crops)
+        self.food_sources: List[Tuple[float, float, float]] = []  # x, y, value
+        
+        # Stats
+        self.total_spawned = 0
+        self.total_scattered = 0
+        self.total_consumed = 0
+        self.total_energy_harvested = 0.0
+        
+        self._tick_count = 0
+    
+    def spawn(
+        self,
+        pest_type: PestType,
+        x: float,
+        y: float,
+        energy: float = 1.0,
+        count: int = 1
+    ) -> List[PestParticle]:
+        """
+        Spawn pests at a location.
+        
+        Args:
+            pest_type: Type of pest
+            x, y: Spawn position
+            energy: Initial energy
+            count: Number to spawn
+            
+        Returns:
+            List of spawned pests
+        """
+        # Check population limit
+        available = self.max_population - len(self.pests)
+        count = min(count, available)
+        
+        if count <= 0:
+            return []
+        
+        spawned = []
+        
+        for _ in range(count):
+            # Slight position variance
+            px = x + random.uniform(-2, 2)
+            py = y + random.uniform(-2, 2)
+            
+            pest = PestParticle.create(pest_type, px, py, energy)
+            self.pests[pest.pest_id] = pest
+            spawned.append(pest)
+            self.total_spawned += 1
+        
+        return spawned
+    
+    def spawn_near_food(
+        self,
+        food_x: float,
+        food_y: float,
+        radius: float = 10.0
+    ) -> List[PestParticle]:
+        """
+        Spawn pests near a food source.
+        
+        Type is random based on weights.
+        """
+        # Determine type
+        type_weights = {
+            PestType.NIBBLER: 0.4,
+            PestType.CHOMPER: 0.25,
+            PestType.SWARM: 0.25,
+            PestType.GORGON: 0.1,
+        }
+        
+        roll = random.random()
+        cumulative = 0.0
+        pest_type = PestType.NIBBLER
+        
+        for ptype, weight in type_weights.items():
+            cumulative += weight
+            if roll <= cumulative:
+                pest_type = ptype
+                break
+        
+        # Spawn position
+        angle = random.uniform(0, 2 * math.pi)
+        dist = random.uniform(0, radius)
+        x = food_x + math.cos(angle) * dist
+        y = food_y + math.sin(angle) * dist
+        
+        # Count varies by type
+        if pest_type == PestType.SWARM:
+            count = random.randint(3, 8)
+        elif pest_type == PestType.GORGON:
+            count = 1
+        else:
+            count = random.randint(1, 3)
+        
+        return self.spawn(pest_type, x, y, count=count)
+    
+    def get_pest(self, pest_id: str) -> Optional[PestParticle]:
+        """Get a pest by ID."""
+        return self.pests.get(pest_id)
+    
+    def get_pests_at(
+        self,
+        x: float,
+        y: float,
+        radius: float = 5.0
+    ) -> List[PestParticle]:
+        """Get all pests within radius of a position."""
+        return [
+            pest for pest in self.pests.values()
+            if math.sqrt((pest.x - x)**2 + (pest.y - y)**2) <= radius
+        ]
+    
+    def get_pests_by_type(self, pest_type: PestType) -> List[PestParticle]:
+        """Get all pests of a specific type."""
+        return [
+            pest for pest in self.pests.values()
+            if pest.pest_type == pest_type
+        ]
+    
+    def register_food_source(self, x: float, y: float, value: float):
+        """Register a food source for pests."""
+        self.food_sources.append((x, y, value))
+    
+    def clear_food_sources(self):
+        """Clear registered food sources."""
+        self.food_sources.clear()
+    
+    def scatter_at(
+        self,
+        x: float,
+        y: float,
+        radius: float = 5.0,
+        intensity: float = 1.0
+    ) -> Dict[str, Any]:
+        """
+        Scatter pests at a location.
+        
+        Used by Yellow Bus and other systems.
+        """
+        pests = self.get_pests_at(x, y, radius)
+        
+        scattered_count = 0
+        total_heat = 0.0
+        
+        for pest in pests:
+            if random.random() < pest.scatter_rate * intensity:
+                pest.scatter(intensity)
+                scattered_count += 1
+                total_heat += pest.get_scatter_heat()
+                self.total_scattered += 1
+        
+        return {
+            "success": True,
+            "scattered_count": scattered_count,
+            "heat_produced": round(total_heat, 2),
+        }
+    
+    def harvest_energy_at(
+        self,
+        x: float,
+        y: float,
+        radius: float = 5.0,
+        amount: float = 1.0
+    ) -> Dict[str, Any]:
+        """
+        Harvest pest energy at a location.
+        
+        Used by Yellow Bus and predators.
+        """
+        pests = self.get_pests_at(x, y, radius)
+        
+        energy_harvested = 0.0
+        pests_killed = []
+        
+        for pest in pests:
+            harvest = min(pest.energy, amount)
+            pest.energy -= harvest
+            energy_harvested += harvest * PEST_ENERGY_VALUE
+            
+            if pest.energy <= 0.1:
+                pest.state = PestState.DEAD
+                pests_killed.append(pest.pest_id)
+        
+        # Remove dead
+        for pest_id in pests_killed:
+            pest = self.pests.pop(pest_id)
+            self.dead_pests.append(pest)
+        
+        self.total_energy_harvested += energy_harvested
+        
+        return {
+            "success": True,
+            "energy_harvested": round(energy_harvested, 2),
+            "pests_killed": len(pests_killed),
+        }
+    
+    def tick(self) -> Dict[str, Any]:
+        """
+        Process all pests for one tick.
+        
+        Returns summary of processing.
+        """
+        self._tick_count += 1
+        
+        expired = []
+        tick_results = []
+        
+        # Find nearest food for each pest
+        for pest_id, pest in self.pests.items():
+            result = pest.tick()
+            tick_results.append(result)
+            
+            # Move toward food if foraging
+            if pest.state == PestState.FORAGING and self.food_sources:
+                # Find nearest food
+                nearest = min(
+                    self.food_sources,
+                    key=lambda f: math.sqrt((f[0] - pest.x)**2 + (f[1] - pest.y)**2)
+                )
+                
+                if pest.move_toward_target(nearest[0], nearest[1]):
+                    pest.state = PestState.FEEDING
+            
+            # Check expiration
+            if pest.is_expired():
+                expired.append(pest_id)
+        
+        # Remove expired
+        for pest_id in expired:
+            pest = self.pests.pop(pest_id)
+            self.dead_pests.append(pest)
+        
+        # Clear food sources for next tick
+        self.clear_food_sources()
+        
+        # Count by type
+        type_counts = {}
+        for ptype in PestType:
+            type_counts[ptype.name] = len(self.get_pests_by_type(ptype))
+        
+        return {
+            "tick": self._tick_count,
+            "active_pests": len(self.pests),
+            "expired_this_tick": len(expired),
+            "type_counts": type_counts,
+            "stats": {
+                "total_spawned": self.total_spawned,
+                "total_scattered": self.total_scattered,
+                "total_consumed": self.total_consumed,
+                "total_harvested": round(self.total_energy_harvested, 2),
+            },
+        }
+    
+    def get_total_energy(self) -> float:
+        """Get total energy in all pests."""
+        return sum(p.energy for p in self.pests.values())
+    
+    def get_population_density_at(
+        self,
+        x: float,
+        y: float,
+        radius: float = 10.0
+    ) -> float:
+        """Get pest population density at a position."""
+        pests = self.get_pests_at(x, y, radius)
+        area = math.pi * radius * radius
+        return len(pests) / area if area > 0 else 0
+    
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize system state."""
+        return {
+            "tick_count": self._tick_count,
+            "active_pests": len(self.pests),
+            "dead_pests": len(self.dead_pests),
+            "total_energy": round(self.get_total_energy(), 2),
+            "stats": {
+                "spawned": self.total_spawned,
+                "scattered": self.total_scattered,
+                "harvested": round(self.total_energy_harvested, 2),
+            },
+        }
+
+"""
+Predators System
+================
+Nature's cleanup crew.
+
+Predators hunt pests and keep the population in check.
+They're beneficial to the ecosystem.
+
+4 Types of Predators:
+1. LADYBUG - Hunts NIBBLER and SWARM
+2. LACEWING - Hunts NIBBLER and CHOMPER
+3. PRAYING_MANTIS - Hunts CHOMPER and SWARM
+4. WASP - Hunts GORGON
+
+Predators reproduce slowly but efficiently hunt pests.
+
+Design: Predators are physics - they're real hunters.
+"""
+
+from typing import Dict, Any, List, Optional, Tuple
+from dataclasses import dataclass, field
+from enum import Enum, auto
+import random
+import math
+
+from ..constants import (
+    PREDATOR_TYPES,
+    PEST_ENERGY_VALUE,
+    PHI,
+)
+
+
+class PredatorType(Enum):
+    """The 4 beneficial predators."""
+    LADYBUG = auto()
+    LACEWING = auto()
+    PRAYING_MANTIS = auto()
+    WASP = auto()
+
+
+class PredatorState(Enum):
+    """States a predator can be in."""
+    PATROLLING = auto()
+    HUNTING = auto()
+    FEEDING = auto()
+    RESTING = auto()
+    REPRODUCING = auto()
+    DYING = auto()
+    DEAD = auto()
+
+
+@dataclass
+class PredatorInstance:
+    """
+    A single predator entity.
+    
+    Predators hunt specific pest types and reproduce.
+    """
+    predator_id: str
+    predator_type: PredatorType
+    x: float
+    y: float
+    
+    energy: float = 1.0
+    hunger: float = 0.3
+    state: PredatorState = PredatorState.PATROLLING
+    
+    velocity_x: float = 0.0
+    velocity_y: float = 0.0
+    
+    # Type-specific properties
+    prey_types: List[str] = field(default_factory=list)
+    efficiency: float = 0.8
+    reproduction_rate: float = 0.1
+    
+    kills: int = 0
+    age: int = 0
+    
+    target_pest_id: Optional[str] = None
+    
+    _predator_counter = 0
+    
+    @classmethod
+    def create(
+        cls,
+        predator_type: PredatorType,
+        x: float,
+        y: float,
+        energy: float = 1.0
+    ) -> "PredatorInstance":
+        """Create a new predator."""
+        cls._predator_counter += 1
+        
+        # Get type properties
+        type_props = PREDATOR_TYPES.get(predator_type.name, {})
+        
+        return cls(
+            predator_id=f"predator_{cls._predator_counter}",
+            predator_type=predator_type,
+            x=x,
+            y=y,
+            energy=energy,
+            prey_types=type_props.get("prey", []),
+            efficiency=type_props.get("efficiency", 0.8),
+            reproduction_rate=type_props.get("reproduction_rate", 0.1),
+        )
+    
+    def can_hunt(self, pest_type: str) -> bool:
+        """Check if this predator can hunt a pest type."""
+        return pest_type in self.prey_types
+    
+    def hunt(self, target_x: float, target_y: float) -> bool:
+        """
+        Move toward a target.
+        
+        Returns True if reached.
+        """
+        speed = 0.8  # Predators are steady
+        
+        dx = target_x - self.x
+        dy = target_y - self.y
+        dist = math.sqrt(dx*dx + dy*dy)
+        
+        if dist < speed:
+            self.x = target_x
+            self.y = target_y
+            return True
+        
+        self.x += (dx / dist) * speed
+        self.y += (dy / dist) * speed
+        return False
+    
+    def feed(self, pest_energy: float) -> float:
+        """
+        Feed on a pest.
+        
+        Returns energy gained.
+        """
+        gained = pest_energy * self.efficiency * PEST_ENERGY_VALUE
+        self.energy += gained
+        self.hunger = max(0, self.hunger - 0.3)
+        self.kills += 1
+        return gained
+    
+    def can_reproduce(self) -> bool:
+        """Check if predator can reproduce."""
+        return (
+            self.energy > 1.5 and
+            self.state == PredatorState.RESTING and
+            random.random() < self.reproduction_rate
+        )
+    
+    def reproduce(self) -> Optional["PredatorInstance"]:
+        """
+        Create offspring.
+        
+        Returns new predator or None.
+        """
+        if not self.can_reproduce():
+            return None
+        
+        # Cost of reproduction
+        self.energy -= 0.5
+        
+        # Create offspring nearby
+        offset_x = random.uniform(-3, 3)
+        offset_y = random.uniform(-3, 3)
+        
+        offspring = PredatorInstance.create(
+            self.predator_type,
+            self.x + offset_x,
+            self.y + offset_y,
+            energy=0.5
+        )
+        
+        return offspring
+    
+    def tick(self) -> Dict[str, Any]:
+        """Process predator tick."""
+        result = {
+            "predator_id": self.predator_id,
+            "state": self.state.name,
+        }
+        
+        self.age += 1
+        
+        # Hunger grows
+        self.hunger = min(1.0, self.hunger + 0.005)
+        
+        # Energy decay
+        self.energy *= 0.999
+        
+        # State transitions
+        if self.state == PredatorState.PATROLLING:
+            # Random movement
+            self.velocity_x += random.uniform(-0.1, 0.1)
+            self.velocity_y += random.uniform(-0.1, 0.1)
+            
+            self.x += self.velocity_x * 0.5
+            self.y += self.velocity_y * 0.5
+            
+            # Damping
+            self.velocity_x *= 0.95
+            self.velocity_y *= 0.95
+        
+        elif self.state == PredatorState.HUNTING:
+            # Hunting handled by PredatorManager
+            pass
+        
+        elif self.state == PredatorState.FEEDING:
+            # Transition to resting after feeding
+            if random.random() < 0.1:
+                self.state = PredatorState.RESTING
+        
+        elif self.state == PredatorState.RESTING:
+            # Recover energy
+            self.energy = min(2.0, self.energy + 0.01)
+            
+            # Return to patrol
+            if random.random() < 0.05:
+                self.state = PredatorState.PATROLLING
+        
+        elif self.state == PredatorState.DYING:
+            self.energy -= 0.1
+            if self.energy <= 0:
+                self.state = PredatorState.DEAD
+                result["died"] = True
+        
+        # Starvation
+        if self.hunger >= 1.0 and self.state not in (PredatorState.DYING, PredatorState.DEAD):
+            if random.random() < 0.1:
+                self.state = PredatorState.DYING
+        
+        # Old age
+        if self.age > 500 and random.random() < 0.01:
+            self.state = PredatorState.DYING
+        
+        result["energy"] = round(self.energy, 2)
+        result["hunger"] = round(self.hunger, 2)
+        result["kills"] = self.kills
+        
+        return result
+    
+    def is_expired(self) -> bool:
+        """Check if predator should be removed."""
+        return self.state == PredatorState.DEAD
+
+
+class PredatorManager:
+    """
+    System that manages all predators in the Midway.
+    
+    Handles spawning, hunting, and reproduction.
+    """
+    
+    def __init__(self):
+        self.predators: Dict[str, PredatorInstance] = {}
+        self.dead_predators: List[PredatorInstance] = []  # Archive for 0 = 3
+        
+        # Population limits
+        self.max_population = 30
+        
+        # Stats
+        self.total_spawned = 0
+        self.total_kills = 0
+        self.total_reproductions = 0
+        
+        self._tick_count = 0
+    
+    def spawn(
+        self,
+        predator_type: PredatorType,
+        x: float,
+        y: float,
+        energy: float = 1.0
+    ) -> Optional[PredatorInstance]:
+        """
+        Spawn a predator at a location.
+        
+        Returns the spawned predator or None if at capacity.
+        """
+        if len(self.predators) >= self.max_population:
+            return None
+        
+        predator = PredatorInstance.create(predator_type, x, y, energy)
+        self.predators[predator.predator_id] = predator
+        self.total_spawned += 1
+        
+        return predator
+    
+    def spawn_for_pest_type(
+        self,
+        pest_type: str,
+        x: float,
+        y: float
+    ) -> Optional[PredatorInstance]:
+        """
+        Spawn a predator that can hunt a specific pest type.
+        """
+        # Find predator types that can hunt this pest
+        valid_types = []
+        for ptype, props in PREDATOR_TYPES.items():
+            if pest_type in props.get("prey", []):
+                valid_types.append(PredatorType[ptype])
+        
+        if not valid_types:
+            return None
+        
+        predator_type = random.choice(valid_types)
+        return self.spawn(predator_type, x, y)
+    
+    def get_predator(self, predator_id: str) -> Optional[PredatorInstance]:
+        """Get a predator by ID."""
+        return self.predators.get(predator_id)
+    
+    def get_predators_at(
+        self,
+        x: float,
+        y: float,
+        radius: float = 10.0
+    ) -> List[PredatorInstance]:
+        """Get all predators within radius of a position."""
+        return [
+            pred for pred in self.predators.values()
+            if math.sqrt((pred.x - x)**2 + (pred.y - y)**2) <= radius
+        ]
+    
+    def get_predators_by_type(
+        self,
+        predator_type: PredatorType
+    ) -> List[PredatorInstance]:
+        """Get all predators of a specific type."""
+        return [
+            pred for pred in self.predators.values()
+            if pred.predator_type == predator_type
+        ]
+    
+    def process_hunting(self, pests: Dict) -> Dict[str, Any]:
+        """
+        Process hunting for all predators.
+        
+        Args:
+            pests: Dict of pest_id -> PestParticle from PestManager
+            
+        Returns:
+            Hunting results
+        """
+        hunting_results = []
+        kills = []
+        
+        for predator in self.predators.values():
+            if predator.state not in (PredatorState.PATROLLING, PredatorState.HUNTING):
+                continue
+            
+            # Find nearby prey
+            best_target = None
+            best_dist = float('inf')
+            
+            for pest_id, pest in pests.items():
+                if not predator.can_hunt(pest.pest_type.name):
+                    continue
+                
+                dist = math.sqrt((pest.x - predator.x)**2 + (pest.y - predator.y)**2)
+                
+                if dist < best_dist and dist < 15:  # Hunting range
+                    best_dist = dist
+                    best_target = pest
+            
+            if best_target:
+                predator.state = PredatorState.HUNTING
+                predator.target_pest_id = best_target.pest_id
+                
+                # Move toward prey
+                if predator.hunt(best_target.x, best_target.y):
+                    # Caught prey!
+                    gained = predator.feed(best_target.energy)
+                    predator.state = PredatorState.FEEDING
+                    
+                    kills.append(best_target.pest_id)
+                    hunting_results.append({
+                        "predator_id": predator.predator_id,
+                        "prey_id": best_target.pest_id,
+                        "energy_gained": round(gained, 2),
+                    })
+                    
+                    self.total_kills += 1
+        
+        return {
+            "kills": kills,
+            "results": hunting_results,
+        }
+    
+    def process_reproduction(self) -> List[PredatorInstance]:
+        """
+        Process reproduction for all predators.
+        
+        Returns list of new offspring.
+        """
+        offspring = []
+        
+        for predator in self.predators.values():
+            child = predator.reproduce()
+            if child and len(self.predators) + len(offspring) < self.max_population:
+                offspring.append(child)
+                self.total_reproductions += 1
+        
+        # Add offspring
+        for child in offspring:
+            self.predators[child.predator_id] = child
+        
+        return offspring
+    
+    def tick(self, pest_manager=None) -> Dict[str, Any]:
+        """
+        Process all predators for one tick.
+        
+        Args:
+            pest_manager: Optional PestManager for hunting
+            
+        Returns:
+            Summary of processing
+        """
+        self._tick_count += 1
+        
+        expired = []
+        tick_results = []
+        
+        for predator_id, predator in self.predators.items():
+            result = predator.tick()
+            tick_results.append(result)
+            
+            if predator.is_expired():
+                expired.append(predator_id)
+        
+        # Remove expired
+        for predator_id in expired:
+            predator = self.predators.pop(predator_id)
+            self.dead_predators.append(predator)
+        
+        # Process hunting if pest manager provided
+        hunting_result = {}
+        if pest_manager:
+            hunting_result = self.process_hunting(pest_manager.pests)
+            
+            # Remove killed pests
+            for pest_id in hunting_result.get("kills", []):
+                if pest_id in pest_manager.pests:
+                    pest = pest_manager.pests.pop(pest_id)
+                    pest_manager.dead_pests.append(pest)
+        
+        # Process reproduction
+        offspring = self.process_reproduction()
+        
+        # Count by type
+        type_counts = {}
+        for ptype in PredatorType:
+            type_counts[ptype.name] = len(self.get_predators_by_type(ptype))
+        
+        return {
+            "tick": self._tick_count,
+            "active_predators": len(self.predators),
+            "expired_this_tick": len(expired),
+            "kills_this_tick": len(hunting_result.get("kills", [])),
+            "births_this_tick": len(offspring),
+            "type_counts": type_counts,
+            "stats": {
+                "total_spawned": self.total_spawned,
+                "total_kills": self.total_kills,
+                "total_reproductions": self.total_reproductions,
+            },
+        }
+    
+    def get_total_hunting_capacity(self) -> float:
+        """Get total hunting capacity of all predators."""
+        return sum(
+            p.efficiency * p.energy for p in self.predators.values()
+            if p.state in (PredatorState.PATROLLING, PredatorState.HUNTING)
+        )
+    
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize system state."""
+        return {
+            "tick_count": self._tick_count,
+            "active_predators": len(self.predators),
+            "dead_predators": len(self.dead_predators),
+            "stats": {
+                "spawned": self.total_spawned,
+                "kills": self.total_kills,
+                "reproductions": self.total_reproductions,
+            },
+        }
+
+"""
+Decay System
+============
+The great recycler.
+
+Decay processes dead organic matter and returns
+nutrients to the soil. It's the final stage of
+the ecosystem cycle.
+
+Decay produces:
+- Heat (from decomposition)
+- Nutrients (for cover crops)
+- Pest attraction (scavengers)
+
+Design: Decay is physics - matter doesn't disappear, it transforms.
+"""
+
+from typing import Dict, Any, List, Optional
+from dataclasses import dataclass, field
+from enum import Enum, auto
+import random
+import math
+
+from ..constants import PHI
+
+
+class DecayStage(Enum):
+    """Stages of decay."""
+    FRESH = auto()
+    DECOMPOSING = auto()
+    ADVANCED = auto()
+    DRYING = auto()
+    SOIL = auto()
+
+
+@dataclass
+class DecayPile:
+    """
+    A pile of decaying matter.
+    
+    Can contain dead crops, pests, predators, etc.
+    """
+    pile_id: str
+    x: float
+    y: float
+    
+    mass: float = 1.0
+    stage: DecayStage = DecayStage.FRESH
+    
+    heat_output: float = 0.0
+    nutrient_output: float = 0.0
+    pest_attraction: float = 0.0
+    
+    age: int = 0
+    
+    # Contents tracking
+    crops_count: int = 0
+    pests_count: int = 0
+    predators_count: int = 0
+    
+    _pile_counter = 0
+    
+    @classmethod
+    def create(
+        cls,
+        x: float,
+        y: float,
+        initial_mass: float = 1.0
+    ) -> "DecayPile":
+        """Create a new decay pile."""
+        cls._pile_counter += 1
+        return cls(
+            pile_id=f"pile_{cls._pile_counter}",
+            x=x,
+            y=y,
+            mass=initial_mass,
+        )
+    
+    def add_material(
+        self,
+        mass: float,
+        material_type: str = "organic"
+    ):
+        """Add material to the pile."""
+        self.mass += mass
+        
+        if material_type == "crop":
+            self.crops_count += 1
+        elif material_type == "pest":
+            self.pests_count += 1
+        elif material_type == "predator":
+            self.predators_count += 1
+    
+    def advance_stage(self):
+        """Advance to next decay stage."""
+        stage_order = [
+            DecayStage.FRESH,
+            DecayStage.DECOMPOSING,
+            DecayStage.ADVANCED,
+            DecayStage.DRYING,
+            DecayStage.SOIL,
+        ]
+        
+        current_index = stage_order.index(self.stage)
+        if current_index < len(stage_order) - 1:
+            self.stage = stage_order[current_index + 1]
+    
+    def tick(self) -> Dict[str, Any]:
+        """Process decay tick."""
+        self.age += 1
+        
+        result = {
+            "pile_id": self.pile_id,
+            "stage": self.stage.name,
+            "mass": round(self.mass, 2),
+        }
+        
+        # Stage-specific processing
+        if self.stage == DecayStage.FRESH:
+            # Fresh matter produces little
+            self.heat_output = self.mass * 0.1
+            self.nutrient_output = 0
+            self.pest_attraction = self.mass * 0.5
+            
+            # Advance quickly
+            if self.age > 10:
+                self.advance_stage()
+        
+        elif self.stage == DecayStage.DECOMPOSING:
+            # Peak heat production
+            self.heat_output = self.mass * 0.5
+            self.nutrient_output = self.mass * 0.1
+            self.pest_attraction = self.mass * 0.3
+            
+            # Mass decreases
+            self.mass *= 0.98
+            
+            if self.age > 50 or self.mass < 0.5:
+                self.advance_stage()
+        
+        elif self.stage == DecayStage.ADVANCED:
+            # Good nutrient production
+            self.heat_output = self.mass * 0.3
+            self.nutrient_output = self.mass * 0.3
+            self.pest_attraction = self.mass * 0.1
+            
+            self.mass *= 0.97
+            
+            if self.mass < 0.3:
+                self.advance_stage()
+        
+        elif self.stage == DecayStage.DRYING:
+            # Low output
+            self.heat_output = self.mass * 0.1
+            self.nutrient_output = self.mass * 0.2
+            self.pest_attraction = 0
+            
+            self.mass *= 0.99
+            
+            if self.mass < 0.1:
+                self.advance_stage()
+        
+        elif self.stage == DecayStage.SOIL:
+            # Becomes soil
+            self.heat_output = 0
+            self.nutrient_output = self.mass * 0.5
+            self.pest_attraction = 0
+            
+            result["became_soil"] = True
+        
+        result["heat_output"] = round(self.heat_output, 2)
+        result["nutrient_output"] = round(self.nutrient_output, 2)
+        
+        return result
+    
+    def is_expired(self) -> bool:
+        """Check if pile should be removed."""
+        return self.stage == DecayStage.SOIL and self.mass < 0.05
+    
+    def harvest_nutrients(self, amount: float = None) -> float:
+        """
+        Harvest nutrients from the pile.
+        
+        Returns amount harvested.
+        """
+        amount = amount or self.nutrient_output
+        actual = min(amount, self.mass)
+        self.mass -= actual * 0.1
+        return actual
+
+
+class DecaySystem:
+    """
+    System that manages all decay in the Midway.
+    
+    Handles decay piles and nutrient cycling.
+    """
+    
+    def __init__(self):
+        self.piles: Dict[str, DecayPile] = {}
+        self.soil_deposits: List[Dict] = []  # Archive for 0 = 3
+        
+        # Global nutrient pool
+        self.available_nutrients = 100.0
+        self.total_heat_produced = 0.0
+        self.total_nutrients_cycled = 0.0
+        
+        self._tick_count = 0
+    
+    def create_pile(
+        self,
+        x: float,
+        y: float,
+        initial_mass: float = 1.0,
+        material_type: str = "organic"
+    ) -> DecayPile:
+        """
+        Create a new decay pile.
+        
+        Args:
+            x, y: Position
+            initial_mass: Starting mass
+            material_type: Type of material
+            
+        Returns:
+            The created pile
+        """
+        pile = DecayPile.create(x, y, initial_mass)
+        pile.add_material(initial_mass, material_type)
+        self.piles[pile.pile_id] = pile
+        
+        return pile
+    
+    def add_to_nearest_pile(
+        self,
+        x: float,
+        y: float,
+        mass: float,
+        material_type: str = "organic",
+        max_distance: float = 20.0
+    ) -> Optional[DecayPile]:
+        """
+        Add material to nearest pile, or create new one.
+        
+        Returns the pile used.
+        """
+        # Find nearest pile
+        nearest = None
+        nearest_dist = float('inf')
+        
+        for pile in self.piles.values():
+            if pile.stage == DecayStage.SOIL:
+                continue
+            
+            dist = math.sqrt((pile.x - x)**2 + (pile.y - y)**2)
+            if dist < nearest_dist:
+                nearest_dist = dist
+                nearest = pile
+        
+        if nearest and nearest_dist <= max_distance:
+            nearest.add_material(mass, material_type)
+            return nearest
+        else:
+            return self.create_pile(x, y, mass, material_type)
+    
+    def get_pile(self, pile_id: str) -> Optional[DecayPile]:
+        """Get a pile by ID."""
+        return self.piles.get(pile_id)
+    
+    def get_piles_at(
+        self,
+        x: float,
+        y: float,
+        radius: float = 10.0
+    ) -> List[DecayPile]:
+        """Get all piles within radius of a position."""
+        return [
+            pile for pile in self.piles.values()
+            if math.sqrt((pile.x - x)**2 + (pile.y - y)**2) <= radius
+        ]
+    
+    def get_total_heat_output(self) -> float:
+        """Get total heat from all piles."""
+        return sum(pile.heat_output for pile in self.piles.values())
+    
+    def get_total_nutrient_output(self) -> float:
+        """Get total nutrients from all piles."""
+        return sum(pile.nutrient_output for pile in self.piles.values())
+    
+    def get_total_pest_attraction(self) -> float:
+        """Get total pest attraction from all piles."""
+        return sum(pile.pest_attraction for pile in self.piles.values())
+    
+    def harvest_nutrients(
+        self,
+        x: float,
+        y: float,
+        amount: float,
+        radius: float = 10.0
+    ) -> float:
+        """
+        Harvest nutrients from piles at a location.
+        
+        Returns amount harvested.
+        """
+        piles = self.get_piles_at(x, y, radius)
+        
+        total_harvested = 0.0
+        
+        for pile in piles:
+            harvested = pile.harvest_nutrients(amount - total_harvested)
+            total_harvested += harvested
+            
+            if total_harvested >= amount:
+                break
+        
+        self.available_nutrients += total_harvested
+        self.total_nutrients_cycled += total_harvested
+        
+        return total_harvested
+    
+    def deposit_dead_crop(
+        self,
+        x: float,
+        y: float,
+        mass: float
+    ) -> DecayPile:
+        """Deposit a dead cover crop."""
+        return self.add_to_nearest_pile(x, y, mass, "crop")
+    
+    def deposit_dead_pest(
+        self,
+        x: float,
+        y: float,
+        mass: float
+    ) -> DecayPile:
+        """Deposit a dead pest."""
+        return self.add_to_nearest_pile(x, y, mass, "pest")
+    
+    def deposit_dead_predator(
+        self,
+        x: float,
+        y: float,
+        mass: float
+    ) -> DecayPile:
+        """Deposit a dead predator."""
+        return self.add_to_nearest_pile(x, y, mass, "predator")
+    
+    def tick(self) -> Dict[str, Any]:
+        """
+        Process all decay for one tick.
+        
+        Returns summary of processing.
+        """
+        self._tick_count += 1
+        
+        expired = []
+        tick_results = []
+        
+        total_heat = 0.0
+        total_nutrients = 0.0
+        became_soil = 0
+        
+        for pile_id, pile in self.piles.items():
+            result = pile.tick()
+            tick_results.append(result)
+            
+            total_heat += pile.heat_output
+            total_nutrients += pile.nutrient_output
+            
+            if result.get("became_soil"):
+                became_soil += 1
+                self.soil_deposits.append({
+                    "x": pile.x,
+                    "y": pile.y,
+                    "nutrients": pile.nutrient_output,
+                    "tick": self._tick_count,
+                })
+            
+            if pile.is_expired():
+                expired.append(pile_id)
+        
+        # Remove expired
+        for pile_id in expired:
+            del self.piles[pile_id]
+        
+        # Update stats
+        self.total_heat_produced += total_heat
+        self.total_nutrients_cycled += total_nutrients
+        self.available_nutrients += total_nutrients * 0.1  # Some goes to pool
+        
+        # Count by stage
+        stage_counts = {}
+        for stage in DecayStage:
+            stage_counts[stage.name] = len([
+                p for p in self.piles.values() if p.stage == stage
+            ])
+        
+        return {
+            "tick": self._tick_count,
+            "active_piles": len(self.piles),
+            "expired_this_tick": len(expired),
+            "became_soil": became_soil,
+            "total_heat": round(total_heat, 2),
+            "total_nutrients": round(total_nutrients, 2),
+            "available_nutrients": round(self.available_nutrients, 2),
+            "stage_counts": stage_counts,
+            "stats": {
+                "total_heat_produced": round(self.total_heat_produced, 2),
+                "total_nutrients_cycled": round(self.total_nutrients_cycled, 2),
+            },
+        }
+    
+    def get_nutrients_at(self, x: float, y: float) -> float:
+        """Get nutrient level at a position."""
+        piles = self.get_piles_at(x, y, 10.0)
+        return sum(p.nutrient_output for p in piles)
+    
+    def get_heat_at(self, x: float, y: float) -> float:
+        """Get heat level at a position."""
+        piles = self.get_piles_at(x, y, 10.0)
+        return sum(p.heat_output for p in piles)
+    
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize system state."""
+        return {
+            "tick_count": self._tick_count,
+            "active_piles": len(self.piles),
+            "soil_deposits": len(self.soil_deposits),
+            "available_nutrients": round(self.available_nutrients, 2),
+            "stats": {
+                "heat_produced": round(self.total_heat_produced, 2),
+                "nutrients_cycled": round(self.total_nutrients_cycled, 2),
+            },
+        }
+
+
