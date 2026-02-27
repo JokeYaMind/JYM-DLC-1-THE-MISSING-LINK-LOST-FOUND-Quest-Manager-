@@ -1,0 +1,1214 @@
+# WasteLand WhippiN - DLC Manual
+
+## The Dark Carnival Development Kit
+
+---
+
+## Table of Contents
+
+1. [Introduction: The Carnival Awaits](#introduction-the-carnival-awaits)
+2. [Core Philosophy: Physics, Not Rules](#core-philosophy-physics-not-rules)
+3. [Architecture: GameBoy Cartridge Model](#architecture-gameboy-cartridge-model)
+4. [The Yellow Bus: Energy Distribution](#the-yellow-bus-energy-distribution)
+5. [The Fork System: Bark/Bite/Store](#the-fork-system-barkbitestore)
+6. [The Calm Equation](#the-calm-equation)
+7. [The Ecosystem Cycle](#the-ecosystem-cycle)
+8. [Diamond Rain: The Cooling Arc](#diamond-rain-the-cooling-arc)
+9. [Core Mechanics (Derived)](#core-mechanics-derived)
+10. [Role Augments](#role-augments)
+11. [Entity Archetypes](#entity-archetypes)
+12. [Walkthrough: Building Quest Chains](#walkthrough-building-quest-chains)
+13. [The Through-Line: Bang! Pow! Boom!](#the-through-line-bang-pow-boom)
+14. [API Reference](#api-reference)
+
+---
+
+## Introduction: The Carnival Awaits
+
+**WasteLand WhippiN** is the first DLC cartridge for the JokeYaMind/V3_carnival engine. It extends the base game without modifying core code — plugging in like a GameBoy cartridge into a console.
+
+This manual teaches you how to:
+- Use the new component systems
+- Build emergent quest chains
+- Leverage the ecosystem physics
+- Create content that cannot be exploited
+
+---
+
+## Core Philosophy: Physics, Not Rules
+
+### The Problem With Rules
+
+```
+RULE: "Pest spawns at location X every 5 ticks"
+RESULT: Player learns pattern → camps location → exploits system
+```
+
+### The Solution: Physics
+
+```
+PHYSICS: "Pest energy scatters like light through windows,
+          pooling and reducing based on thermodynamics"
+RESULT: Player cannot predict → cannot exploit → emergence happens
+```
+
+### The 0 = 3 Invariant
+
+**Nothing is ever truly deleted. Everything transforms.**
+
+```
+Entity dies → Energy scatters
+Heat dissipates → Diamond rain
+Corpses decay → Nutrients feed soil
+Thoughts accumulate → Madrox particles
+Ash rises → Cools into value
+```
+
+The carnival doesn't delete. It recycles.
+
+---
+
+## Architecture: GameBoy Cartridge Model
+
+```
+┌─────────────────────────────────────────┐
+│  JokeYaMind (Physics Engine)            │
+│  ─────────────────────────────          │
+│  7D Membrane | Memory Fields            │
+│  5 Pillars: Wraith/Riddlebox/Seed/      │
+│  Damion/Juggalo                         │
+│                                         │
+│  ████████████████████████████████████   │
+│  █ NEVER MODIFY - THIS IS THE HARDWARE █ │
+│  ████████████████████████████████████   │
+└─────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────┐
+│  V3_carnival (Game Layer)               │
+│  ─────────────────────────              │
+│  Entity | Biome | ConsentKanban         │
+│  GameEngine | Roles | Spiral Die        │
+│                                         │
+│  ████████████████████████████████████   │
+│  █ NEVER MODIFY - THIS IS THE BATTERY  █ │
+│  ████████████████████████████████████   │
+└─────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────┐
+│  DLC: WasteLand WhippiN                 │
+│  ─────────────────────────              │
+│  Components | Systems | Ecology         │
+│  Hooks extend, never modify core        │
+│                                         │
+│  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   │
+│  ▓ THIS CARTRIDGE - PLUG AND PLAY     ▓   │
+│  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   │
+└─────────────────────────────────────────┘
+```
+
+### Installation
+
+```python
+from wasteland_whippin import install
+
+# Install the DLC cartridge
+manifest = install(engine)
+
+# Output:
+# 🎮 DLC 'WasteLand WhippiN' v1.0.0 installed!
+#    Hooks: 9
+#    Systems: 11
+#    Components: 8
+```
+
+---
+
+## The Yellow Bus: Energy Distribution
+
+### What It Is
+
+The Yellow Bus is an **IPM (Integrated Pest Management) Energy Distributor**. It prevents pest energy from pooling in exploitable locations.
+
+```
+┌─────────────────────────────────────────────────────┐
+│                 THE PROBLEM                         │
+├─────────────────────────────────────────────────────┤
+│  PEST ENERGY → accumulates ONE spot                 │
+│       ↓                                             │
+│  Player learns WHERE                                │
+│       ↓                                             │
+│  Player CAMPS that spot                             │
+│       ↓                                             │
+│  GAME BROKEN (exploitable pattern)                  │
+└─────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────┐
+│                 THE SOLUTION                        │
+├─────────────────────────────────────────────────────┤
+│  PEST ENERGY → Yellow Bus collects                  │
+│       ↓                                             │
+│  SCATTERS like light through windows                │
+│       ↓                                             │
+│  Flows NATURALLY across biome                       │
+│       ↓                                             │
+│  NOT GAMEABLE (pure physics)                        │
+└─────────────────────────────────────────────────────┘
+```
+
+### The Triple Threat
+
+```
+┌──────────────────────────────────────┐
+│           YELLOW BUS                 │
+│  ┌────────┐  ┌────────┐  ┌────────┐  │
+│  │ DRIVER │  │  KIDS  │  │JUGGALOS│  │
+│  │────────│  │────────│  │────────│  │
+│  │ path   │  │ passive│  │ chaos  │  │
+│  │ speed  │  │ worried│  │ entropy│  │
+│  └────────┘  └────────┘  └────────┘  │
+│                                      │
+│  Windows = off-ramps (A, B, C)       │
+│  Light through = quest flavor map    │
+│  Blunt guts on ground = residue map  │
+└──────────────────────────────────────┘
+```
+
+| Passenger | Role | Effect on Energy |
+|-----------|------|------------------|
+| **Driver** | Path & Speed | Sets scatter direction, narrative control |
+| **Kids** | Passive Observers | Chill/worried, absorb some energy, represent load |
+| **Juggalos** | Chaos Agents | Throw blunt guts = entropy injection, mark scatter paths |
+
+### Track Reference
+
+> *"86 TO THE MALL"* - Ouija Macc
+> 
+> The Juggalo on the bus, rolling, chaos in transit. The destination doesn't matter — the RIDE distributes the energy. Blunt guts hit the ground, marking where energy scattered.
+
+### Usage
+
+```python
+# Get the Yellow Bus system
+bus = engine.get_dlc_system("yellow_bus")
+
+# Add energy to a stop (from pest deaths, activity, etc.)
+bus.add_energy_to_stop("midway_entrance", pest_energy=15.0, heat=5.0)
+
+# Bus automatically:
+# 1. Travels route between stops
+# 2. Loads energy at each stop
+# 3. Scatters through windows (rainbow distribution)
+# 4. Juggalos drop blunt guts (residue markers)
+
+# Force emergency scatter
+bus.force_scatter(amount=20.0)
+
+# Check current state
+print(bus.tick())
+# {
+#   "state": "TRAVELING",
+#   "pest_energy": 45.2,
+#   "heat_cargo": 12.8,
+#   "current_stop": "Faygo Stand",
+#   "heat_particles": 23
+# }
+```
+
+---
+
+## The Fork System: Bark/Bite/Store
+
+### The Decision Architecture
+
+Every interaction hits **THE FORK** — a decision point at Node B:
+
+```
+A (Entry)
+    │
+    ▼
+B (THE FORK) ◄── bark/bite/wait validation
+    │
+    ├────────┬────────┐
+    ▼        ▼        ▼
+Fork 1   Fork 2   Fork 3
+    │        │        │
+    ▼        ▼        ▼
+C1       C2       C3
+```
+
+### The Three Paths
+
+| Fork | Track Reference | Type | Meaning |
+|------|-----------------|------|---------|
+| **1** | *"If I Was A Serial Killer"* - ICP | POTENTIAL | Hypothetical, energy STORED |
+| **2** | *"Wind Me Up"* - ICP | KINETIC | Build pressure → release → crash |
+| **3** | *"Watch My Ride"* - ICP | STORE/REACTIVE | External trigger → chaos response |
+
+### Vocabulary
+
+| Term | Physics Meaning | Application |
+|------|-----------------|-------------|
+| **Bark** | Kinetic threshold — can I MOVE? | Check if entity can act immediately |
+| **Bite** | Potential threshold — can I SPEAK? | Check if entity can store energy for later |
+| **Store/Wait** | Neither, holding energy | Entity observes, accumulates, waits |
+
+### Fork 1: "If I Was A Serial Killer" = POTENTIAL
+
+> *"If I was..."* = HYPOTHETICAL
+> *"I would..."* = FUTURE TENSE
+> Energy STORED, not released
+> Theoretical violence = identity exploration
+
+**Use when:** Entity explores possibilities without committing. Branches created but may never be taken — yet potential energy is tracked.
+
+```python
+fork = Fork.create(source=entity)
+
+# Add potential branches
+fork.add_branch(ForkType.POTENTIAL, "violent_path", cooldown=30)
+fork.add_branch(ForkType.STORE, "peaceful_path")
+
+# Entity considers but doesn't act
+fork.add_potential_to_branch("violent_path", 0.5)
+
+# Check state
+print(fork.get_available_branches())
+# Branch exists, energy stored, but NOT triggered
+```
+
+### Fork 2: "Wind Me Up" = KINETIC
+
+> *"Wind me up"* = PRESSURE BUILDING
+> Release = THE ACT
+> Crash = THE AFTERMATH
+
+**Use when:** Entity builds toward explosive action. Energy accumulates until threshold, then RELEASE.
+
+```python
+fork = Fork.create(source=entity)
+branch = fork.add_branch(ForkType.KINETIC, "explosive_response", cooldown=10)
+
+# Build tension over time
+entity.energy += 5.0
+
+# When threshold met
+if branch.is_available() and entity.energy > threshold:
+    result = fork.take_branch(branch.branch_id)  # KINETIC RELEASE
+    # Energy spent, consequences happen
+```
+
+### Fork 3: "Watch My Ride" = REACTIVE
+
+> *"Watch my ride while I'm inside"* = DISRESPECT TRIGGER
+> *"And that's when we fuck him up"* = CHAOS RESPONSE  
+> *"Ghost rider... no driver"* = SURRENDER CONTROL
+
+**Use when:** Entity waits for external trigger. Not storing, not building — WATCHING.
+
+```python
+fork = Fork.create(source=entity)
+branch = fork.add_branch(ForkType.STORE, "watch_and_respond")
+
+# Entity observes, no action
+# Until external trigger event
+if disrespect_detected:
+    result = fork.take_branch(branch.branch_id)  # REACTIVE CHAOS
+```
+
+---
+
+## The Calm Equation
+
+### Part A: "High Rise" + Vultures Role
+
+> *"High Rise"* - ICP
+> 
+> The gravity mechanic. What pulls you DOWN through every level.
+
+```
+HIGH RISE = Weight that sinks energy into lower layers
+```
+
+### Vultures Role
+
+> *"Vultures"* - ICP (Bang! Pow! Boom!)
+> 
+> Scavenger modifier. Wait for death, feed on weak, black heart = -empathy.
+
+```python
+# Vultures: Subclass/augment of Juggalo
+class VultureAugment:
+    """
+    Scavenger modifier for entities.
+    From "Vultures" - Bang! Pow! Boom!
+    """
+    def __init__(self, entity):
+        self.entity = entity
+        self.empathy_modifier = -0.5  # "Black heart"
+        self.feed_range = 10.0
+        self.patience_mult = 2.0  # Willing to wait
+        
+    def on_death_nearby(self, corpse):
+        """Vultures feed when others die."""
+        if self.distance_to(corpse) <= self.feed_range:
+            self.entity.energy += corpse.energy * 0.5
+            return {"fed": True, "source": corpse.entity_id}
+```
+
+### Part B: "Thrill of the Kill"
+
+> *"Shakin' so fast... vibratin'"* = PRESSURE BUILDING
+> *"The thrill when the red blood flows"* = THE ACT
+> *"When the high comes crashing down... I'll be underground"* = THE CRASH
+> *"This killness in me"* = INTERNAL DRIVE
+
+**Maps to:** BARK = True, BITE = True (full release, then burn)
+
+```python
+# The thrill cycle
+class ThrillCycle:
+    """
+    From "Thrill of the Kill" - ICP
+    Build → Release → Crash
+    """
+    def __init__(self, entity):
+        self.entity = entity
+        self.vibration = 0.0  # "Shakin' so fast"
+        self.thrill_level = 0.0
+        
+    def build(self, amount):
+        """"Shakin' so fast... vibratin'" """
+        self.vibration += amount
+        
+    def release(self, target):
+        """"The thrill when the red blood flows" """
+        if self.vibration > THRESHOLD:
+            self.thrill_level = self.vibration
+            self.vibration = 0
+            return {"thrill": self.thrill_level, "target": target}
+            
+    def crash(self):
+        """"When the high comes crashing down" """
+        self.entity.energy -= self.thrill_level * 0.5
+        self.thrill_level = 0
+        return {"crashed": True}
+```
+
+---
+
+## The Ecosystem Cycle
+
+### The Thermodynamic Stack
+
+```
+┌─────────────────────────────────────────┐
+│  ☀️ LIGHT (Input)                       │
+│     Sun, energy source                  │
+│     Grows crops, attracts pests         │
+└─────────────────┬───────────────────────┘
+                  ▼
+┌─────────────────────────────────────────┐
+│  🌱 GROWTH (Cover Crops)                │
+│     Propelling, pulling nutrients UP    │
+│     8 Types, different properties       │
+└─────────────────┬───────────────────────┘
+                  ▼
+┌─────────────────────────────────────────┐
+│  🐛 PESTS (Consumption)                 │
+│     Attracted to crops                  │
+│     4 Types: Nibbler/Chomper/Swarm/     │
+│     Gorgon                              │
+└─────────────────┬───────────────────────┘
+                  ▼
+┌─────────────────────────────────────────┐
+│  🦎 PREDATORS (Predation)               │
+│     Small ↔ Large energy transfer       │
+│     4 Types: Ladybug/Lacewing/          │
+│     Mantis/Wasp                         │
+└─────────────────┬───────────────────────┘
+                  ▼
+┌─────────────────────────────────────────┐
+│  💀 DECAY (Decomposition)               │
+│     Corpses, waste, residue             │
+│     SINKS into soil                     │
+└─────────────────┬───────────────────────┘
+                  ▼
+┌─────────────────────────────────────────┐
+│  🔥 HEAT (Under Soil)                   │
+│     Decomposition energy                │
+│     BUILDS under surface                │
+└─────────────────┬───────────────────────┘
+                  ▼
+┌─────────────────────────────────────────┐
+│  🚌 YELLOW BUS (Distribution)           │
+│     Scatters heat/energy                │
+│     Prevents pooling                    │
+└─────────────────┬───────────────────────┘
+                  ▼
+┌─────────────────────────────────────────┐
+│  💎 DIAMOND RAIN (Cooling)              │
+│     Heat crystallizes → Falls as value  │
+│     Cycle restarts                      │
+└─────────────────────────────────────────┘
+```
+
+### The Small ↔ Large Dynamic
+
+```
+SMALL (Prey)
+├── Fast movement
+├── Low mass
+├── High reproduction
+└── Energy dispersed
+
+         ↓ PREDATION
+         
+LARGE (Predator)
+├── Slow movement
+├── High mass
+├── Low reproduction
+└── Energy concentrated
+
+         ↓ DEATH
+         
+CORPSE = Concentrated Nutrients
+         ↓
+     DECAY
+         ↓
+     HEAT RELEASED
+```
+
+---
+
+## Diamond Rain: The Cooling Arc
+
+### The Poetry
+
+> Heat rises. That's what heat DOES.
+> 
+> But in this system, when it rises high enough and meets COLD — it doesn't just dissipate.
+> 
+> **It becomes DIAMOND.**
+> 
+> And then it RAINS.
+
+### The Physics
+
+```
+🔥 HEAT BUILDS (from pest/predator/decay cycle)
+        │
+        ▼
+💧 MOISTURE RISES (evaporation)
+        │
+        ▼
+⬆️ REACHES COLD LAYER (upper atmosphere)
+        │
+        ▼
+🔶 CRYSTALLIZES (pressure + cold = diamond)
+        │
+        ▼
+💧 RAINS BACK DOWN
+        │
+        ▼
+💎 DIAMONDS HIT SOIL
+        │
+        ├── Cool on contact
+        ├── Add structure (carbon, minerals)
+        ├── Nourish biome
+        └── Can be harvested (resource)
+        │
+        ▼
+🔥 CYCLE RESTARTS
+```
+
+### Implementation
+
+```python
+# Get Diamond Rain system
+diamond_rain = engine.get_dlc_system("diamond_rain")
+
+# Add heat to trigger evaporation
+diamond_rain.add_heat(x=50, y=50, amount=30.0)
+
+# Process tick
+result = diamond_rain.tick()
+# {
+#   "phase": "CRYSTALLIZE",
+#   "active_crystals": 12,
+#   "landed_this_tick": 3,
+#   "rain_intensity": 0.4
+# }
+
+# Force rain event
+diamond_rain.force_rain(x=50, y=50, intensity=2.0)
+
+# Get cooling at position
+cooling = diamond_rain.get_cooling_at(x=50, y=50)
+```
+
+### Two Buses. Two Physics. One Circle.
+
+| Bus | Direction | What It Moves |
+|-----|-----------|---------------|
+| **Magic Xul** | ⬆️ UP | Tension → transcendence (drills out) |
+| **Yellow Bus** | ⬇️ DOWN | Diamonds → distribution (rains in) |
+
+---
+
+## Core Mechanics (Derived)
+
+### 1. Trick System
+
+> *"I got tricks up my sleeve, so many tricks up my sleeve"*
+> — "The Magician"
+
+Limited abilities hidden until revealed.
+
+```python
+# Entity has hidden tricks
+entity.add_component(HiddenPotentialComponent())
+
+# Discover tricks through gameplay
+context = {"location": "midway", "event": "faygo_shower"}
+discovered = entity.hidden_potential.check_discovery(context)
+
+# Activate trick
+if discovered:
+    result = entity.hidden_potential.activate_potential(discovered[0].potential_id)
+```
+
+### 2. Bone Planting
+
+> *"Dig a hole, plant the bones and I watch 'em grow a tombstone"*
+> — "The Magician"
+
+Death becomes monument. Plant → Grow → Harvest cycle.
+
+```python
+# Plant bones at location
+decay_system = engine.get_dlc_system("decay")
+pile = decay_system.create_pile(x=entity.x, y=entity.y, initial_mass=corpse.mass)
+pile.add_material(corpse.mass, "corpse")
+
+# Over time, grows into tombstone (monument)
+# Can be harvested for nutrients or left as marker
+```
+
+### 3. Predator ↔ Prey Reversal
+
+> *"I turn the predator into the prey"*
+> — "Predator Into The Prey"
+
+Roles can flip. The hunter becomes hunted.
+
+```python
+# Check if predator can become prey
+predator = engine.get_entity(predator_id)
+if predator.energy < prey.energy * 0.5:
+    # REVERSAL TRIGGERED
+    predator.add_component(PreyComponent())
+    prey.add_component(PredatorComponent())
+    
+    engine.emit_dlc_event(DLC_EVENT.ROLE_REVERSAL, source=predator)
+```
+
+### 4. Corpse Harvesting
+
+> *"Dump your innards in a bucket, that gon' be a meal tonight"*
+> — "Predator Into The Prey"
+
+Bodies become resources.
+
+```python
+# Harvest corpse
+harvest = pest_manager.harvest_energy_at(
+    x=corpse.x, 
+    y=corpse.y, 
+    radius=5.0,
+    amount=corpse.energy
+)
+# {"energy_harvested": 15.0, "pests_killed": 1}
+```
+
+### 5. State Transitions
+
+> *"You want some chill shit, huh? Somethin' you can ride to"*
+> — The Skit
+
+Entity states: WICKED ↔ CHILL ↔ LOST
+
+```python
+# State machine
+class EntityState:
+    WICKED = "wicked"    # High chaos, aggressive
+    CHILL = "chill"      # Low intensity, passive
+    LOST = "lost"        # Displaced, seeking
+    
+# Transition on conditions
+if entity.chaos_level > 0.7:
+    entity.state = EntityState.WICKED
+elif entity.anxiety_level > 0.8:
+    entity.state = EntityState.LOST
+else:
+    entity.state = EntityState.CHILL
+```
+
+### 6. Blender System
+
+> *"Take a blender right? All that in a blender and press start, mix it all together and you got the motherfuckin' smoothie"*
+> — "Spinal Fluid Smoothie"
+
+Combine ingredients → merged output.
+
+```python
+# Blender creates new content from inputs
+inputs = ["metal", "horror_movies", "wicked_shit", "three_6_mafia"]
+output = blender.blend(inputs)
+# Output = new entity/content with properties from all inputs
+```
+
+### 7. Madrox Particles (Overthinking)
+
+> *"Intrusive thoughts linger inside my brain"*
+> *"My brain's movin' fast but my body is frozen"*
+> — "Spinal Fluid Smoothie"
+
+Thought particles that paralyze.
+
+```python
+# Madrox component handles overthinking
+madrox = entity.madrox
+madrox.start_overthinking(trigger="existential_dread")
+
+# Particles spawn and orbit
+# Attracted to calm sources, repelled by chaos
+print(f"Particle count: {madrox.particle_count}")
+print(f"Anxiety level: {madrox.anxiety_level}")
+
+# Calm the entity
+madrox.apply_calm_influence(strength=0.5)
+```
+
+### 8. Paint/Mask System
+
+> *"Tears run down my face, they smudge my paint, I'm just a sad clown"*
+> *"A smile is a great disguise, people seem to like the way that I paint on mine"*
+> — "Sad Clown"
+
+Appearance ≠ Internal state. Social reward for masking.
+
+```python
+# Mask system
+entity.internal_state = "suffering"
+entity.external_mask = "smile"
+
+# Social reward for masking
+if entity.external_mask == "smile":
+    entity.social_acceptance += 0.1
+    
+# Tears reveal truth
+if entity.crying:
+    entity.paint_smudged = True
+    entity.external_mask = entity.internal_state  # Revealed
+```
+
+---
+
+## Role Augments
+
+### Vultures
+
+From *"Vultures"* - Bang! Pow! Boom!
+
+```python
+VULTURES = {
+    "name": "Vultures",
+    "type": "scavenger_modifier",
+    "effects": {
+        "empathy": -0.5,        # "Black heart"
+        "patience": 2.0,        # Willing to wait
+        "feed_on_death": True,  # Gain energy from nearby deaths
+    },
+    "trigger": "on_death_nearby",
+    "behavior": "Wait for weakness, then feed"
+}
+```
+
+### Boogie Woogie Wu
+
+From *"Boogie Woogie Wu"* - The Great Milenko
+
+```python
+BOOGIE_WOOGIE_WU = {
+    "name": "Boogie Woogie Wu",
+    "type": "stealth_predator",
+    "effects": {
+        "visibility": "night_only",
+        "location": "under_bed",
+        "target": "children",  # Narrative context
+    },
+    "behavior": "Lurk, emerge at night, take victims"
+}
+```
+
+### High Rise
+
+From *"High Rise"* - The Calm
+
+```python
+HIGH_RISE = {
+    "name": "High Rise",
+    "type": "gravity_modifier",
+    "effects": {
+        "pull_direction": "DOWN",
+        "layer_penetration": True,
+    },
+    "behavior": "Pull energy down through all layers"
+}
+```
+
+### 86 From The Mall
+
+From *"86 To The Mall"* - Ouija Macc
+
+```python
+MALL_86 = {
+    "name": "86 To The Mall",
+    "type": "bus_chaos_agent",
+    "effects": {
+        "entropy_injection": True,
+        "blunt_gut_drops": True,  # Mark scatter paths
+        "resource_redistribution": True,
+    },
+    "behavior": "Ride bus, drop chaos markers, redistribute energy"
+}
+```
+
+---
+
+## Entity Archetypes
+
+### Juggalo (Base)
+
+```python
+ENTITY_ARCHETYPES["juggalo"] = {
+    "components": {
+        "FaygoComponent": {"flavor": "random", "volume": 1.0},
+        "LoyaltyComponent": {},
+        "MadroxComponent": {},
+    },
+    "properties": {
+        "base_energy": 100,
+        "party_affinity": 0.8,
+    }
+}
+```
+
+### Monoxide (Legendary Carnie)
+
+```python
+CARNIE_ARCHETYPES["monoxide"] = {
+    "name": "Monoxide",
+    "assigned_game": "WHEEL_OF_FATE",
+    "generosity": 0.6,
+    "authority": "J",
+    "special_abilities": ["fate_influence", "secret_knowledge"],
+}
+```
+
+### Sad Clown
+
+From *"Sad Clown"* - Darby O'Trill
+
+```python
+ENTITY_ARCHETYPES["sad_clown"] = {
+    "components": {
+        "HiddenPotentialComponent": {"potential_count": 2},
+        "MadroxComponent": {"initial_anxiety": 0.4},
+    },
+    "properties": {
+        "paint": "smile",           # External mask
+        "internal_state": "suffering",
+        "outcast": True,
+        "social_reward_for_masking": 0.1,
+    }
+}
+```
+
+### Bang! Pow! Boom!
+
+The event entity.
+
+```python
+BANG_POW_BOOM = {
+    "name": "Bang! Pow! Boom!",
+    "type": "rare_event",
+    "phases": ["BANG", "POW", "BOOM"],
+    "effects": {
+        "BANG": "explosion_start",
+        "POW": "destruction_wave",
+        "BOOM": "aftermath_fallout",
+    },
+    "final": "ash_rain"  # Triggers Diamond Rain
+}
+```
+
+---
+
+## Walkthrough: Building Quest Chains
+
+### Example: "The Magician" Quest Chain
+
+Based on *"I Saw The Magician Pull That Rabbit Out Of His Ass"*
+
+```python
+# Step 1: Create the Magician NPC
+magician = create_entity_from_archetype(engine, "carnie_shady")
+magician.name = "The Magician"
+magician.add_component(HiddenPotentialComponent())
+
+# Add tricks to sleeve
+for i in range(5):
+    magician.hidden_potential.add_potential(
+        PotentialType.ABILITY_UNLOCK,
+        name=f"Trick {i+1}"
+    )
+
+# Step 2: Create the quest fork
+quest_fork = Fork.create(source=magician)
+
+# Fork 1: Watch the show (STORE)
+quest_fork.add_branch(
+    ForkType.STORE, 
+    "watch_show",
+    metadata={"reward": "entertainment"}
+)
+
+# Fork 2: Challenge the magician (KINETIC)
+quest_fork.add_branch(
+    ForkType.KINETIC,
+    "challenge",
+    cooldown=50,
+    metadata={"risk": "death", "reward": "secret"}
+)
+
+# Fork 3: Steal from sleeve (POTENTIAL)
+quest_fork.add_branch(
+    ForkType.POTENTIAL,
+    "steal_trick",
+    metadata={"requires": "stealth_check"}
+)
+
+# Step 3: Player interaction
+player = engine.get_player()
+
+# Player chooses a fork
+chosen = quest_fork.take_branch("challenge")
+
+if chosen:
+    # Trigger the reveal
+    result = magician.hidden_potential.activate_potential(
+        random.choice(magician.hidden_potential.potentials).potential_id
+    )
+    
+    # Plant the bones if player dies
+    if result.get("player_died"):
+        decay_system.create_pile(
+            x=player.x, 
+            y=player.y, 
+            initial_mass=player.mass
+        )
+        # "Plant the bones, watch 'em grow a tombstone"
+```
+
+### Example: "Predator Into The Prey" Quest
+
+```python
+# Setup: Create predator hunting grounds
+predator = create_entity_from_archetype(engine, "mosh_pit_veteran")
+predator.add_component(ToxicityComponent())
+
+prey = create_entity_from_archetype(engine, "newcomer")
+
+# The hunt begins
+prey.targeted_by = predator.entity_id
+
+# Create the reversal fork
+reversal_fork = Fork.create(source=prey)
+
+reversal_fork.add_branch(
+    ForkType.KINETIC,
+    "fight_back",
+    metadata={"trigger": "predator_weakened"}
+)
+
+reversal_fork.add_branch(
+    ForkType.POTENTIAL,
+    "set_trap",
+    metadata={"requires": "environment"}
+)
+
+reversal_fork.add_branch(
+    ForkType.STORE,
+    "flee",
+    metadata={"risk": "caught"}
+)
+
+# If predator weakened, reversal possible
+if predator.energy < prey.energy * 0.5:
+    # "I turn the predator into the prey"
+    result = reversal_fork.take_branch("fight_back")
+    
+    if result:
+        # Role swap
+        predator.remove_component("PredatorComponent")
+        predator.add_component(PreyComponent())
+        
+        prey.remove_component("PreyComponent")
+        prey.add_component(PredatorComponent())
+        
+        # Harvest opportunity
+        engine.emit_dlc_event(DLC_EVENT.ROLE_REVERSAL, source=predator)
+```
+
+### Example: "Spinal Fluid Smoothie" Blender Quest
+
+```python
+# The Blender creates new content from inputs
+blender = engine.get_dlc_system("blender")  # Hypothetical system
+
+# Player collects ingredients through gameplay
+ingredients = []
+
+# From exploration
+ingredients.append("metal")  # Found in junkyard biome
+ingredients.append("horror_movies")  # Found in theater
+ingredients.append("wicked_shit")  # From defeating enemies
+ingredients.append("three_6_mafia")  # Rare drop
+
+# Blend them
+smoothie = blender.blend(ingredients)
+
+# Output: New entity with combined properties
+# "Spinal Fluid Smoothie" - a unique creation
+
+# The smoothie grants:
+# - Metal = durability boost
+# - Horror = fear aura
+# - Wicked = chaos affinity
+# - Three 6 = underground connections
+```
+
+---
+
+## The Through-Line: Bang! Pow! Boom!
+
+### The Arc Complete
+
+```
+TRACK 1: "Fuck The World" (1999 Jeckel Brothers)
+    │
+    └──► REJECTION → Enter the Carnival
+          │
+          ▼
+TRACK 2-5: THE JOURNEY
+    │
+    ├──► Tricks + Bone Planting
+    ├──► Predator ↔ Prey Reversal  
+    ├──► State Transitions
+    ├──► Blender + Madrox
+    └──► Paint/Mask System
+          │
+          ▼
+TRACK 6: BANG! POW! BOOM!
+    │
+    ├──► BANG = Explosion Start
+    ├──► POW = Destruction Wave
+    ├──► BOOM = Aftermath
+    │
+    └──► "The winds in the sky will carry away all the ash"
+          │
+          ▼
+    DIAMOND RAIN
+          │
+          ▼
+    THE CYCLE RESTARTS
+```
+
+### The Three Phases
+
+```python
+class BangPowBoom:
+    """
+    From "Bang! Pow! Boom!" - ICP
+    The event that consumes everything and triggers renewal.
+    """
+    
+    def phase_bang(self, zone):
+        """
+        "With a Bang! Say goodbye to everything!"
+        "Your complete annihilation is the reason he came!"
+        """
+        zone.population = 0
+        zone.heat += 100
+        return {"phase": "BANG", "consumed": zone.entity_count}
+    
+    def phase_pow(self, zone):
+        """
+        "And a Pow! He's wipin' everything out!"
+        "Turn your whole fuckin' world into a mushroom cloud!"
+        """
+        zone.terrain = "crater"
+        zone.heat += 200
+        return {"phase": "POW", "terrain_changed": True}
+    
+    def phase_boom(self, zone):
+        """
+        "And a Boom! It's your inevitable doom!"
+        "Nobody escapes and everybody's consumed!"
+        """
+        # Trigger diamond rain
+        diamond_rain = engine.get_dlc_system("diamond_rain")
+        diamond_rain.force_rain(zone.center_x, zone.center_y, intensity=5.0)
+        
+        return {"phase": "BOOM", "ash_rain": True}
+```
+
+---
+
+## API Reference
+
+### Components
+
+```python
+# Faygo Component
+entity.add_component(FaygoComponent(
+    flavor=FaygoFlavor.GRAPE,
+    mode=FaygoMode.SHOOK,
+    volume=1.0
+))
+entity.faygo.shake(intensity=0.5)
+entity.faygo.consume(amount=0.1)
+
+# Madrox Component (Overthinking)
+entity.add_component(MadroxComponent())
+entity.madrox.start_overthinking(trigger="stress")
+entity.madrox.apply_calm_influence(strength=0.5)
+print(entity.madrox.particle_count)
+
+# Danger State Component
+entity.add_component(DangerStateComponent())
+entity.enter_danger(DangerState.LOST_AT_THE_CARNIVAL, source="wandering")
+entity.exit_danger(DangerState.LOST_AT_THE_CARNIVAL, reason="found_landmark")
+
+# Loyalty Component
+entity.add_component(LoyaltyComponent())
+entity.modify_loyalty(target_id, LoyaltyAction.HELPED, context="quest")
+
+# Authority Component
+entity.add_component(AuthorityComponent(level=AuthorityLevel.RINGMASTER))
+entity.authority.challenge(target_authority)
+
+# Hidden Potential Component
+entity.add_component(HiddenPotentialComponent())
+discovered = entity.hidden_potential.check_discovery(context)
+entity.hidden_potential.activate_potential(potential_id)
+
+# Toxicity Component
+entity.add_component(ToxicityComponent())
+entity.apply_toxin(ToxicityType.CHAOS, severity=0.3)
+entity.cleanse_toxin(amount=0.2)
+```
+
+### Systems
+
+```python
+# Magnetic Fields (Madrox particle physics)
+magnetic = engine.get_dlc_system("magnetic_fields")
+magnetic.create_field(x, y, FieldPolarity.CALM, strength=1.0)
+
+# Rumor Manager
+rumors = engine.get_dlc_system("rumor_manager")
+rumor = rumors.create_rumor("Content here", source_id)
+rumors.spread_rumor(rumor_id, from_entity, to_entities)
+
+# Juggalo Party
+party = engine.get_dlc_system("juggalo_party")
+p = party.start_party(host_id, x, y)
+party.join_party(party_id, entity_id)
+p.escalate()
+
+# Midway Games
+midway = engine.get_dlc_system("midway")
+session = midway.start_game(player_id, "WHEEL_OF_FATE")
+result = midway.play_round(player_id, skill=0.5)
+
+# Yellow Bus
+bus = engine.get_dlc_system("yellow_bus")
+bus.add_energy_to_stop(stop_id, pest_energy=10.0)
+bus.force_scatter(amount=20.0)
+
+# Diamond Rain
+diamond = engine.get_dlc_system("diamond_rain")
+diamond.add_heat(x, y, amount=30.0)
+diamond.force_rain(x, y, intensity=2.0)
+
+# Thermodynamics
+thermo = engine.get_dlc_system("thermodynamics")
+thermo.add_heat(x, y, amount=10.0)
+print(thermo.get_heat_at(x, y))
+
+# Cover Crops
+crops = engine.get_dlc_system("cover_crops")
+crop = crops.plant(CoverCropType.CLOVER, x, y, area=10.0)
+
+# Pests
+pests = engine.get_dlc_system("pests")
+pests.spawn(PestType.NIBBLER, x, y, count=5)
+pests.scatter_at(x, y, radius=5.0, intensity=1.0)
+
+# Predators
+predators = engine.get_dlc_system("predators")
+predators.spawn(PredatorType.LADYBUG, x, y)
+
+# Decay
+decay = engine.get_dlc_system("decay")
+decay.create_pile(x, y, initial_mass=5.0)
+```
+
+### Events
+
+```python
+# Subscribe to DLC events
+engine.on_dlc_event(DLC_EVENT.FAYGO_OPENED, callback)
+engine.on_dlc_event(DLC_EVENT.PARTY_STARTED, callback)
+engine.on_dlc_event(DLC_EVENT.DANGER_STATE_ENTERED, callback)
+engine.on_dlc_event(DLC_EVENT.RUMOR_STARTED, callback)
+engine.on_dlc_event(DLC_EVENT.DIAMOND_RAIN_TRIGGERED, callback)
+engine.on_dlc_event(DLC_EVENT.ROLE_REVERSAL, callback)
+
+# Emit custom event
+engine.emit_dlc_event(
+    DLC_EVENT.CUSTOM,
+    source=entity,
+    data={"custom_key": "custom_value"}
+)
+```
+
+---
+
+## Final Word
+
+**The carnival doesn't delete. It recycles.**
+
+Heat becomes diamond. Corpses become nutrients. Thoughts become particles. Ash becomes rain.
+
+Build systems that breathe. Create loops, not lines. Let physics emerge, don't force rules.
+
+**Welcome to the Dark Carnival.**
+
+*— WasteLand WhippiN DLC v1.0.0*
+
+---
+
+**End of Manual**
