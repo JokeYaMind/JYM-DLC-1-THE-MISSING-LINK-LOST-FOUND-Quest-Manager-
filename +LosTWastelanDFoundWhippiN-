@@ -11025,5 +11025,809 @@ def create_midway_biome(engine):
     
     return biome
 
+"""
+DLC Data
+========
+Static data for the WasteLand WhippiN DLC.
+
+Contains archetypes, configurations, and static data.
+Dialogue is handled by JokeYaMind Frimore integration.
+"""
+
+from .archetypes import (
+    ENTITY_ARCHETYPES,
+    CARNIE_ARCHETYPES,
+    PARTY_ARCHETYPES,
+    DANGER_ARCHETYPES,
+    create_entity_from_archetype,
+    apply_archetype,
+)
+
+__all__ = [
+    "ENTITY_ARCHETYPES",
+    "CARNIE_ARCHETYPES", 
+    "PARTY_ARCHETYPES",
+    "DANGER_ARCHETYPES",
+    "create_entity_from_archetype",
+    "apply_archetype",
+]
+
+"""
+Archetypes Data
+===============
+Pre-defined entity configurations for quick spawning.
+
+Archetypes are templates that define starting properties
+for entities. They're not rules - they're starting physics states.
+
+Usage:
+    entity = create_entity_from_archetype(engine, "juggalo")
+    apply_archetype(entity, "party_animal")
+"""
+
+from typing import Dict, Any, List, Optional
+import random
+
+from ..components.faygo import FaygoComponent, FaygoMode, FaygoFlavor
+from ..components.madrox import MadroxComponent
+from ..components.carnie import CarnieComponent, CarnieMood, CarnieState
+from ..components.danger_state import DangerStateComponent, DangerState
+from ..components.loyalty import LoyaltyComponent
+from ..components.authority import AuthorityComponent, AuthorityLevel
+from ..components.hidden_potential import HiddenPotentialComponent, PotentialType
+from ..components.toxicity import ToxicityComponent, ToxicityType
+
+
+# ==============================================================================
+# ENTITY ARCHETYPES
+# ==============================================================================
+
+ENTITY_ARCHETYPES = {
+    # --------------------------------------------------------------------------
+    # JUGGALO - The core carnival-goer
+    # --------------------------------------------------------------------------
+    "juggalo": {
+        "name": "Juggalo",
+        "description": "A loyal carnival-goer, ready for the gathering.",
+        "components": {
+            "FaygoComponent": {
+                "flavor": "random",  # Random flavor
+                "volume": 1.0,
+            },
+            "LoyaltyComponent": {},
+            "MadroxComponent": {},
+        },
+        "properties": {
+            "base_energy": 100,
+            "party_affinity": 0.8,
+            "faygo_preference": "GRAPE",
+        },
+    },
+    
+    "juggalo_veteran": {
+        "name": "Veteran Juggalo",
+        "description": "Been to every gathering, knows the carnival inside out.",
+        "components": {
+            "FaygoComponent": {
+                "flavor": "COTTON_CANDY",
+                "volume": 1.0,
+            },
+            "LoyaltyComponent": {},
+            "AuthorityComponent": {
+                "level": "RINGMASTER",
+            },
+            "HiddenPotentialComponent": {
+                "potential_count": 3,
+            },
+        },
+        "properties": {
+            "base_energy": 150,
+            "party_affinity": 1.0,
+            "carnival_knowledge": 0.9,
+        },
+    },
+    
+    "juggalo_chaos": {
+        "name": "Chaos Juggalo",
+        "description": "Drawn to maximum chaos, escalates every party.",
+        "components": {
+            "FaygoComponent": {
+                "flavor": "ROOT_BEER",
+                "volume": 2.0,  # Extra Faygo
+            },
+            "MadroxComponent": {
+                "initial_anxiety": 0.3,
+            },
+            "ToxicityComponent": {
+                "type": "CHAOS",
+                "severity": 0.2,
+            },
+        },
+        "properties": {
+            "base_energy": 120,
+            "party_affinity": 1.5,
+            "chaos_factor": 0.8,
+            "escalation_chance": 0.3,
+        },
+    },
+    
+    # --------------------------------------------------------------------------
+    # CARNIE - Carnival workers
+    # --------------------------------------------------------------------------
+    "carnie_basic": {
+        "name": "Carnie",
+        "description": "Runs a midway game, takes smoke breaks.",
+        "components": {
+            "CarnieComponent": {
+                "name": "Carnie",
+                "assigned_game": "random",
+            },
+            "LoyaltyComponent": {},
+        },
+        "properties": {
+            "base_energy": 80,
+            "patience": 100,
+            "smoke_break_frequency": 0.02,
+        },
+    },
+    
+    "carnie_monoxide": {
+        "name": "Monoxide",
+        "description": "The legendary carnie, runs the Wheel of Fate.",
+        "components": {
+            "CarnieComponent": {
+                "name": "Monoxide",
+                "assigned_game": "WHEEL_OF_FATE",
+                "generosity": 0.6,
+            },
+            "AuthorityComponent": {
+                "level": "J",
+            },
+            "HiddenPotentialComponent": {
+                "potential_count": 5,
+                "types": ["SECRET_KNOWLEDGE", "DORMANT_POWER"],
+            },
+        },
+        "properties": {
+            "base_energy": 200,
+            "patience": 150,
+            "carnival_secrets": 10,
+            "can_influence_fate": True,
+        },
+    },
+    
+    "carnie_shady": {
+        "name": "Shady Carnie",
+        "description": "Something's off about this one...",
+        "components": {
+            "CarnieComponent": {
+                "name": "???",
+                "assigned_game": "random",
+                "generosity": 0.2,
+                "suspicion": 0.5,
+            },
+            "AuthorityComponent": {
+                "level": "NORMAL",
+                "hollow": True,
+            },
+        },
+        "properties": {
+            "base_energy": 60,
+            "patience": 50,
+            "scam_chance": 0.15,
+        },
+    },
+    
+    # --------------------------------------------------------------------------
+    # WRAITH - The mysterious higher power
+    # --------------------------------------------------------------------------
+    "wraith": {
+        "name": "Wraith",
+        "description": "An entity of the carnival itself. Maximum authority.",
+        "components": {
+            "AuthorityComponent": {
+                "level": "WRAITH",
+            },
+            "HiddenPotentialComponent": {
+                "potential_count": 10,
+                "types": ["DORMANT_POWER", "ANCESTRAL_MEMORY"],
+            },
+        },
+        "properties": {
+            "base_energy": 999,
+            "invisible": True,
+            "can_manipulate_physics": True,
+            "knows_all_secrets": True,
+        },
+    },
+    
+    # --------------------------------------------------------------------------
+    # NEWCOMER - Fresh to the carnival
+    # --------------------------------------------------------------------------
+    "newcomer": {
+        "name": "Newcomer",
+        "description": "First time at the carnival. Everything is new.",
+        "components": {
+            "MadroxComponent": {
+                "initial_anxiety": 0.1,
+            },
+            "LoyaltyComponent": {},
+            "HiddenPotentialComponent": {
+                "potential_count": 2,
+            },
+        },
+        "properties": {
+            "base_energy": 80,
+            "party_affinity": 0.3,
+            "orientation_level": 0.0,
+            "get_lost_chance": 0.1,
+        },
+    },
+    
+    "newcomer_curious": {
+        "name": "Curious Newcomer",
+        "description": "Eager to explore, might find secrets.",
+        "components": {
+            "MadroxComponent": {},
+            "LoyaltyComponent": {},
+            "HiddenPotentialComponent": {
+                "potential_count": 4,
+                "discovery_bonus": 0.3,
+            },
+        },
+        "properties": {
+            "base_energy": 90,
+            "party_affinity": 0.5,
+            "exploration_drive": 0.8,
+            "secret_finding_chance": 0.2,
+        },
+    },
+    
+    # --------------------------------------------------------------------------
+    # LOST - Those who got stuck
+    # --------------------------------------------------------------------------
+    "lost_soul": {
+        "name": "Lost Soul",
+        "description": "Lost at the carnival. May never leave.",
+        "components": {
+            "DangerStateComponent": {
+                "state": "LOST_AT_THE_CARNIVAL",
+            },
+            "MadroxComponent": {
+                "initial_anxiety": 0.7,
+            },
+            "ToxicityComponent": {
+                "type": "ENVIRONMENTAL",
+                "severity": 0.3,
+            },
+        },
+        "properties": {
+            "base_energy": 50,
+            "escape_chance": 0.01,
+            "carnival_bound": True,
+        },
+    },
+    
+    # --------------------------------------------------------------------------
+    # PARTY SPECIALIZED
+    # --------------------------------------------------------------------------
+    "party_animal": {
+        "name": "Party Animal",
+        "description": "Lives for the gathering. Party level accelerant.",
+        "components": {
+            "FaygoComponent": {
+                "flavor": "random",
+                "volume": 2.0,
+            },
+            "LoyaltyComponent": {},
+        },
+        "properties": {
+            "base_energy": 150,
+            "party_affinity": 2.0,
+            "energy_contribution_mult": 2.0,
+            "escalation_triggers": ["FAYGO_SHOWER", "MOSH_PIT"],
+        },
+    },
+    
+    "mosh_pit_veteran": {
+        "name": "Mosh Pit Veteran",
+        "description": "Survived countless mosh pits. Knows how to flow.",
+        "components": {
+            "LoyaltyComponent": {},
+            "HiddenPotentialComponent": {
+                "potential_count": 2,
+                "types": ["STAT_BOOST", "RESISTANCE"],
+            },
+        },
+        "properties": {
+            "base_energy": 180,
+            "party_affinity": 1.5,
+            "mosh_skill": 0.9,
+            "injury_reduction": 0.5,
+        },
+    },
+    
+    "faygo_enthusiast": {
+        "name": "Faygo Enthusiast",
+        "description": "Knows every flavor, every mode.",
+        "components": {
+            "FaygoComponent": {
+                "flavor": "random",
+                "volume": 3.0,
+            },
+        },
+        "properties": {
+            "base_energy": 120,
+            "faygo_knowledge": 1.0,
+            "all_flavors_tried": True,
+            "faygo_effect_mult": 1.5,
+        },
+    },
+    
+    # --------------------------------------------------------------------------
+    # AUTHORITY FIGURES
+    # --------------------------------------------------------------------------
+    "ringmaster": {
+        "name": "Ringmaster",
+        "description": "Controls a section of the carnival.",
+        "components": {
+            "AuthorityComponent": {
+                "level": "RINGMASTER",
+            },
+            "LoyaltyComponent": {},
+        },
+        "properties": {
+            "base_energy": 150,
+            "command_range": 10,
+            "subordinates": [],
+        },
+    },
+    
+    "j_operator": {
+        "name": "J Operator",
+        "description": "High-level carnival operator.",
+        "components": {
+            "AuthorityComponent": {
+                "level": "J",
+            },
+            "LoyaltyComponent": {},
+            "HiddenPotentialComponent": {
+                "potential_count": 3,
+            },
+        },
+        "properties": {
+            "base_energy": 200,
+            "command_range": 25,
+            "can_authorize_parties": True,
+            "knows_carnival_secrets": True,
+        },
+    },
+}
+
+
+# ==============================================================================
+# CARNIE ARCHETYPES
+# ==============================================================================
+
+CARNIE_ARCHETYPES = {
+    "monoxide": {
+        "name": "Monoxide",
+        "assigned_game": "WHEEL_OF_FATE",
+        "generosity": 0.6,
+        "games_expertise": {
+            "WHEEL_OF_FATE": 0.95,
+            "HIGH_STRIKER": 0.7,
+            "RING_TOSS": 0.5,
+        },
+        "special_abilities": ["fate_influence", "secret_knowledge"],
+        "dialogue_style": "mysterious",
+    },
+    
+    "bozo": {
+        "name": "Bozo",
+        "assigned_game": "RING_TOSS",
+        "generosity": 0.4,
+        "games_expertise": {
+            "RING_TOSS": 0.95,
+        },
+        "special_abilities": ["distraction"],
+        "dialogue_style": "silly",
+    },
+    
+    "lucky": {
+        "name": "Lucky",
+        "assigned_game": "DUCK_POND",
+        "generosity": 0.7,
+        "games_expertise": {
+            "DUCK_POND": 0.6,
+        },
+        "special_abilities": ["luck_boost"],
+        "dialogue_style": "cheerful",
+    },
+    
+    "striker": {
+        "name": "Striker",
+        "assigned_game": "HIGH_STRIKER",
+        "generosity": 0.3,
+        "games_expertise": {
+            "HIGH_STRIKER": 0.9,
+        },
+        "special_abilities": ["strength_test"],
+        "dialogue_style": "tough",
+    },
+    
+    "spinner": {
+        "name": "Spinner",
+        "assigned_game": "WHEEL_OF_FATE",
+        "generosity": 0.5,
+        "games_expertise": {
+            "WHEEL_OF_FATE": 0.7,
+            "BALLOON_DARTS": 0.6,
+        },
+        "special_abilities": [],
+        "dialogue_style": "neutral",
+    },
+}
+
+
+# ==============================================================================
+# PARTY ARCHETYPES
+# ==============================================================================
+
+PARTY_ARCHETYPES = {
+    "gathering": {
+        "name": "Gathering",
+        "level": 1,
+        "min_participants": 3,
+        "energy_requirement": 50,
+        "duration_range": (100, 300),
+        "effects": {
+            "energy_drain": 1,
+            "social_boost": 0.1,
+        },
+    },
+    
+    "faygo_shower": {
+        "name": "Faygo Shower",
+        "level": 2,
+        "min_participants": 5,
+        "energy_requirement": 150,
+        "duration_range": (150, 400),
+        "effects": {
+            "energy_drain": 2,
+            "faygo_rain": True,
+            "refresh_all": 0.3,
+        },
+    },
+    
+    "mosh_pit": {
+        "name": "Mosh Pit",
+        "level": 3,
+        "min_participants": 8,
+        "energy_requirement": 400,
+        "duration_range": (200, 500),
+        "effects": {
+            "energy_drain": 3,
+            "physical_chaos": True,
+            "injury_chance": 0.05,
+            "bonding": 0.2,
+        },
+    },
+    
+    "carnival_chaos": {
+        "name": "Carnival Chaos",
+        "level": 4,
+        "min_participants": 15,
+        "energy_requirement": 1000,
+        "duration_range": (300, 700),
+        "effects": {
+            "energy_drain": 5,
+            "midway_involved": True,
+            "ride_malfunction": 0.1,
+            "reality_bending": 0.1,
+        },
+    },
+    
+    "full_whippin": {
+        "name": "Full Whippin",
+        "level": 5,
+        "min_participants": 25,
+        "energy_requirement": 2000,
+        "duration_range": (500, 1000),
+        "effects": {
+            "energy_drain": 10,
+            "maximum_chaos": True,
+            "reality_bending": 0.3,
+            "wraith_attention": True,
+            "miracle_chance": 0.05,
+        },
+    },
+}
+
+
+# ==============================================================================
+# DANGER ARCHETYPES
+# ==============================================================================
+
+DANGER_ARCHETYPES = {
+    "get_clowned": {
+        "state": "GET_CLOWNED",
+        "name": "Get Clowned",
+        "description": "You got absolutely clowned. Deal with it.",
+        "duration_range": (50, 150),
+        "intensity": 0.4,
+        "triggers": ["clown_encounter", "prank_gone_wrong", "social_failure"],
+        "effects": {
+            "social_penalty": 0.5,
+            "embarrassment": 1.0,
+            "recovery_chance": 0.1,
+        },
+        "resolutions": ["clown_back", "wait_it_out", "faygo_shower"],
+    },
+    
+    "juggalo_party": {
+        "state": "JUGGALO_PARTY",
+        "name": "Juggalo Party",
+        "description": "Caught in a party spiral. Can you keep up?",
+        "duration_range": (30, 100),
+        "intensity": 0.6,
+        "triggers": ["party_join", "social_pressure", "faygo_overdose"],
+        "effects": {
+            "energy_drain": 0.3,
+            "faygo_attraction": 2.0,
+            "party_level": 3,
+        },
+        "resolutions": ["party_harder", "leave_party", "faygo_shower"],
+    },
+    
+    "the_midway": {
+        "state": "THE_MIDWAY",
+        "name": "The Midway",
+        "description": "Stuck playing carnival games. Can you escape?",
+        "duration_range": None,  # Indefinite
+        "intensity": 0.8,
+        "triggers": ["game_debt", "carnie_trap", "midway_curse"],
+        "effects": {
+            "game_coercion": 1.0,
+            "ticket_drain": 10,
+            "escape_chance": 0.05,
+        },
+        "resolutions": ["win_game", "lose_game", "bribe_carnie"],
+    },
+    
+    "lost_at_carnival": {
+        "state": "LOST_AT_THE_CARNIVAL",
+        "name": "Lost at the Carnival",
+        "description": "The carnival shifts around you. No way out in sight.",
+        "duration_range": None,  # Indefinite
+        "intensity": 0.5,
+        "triggers": ["wandering", "midnight_entrance", "ignored_signs"],
+        "effects": {
+            "direction_penalty": 1.0,
+            "anxiety_increase": 0.5,
+            "landmark_visibility": 0.0,
+        },
+        "resolutions": ["find_landmark", "ask_directions", "wait_for_dawn"],
+    },
+    
+    "i_fucked_a_cop": {
+        "state": "I_FUCKED_A_COP",
+        "name": "I Fucked a Cop",
+        "description": "Maximum social peril. This will follow you.",
+        "duration_range": (100, 300),
+        "intensity": 1.0,
+        "triggers": ["worst_decision", "carnival_mistake"],
+        "effects": {
+            "social_nuclear": True,
+            "reputation_damage": 1.0,
+            "cannot_enter": ["POLICE_STATION", "COURTHOUSE"],
+        },
+        "resolutions": ["lawyer_up", "leave_town", "face_consequences"],
+    },
+}
+
+
+# ==============================================================================
+# HELPER FUNCTIONS
+# ==============================================================================
+
+def create_entity_from_archetype(
+    engine,
+    archetype_name: str,
+    custom_properties: Dict[str, Any] = None
+) -> Any:
+    """
+    Create a new entity from an archetype.
+    
+    Args:
+        engine: The game engine
+        archetype_name: Name of the archetype to use
+        custom_properties: Override properties
+        
+    Returns:
+        Configured entity
+    """
+    archetype = ENTITY_ARCHETYPES.get(archetype_name)
+    
+    if not archetype:
+        raise ValueError(f"Unknown archetype: {archetype_name}")
+    
+    # Create base entity
+    Entity = engine.Entity
+    entity = Entity()
+    
+    # Apply archetype
+    apply_archetype(entity, archetype, engine)
+    
+    # Apply custom properties
+    if custom_properties:
+        for key, value in custom_properties.items():
+            setattr(entity, key, value)
+    
+    return entity
+
+
+def apply_archetype(entity, archetype: Dict, engine=None) -> None:
+    """
+    Apply an archetype to an existing entity.
+    
+    Args:
+        entity: The entity to configure
+        archetype: Archetype configuration dict
+        engine: Optional engine for component creation
+    """
+    # Set properties
+    properties = archetype.get("properties", {})
+    for key, value in properties.items():
+        setattr(entity, key, value)
+    
+    # Add components
+    components = archetype.get("components", {})
+    
+    for component_name, component_config in components.items():
+        component = _create_component(component_name, component_config)
+        if component:
+            entity.add_component(component)
+
+
+def _create_component(name: str, config: Dict) -> Any:
+    """Create a component from configuration."""
+    
+    if name == "FaygoComponent":
+        flavor = config.get("flavor", "GRAPE")
+        if flavor == "random":
+            flavor = random.choice(list(FaygoFlavor)).name
+        elif isinstance(flavor, str):
+            flavor = FaygoFlavor[flavor]
+        
+        return FaygoComponent(
+            flavor=flavor,
+            mode=FaygoMode[config.get("mode", "SHOOK")],
+            volume=config.get("volume", 1.0),
+        )
+    
+    elif name == "MadroxComponent":
+        comp = MadroxComponent()
+        if "initial_anxiety" in config:
+            comp.anxiety_level = config["initial_anxiety"]
+        return comp
+    
+    elif name == "CarnieComponent":
+        assigned_game = config.get("assigned_game", "RING_TOSS")
+        if assigned_game == "random":
+            assigned_game = random.choice([
+                "RING_TOSS", "DUCK_POND", "BALLOON_DARTS",
+                "WHEEL_OF_FATE", "HIGH_STRIKER", "WHACK_A_NUGGET"
+            ])
+        
+        return CarnieComponent(
+            name=config.get("name", "Carnie"),
+            assigned_game=assigned_game,
+        )
+    
+    elif name == "DangerStateComponent":
+        comp = DangerStateComponent()
+        if "state" in config:
+            state = DangerState[config["state"]]
+            comp.enter_state(state)
+        return comp
+    
+    elif name == "LoyaltyComponent":
+        return LoyaltyComponent()
+    
+    elif name == "AuthorityComponent":
+        level = config.get("level", "NORMAL")
+        comp = AuthorityComponent(level=AuthorityLevel[level])
+        if config.get("hollow", False):
+            comp.set_hollow(True)
+        return comp
+    
+    elif name == "HiddenPotentialComponent":
+        comp = HiddenPotentialComponent()
+        count = config.get("potential_count", 0)
+        types = config.get("types", [])
+        comp.discovery_bonus = config.get("discovery_bonus", 0)
+        
+        for i in range(count):
+            ptype = types[i % len(types)] if types else "STAT_BOOST"
+            comp.add_potential(PotentialType[ptype])
+        
+        return comp
+    
+    elif name == "ToxicityComponent":
+        comp = ToxicityComponent()
+        if "type" in config and "severity" in config:
+            comp.apply_toxin(
+                ToxicityType[config["type"]],
+                config["severity"]
+            )
+        return comp
+    
+    return None
+
+
+def get_archetype_names() -> List[str]:
+    """Get all available archetype names."""
+    return list(ENTITY_ARCHETYPES.keys())
+
+
+def get_carnie_archetype_names() -> List[str]:
+    """Get all carnie archetype names."""
+    return list(CARNIE_ARCHETYPES.keys())
+
+
+def get_party_archetype_names() -> List[str]:
+    """Get all party archetype names."""
+    return list(PARTY_ARCHETYPES.keys())
+
+
+def get_danger_archetype_names() -> List[str]:
+    """Get all danger archetype names."""
+    return list(DANGER_ARCHETYPES.keys())
+
+
+def merge_archetypes(*archetype_names: str) -> Dict[str, Any]:
+    """
+    Merge multiple archetypes into one configuration.
+    
+    Later archetypes override earlier ones for conflicts.
+    
+    Args:
+        *archetype_names: Names of archetypes to merge
+        
+    Returns:
+        Merged configuration dict
+    """
+    merged = {
+        "name": "",
+        "description": "",
+        "components": {},
+        "properties": {},
+    }
+    
+    names = []
+    descriptions = []
+    
+    for name in archetype_names:
+        archetype = ENTITY_ARCHETYPES.get(name)
+        if not archetype:
+            continue
+        
+        names.append(archetype.get("name", name))
+        if "description" in archetype:
+            descriptions.append(archetype["description"])
+        
+        # Merge components
+        for comp_name, comp_config in archetype.get("components", {}).items():
+            merged["components"][comp_name] = comp_config.copy()
+        
+        # Merge properties
+        for prop_name, prop_value in archetype.get("properties", {}).items():
+            merged["properties"][prop_name] = prop_value
+    
+    merged["name"] = " + ".join(names) if names else "Merged"
+    merged["description"] = " | ".join(descriptions) if descriptions else ""
+    
+    return merged
 
 
