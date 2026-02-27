@@ -1,1 +1,3289 @@
-Hang on...
+Fork System
+===========
+Branching paths in the narrative/physics.
+
+A Fork represents a decision point with multiple branches.
+Each branch has a type (KINETIC/POTENTIAL/STORE) determining
+how potential energy is handled.
+
+Forks are physics - they represent real divergence in possibilities.
+"""
+
+from typing import Dict, List, Optional, Any, Callable
+from dataclasses import dataclass, field
+from enum import Enum
+import time
+
+from ..constants import (
+    FORK_TYPES,
+    FORK_MAX_BRANCHES,
+    FORK_DECAY_RATE,
+    PHI,  # Golden ratio
+)
+
+
+class ForkType(Enum):
+    """Types of fork branches."""
+    KINETIC = "KINETIC"   # Bark - immediate action
+    POTENTIAL = "POTENTIAL"  # Bite - stored for later
+    STORE = "STORE"  # Wait - observe and learn
+
+
+@dataclass
+class ForkBranch:
+    """
+    A single branch of a fork.
+    
+    Attributes:
+        branch_id: Unique identifier
+        fork_type: How this branch handles energy
+        label: Human-readable label
+        potential: Stored potential energy
+        cooldown: Ticks before can be taken again
+        current_cooldown: Current cooldown remaining
+        metadata: Additional data
+    """
+    branch_id: str
+    fork_type: ForkType
+    label: str = ""
+    potential: float = 0.0
+    cooldown: int = 0
+    current_cooldown: int = 0
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def is_available(self) -> bool:
+        """Check if this branch can be taken."""
+        return self.current_cooldown <= 0
+    
+    def tick(self):
+        """Process a tick for this branch."""
+        if self.current_cooldown > 0:
+            self.current_cooldown -= 1
+        
+        # Decay stored potential over time
+        if self.fork_type == ForkType.POTENTIAL and self.potential > 0:
+            self.potential *= (1 - FORK_DECAY_RATE)
+    
+    def add_potential(self, amount: float):
+        """Add potential energy to this branch."""
+        if self.fork_type == ForkType.POTENTIAL:
+            self.potential += amount
+    
+    def use_potential(self) -> float:
+        """Use stored potential and return the amount."""
+        if self.fork_type != ForkType.POTENTIAL:
+            return 0.0
+        
+        amount = self.potential
+        self.potential = 0.0
+        return amount
+    
+    def trigger_cooldown(self):
+        """Start the cooldown timer."""
+        self.current_cooldown = self.cooldown
+    
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize branch state."""
+        return {
+            "branch_id": self.branch_id,
+            "fork_type": self.fork_type.name,
+            "label": self.label,
+            "potential": self.potential,
+            "cooldown": self.cooldown,
+            "current_cooldown": self.current_cooldown,
+            "metadata": self.metadata,
+        }
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "ForkBranch":
+        """Reconstruct branch from data."""
+        return cls(
+            branch_id=data["branch_id"],
+            fork_type=ForkType[data["fork_type"]],
+            label=data.get("label", ""),
+            potential=data.get("potential", 0.0),
+            cooldown=data.get("cooldown", 0),
+            current_cooldown=data.get("current_cooldown", 0),
+            metadata=data.get("metadata", {}),
+        )
+
+
+@dataclass
+class Fork:
+    """
+    A decision point with multiple branches.
+    
+    Forks are created when significant choices emerge.
+    They persist until all branches expire or are taken.
+    
+    The 0 = 3 invariant: A fork is never truly deleted, only archived.
+    
+    Attributes:
+        fork_id: Unique identifier
+        source: Entity or system that created this fork
+        branches: Available branches
+        created_tick: When this fork was created
+        archived: Whether this fork is archived
+        outcome: Which branch was ultimately taken (if any)
+    """
+    fork_id: str
+    source: Any
+    branches: Dict[str, ForkBranch] = field(default_factory=dict)
+    created_tick: int = 0
+    archived: bool = False
+    outcome: Optional[str] = None  # branch_id of taken branch
+    
+    _fork_counter = 0
+    
+    @classmethod
+    def create(cls, source: Any, tick: int = 0) -> "Fork":
+        """Create a new fork with a unique ID."""
+        fork_id = f"fork_{cls._fork_counter}"
+        cls._fork_counter += 1
+        return cls(fork_id=fork_id, source=source, created_tick=tick)
+    
+    def add_branch(self, branch_type: ForkType, label: str = "",
+                   cooldown: int = 0, metadata: Dict = None) -> ForkBranch:
+        """
+        Add a branch to this fork.
+        
+        Args:
+            branch_type: KINETIC, POTENTIAL, or STORE
+            label: Human-readable label
+            cooldown: Cooldown ticks for this branch
+            metadata: Additional data
+            
+        Returns:
+            The created branch
+        """
+        if len(self.branches) >= FORK_MAX_BRANCHES:
+            raise ValueError(f"Fork cannot have more than {FORK_MAX_BRANCHES} branches")
+        
+        branch_id = f"{self.fork_id}_branch_{len(self.branches)}"
+        branch = ForkBranch(
+            branch_id=branch_id,
+            fork_type=branch_type,
+            label=label,
+            cooldown=cooldown,
+            metadata=metadata or {},
+        )
+        
+        self.branches[branch_id] = branch
+        return branch
+    
+    def get_branch(self, branch_id: str) -> Optional[ForkBranch]:
+        """Get a branch by ID."""
+        return self.branches.get(branch_id)
+    
+    def get_available_branches(self) -> List[ForkBranch]:
+        """Get all branches that can currently be taken."""
+        return [b for b in self.branches.values() if b.is_available()]
+    
+    def take_branch(self, branch_id: str) -> Optional[ForkBranch]:
+        """
+        Take a branch, consuming its potential.
+        
+        Returns the branch if successful, None if unavailable.
+        """
+        branch = self.branches.get(branch_id)
+        
+        if branch is None or not branch.is_available():
+            return None
+        
+        # Handle based on branch type
+        if branch.fork_type == ForkType.KINETIC:
+            # Immediate action - trigger cooldown
+            branch.trigger_cooldown()
+        
+        elif branch.fork_type == ForkType.POTENTIAL:
+            # Use stored potential
+            branch.use_potential()
+            branch.trigger_cooldown()
+        
+        elif branch.fork_type == ForkType.STORE:
+            # No cooldown, just observe
+            pass
+        
+        self.outcome = branch_id
+        return branch
+    
+    def add_potential_to_branch(self, branch_id: str, amount: float):
+        """Add potential to a specific branch."""
+        branch = self.branches.get(branch_id)
+        if branch and branch.fork_type == ForkType.POTENTIAL:
+            branch.add_potential(amount)
+    
+    def tick(self):
+        """Process a tick for all branches."""
+        for branch in self.branches.values():
+            branch.tick()
+    
+    def is_expired(self) -> bool:
+        """Check if all branches are unavailable and on cooldown."""
+        return all(
+            not b.is_available() and b.current_cooldown > 0 
+            for b in self.branches.values()
+        )
+    
+    def archive(self):
+        """Archive this fork (soft delete - 0 = 3)."""
+        self.archived = True
+    
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize fork state."""
+        return {
+            "fork_id": self.fork_id,
+            "branches": {
+                bid: branch.serialize() 
+                for bid, branch in self.branches.items()
+            },
+            "created_tick": self.created_tick,
+            "archived": self.archived,
+            "outcome": self.outcome,
+        }
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any], source: Any) -> "Fork":
+        """Reconstruct fork from data."""
+        fork = cls(
+            fork_id=data["fork_id"],
+            source=source,
+            created_tick=data.get("created_tick", 0),
+            archived=data.get("archived", False),
+            outcome=data.get("outcome"),
+        )
+        
+        for bid, bdata in data.get("branches", {}).items():
+            fork.branches[bid] = ForkBranch.deserialize(bdata)
+        
+        return fork
+
+
+class ForkManager:
+    
+    Manages all active forks in the system.
+    
+    Forks are created, tracked, and archived here.
+    Implements the 0 = 3 invariant for fork lifecycle.
+    """
+    
+    def __init__(self):
+        self._active_forks: Dict[str, Fork] = {}
+        self._archived_forks: List[Fork] = []
+        self._fork_history: List[Dict] = []  # 0 = 3 archive
+    
+    def create_fork(self, source: Any, tick: int = 0) -> Fork:
+        """Create a new fork."""
+        fork = Fork.create(source, tick)
+        self._active_forks[fork.fork_id] = fork
+        return fork
+    
+    def get_fork(self, fork_id: str) -> Optional[Fork]:
+        """Get a fork by ID."""
+        return self._active_forks.get(fork_id)
+    
+    def get_forks_for_source(self, source: Any) -> List[Fork]:
+        """Get all active forks for a specific source."""
+        return [f for f in self._active_forks.values() if f.source == source]
+    
+    def take_branch(self, fork_id: str, branch_id: str) -> Optional[ForkBranch]:
+        """Take a branch from a fork."""
+        fork = self._active_forks.get(fork_id)
+        if fork:
+            return fork.take_branch(branch_id)
+        return None
+    
+    def tick(self):
+        """Process all active forks."""
+        expired = []
+        
+        for fork_id, fork in self._active_forks.items():
+            fork.tick()
+            
+            if fork.is_expired():
+                expired.append(fork_id)
+        
+        # Archive expired forks (0 = 3)
+        for fork_id in expired:
+            fork = self._active_forks.pop(fork_id)
+            fork.archive()
+            self._archived_forks.append(fork)
+            self._fork_history.append({
+                "fork_id": fork_id,
+                "action": "expired",
+                "outcome": fork.outcome,
+                "timestamp": time.time(),
+            })
+    
+    def archive_fork(self, fork_id: str) -> Optional[Fork]:
+        """Manually archive a fork."""
+        fork = self._active_forks.pop(fork_id, None)
+        if fork:
+            fork.archive()
+            self._archived_forks.append(fork)
+            self._fork_history.append({
+                "fork_id": fork_id,
+                "action": "archived",
+                "outcome": fork.outcome,
+                "timestamp": time.time(),
+            })
+        return fork
+    
+    def get_archived_forks(self, limit: int = 100) -> List[Fork]:
+        """Get recently archived forks."""
+        return self._archived_forks[-limit:]
+    
+    def restore_fork(self, fork_id: str) -> Optional[Fork]:
+        """Restore an archived fork (0 = 3)."""
+        for i, fork in enumerate(self._archived_forks):
+            if fork.fork_id == fork_id:
+                fork.archived = False
+                self._active_forks[fork_id] = fork
+                self._archived_forks.pop(i)
+                return fork
+        return None
+    
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize all fork state."""
+        return {
+            "active_forks": {
+                fid: fork.serialize() 
+                for fid, fork in self._active_forks.items()
+            },
+
+"""
+Core module - Foundation classes for the DLC.
+"""
+
+from .component import Component, ComponentHolder
+from .event import EventManager, DLC_EVENT, Event
+from .fork import Fork, ForkBranch, ForkType
+
+__all__ = [
+    "Component",
+    "ComponentHolder", 
+    "EventManager",
+    "DLC_EVENT",
+    "Event",
+    "Fork",
+    "ForkBranch",
+    "ForkType",
+]
+            "archived_count": len(self._archived_forks),
+        }
+
+"""
+DLC Components
+==============
+Data containers that attach to entities.
+Components are physics properties, not rules.
+"""
+
+from .faygo import FaygoComponent, FaygoMode, FaygoFlavor
+from .madrox import MadroxComponent
+from .carnie import CarnieComponent
+from .danger_state import DangerStateComponent, DangerState
+from .loyalty import LoyaltyComponent
+from .authority import AuthorityComponent, AuthorityLevel
+from .hidden_potential import HiddenPotentialComponent
+from .toxicity import ToxicityComponent
+
+__all__ = [
+    "FaygoComponent", "FaygoMode", "FaygoFlavor",
+    "MadroxComponent",
+    "CarnieComponent",
+    "DangerStateComponent", "DangerState",
+    "LoyaltyComponent",
+    "AuthorityComponent", "AuthorityLevel",
+    "HiddenPotentialComponent",
+    "ToxicityComponent",
+]
+
+"""
+Faygo Component
+===============
+The fizzy fuel of the carnival.
+
+Faygo is a physics-based consumable with 6 modes and 6 flavors.
+Each mode represents a different way of interacting with Faygo,
+each flavor has different effects on entities.
+
+Modes:
+- FLAT: Old, no fizz, minimal effect
+- SHOOK: Agitated, explosive potential
+- SPRAY: Distributed application
+- BATHE: Full immersion
+- HIT_IN_FACE: Shock application
+- CHUG: Maximum consumption
+
+Design: Faygo is physics - the fizz is real carbonation energy.
+"""
+
+from typing import Optional, Dict, Any, List
+from dataclasses import dataclass, field
+from enum import Enum, auto
+
+from ..core.component import Component
+from ..constants import (
+    FAYGO_FRESH_DURATION,
+    FAYGO_FLAVORS,
+    FAYGO_MODE_EFFECTS,
+    PHI,
+)
+
+
+class FaygoMode(Enum):
+    """The 6 modes of Faygo interaction."""
+    FLAT = auto()
+    SHOOK = auto()
+    SPRAY = auto()
+    BATHE = auto()
+    HIT_IN_FACE = auto()
+    CHUG = auto()
+
+
+class FaygoFlavor(Enum):
+    """The 6 sacred flavors of Faygo."""
+    WATERMELON = auto()
+    PINEAPPLE = auto()
+    GRAPE = auto()
+    ORANGE = auto()
+    ROOT_BEER = auto()
+    COTTON_CANDY = auto()
+
+
+@dataclass
+class FaygoParticle:
+    """
+    A single particle of Faygo fizz.
+    Used for spray and bathe modes.
+    """
+    x: float = 0.0
+    y: float = 0.0
+    velocity_x: float = 0.0
+    velocity_y: float = 0.0
+    fizz_level: float = 1.0
+    sticky: bool = False
+    
+    def tick(self, delta: float = 1.0):
+        """Update particle physics."""
+        # Apply velocity
+        self.x += self.velocity_x * delta
+        self.y += self.velocity_y * delta
+        
+        # Decay fizz
+        self.fizz_level *= 0.95
+        
+        # Gravity effect
+        self.velocity_y -= 0.1 * delta
+        
+        # Air resistance
+        self.velocity_x *= 0.98
+        self.velocity_y *= 0.98
+
+
+class FaygoComponent(Component):
+    """
+    Component for Faygo soda interaction.
+    
+    Entities with this component can carry, use, and be affected by Faygo.
+    
+    Attributes:
+        flavor: Current flavor of Faygo
+        mode: Current mode (changes with interaction)
+        volume: Amount remaining (0.0 - 1.0)
+        fizz_level: Carbonation energy (0.0 - 1.0)
+        age: Ticks since opened
+        shake_level: How much the Faygo has been shaken
+        particles: Active particles for spray/bathe modes
+    """
+    
+    def __init__(
+        self,
+        flavor: FaygoFlavor = FaygoFlavor.GRAPE,
+        mode: FaygoMode = FaygoMode.FLAT,
+        volume: float = 1.0,
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        
+        self.flavor = flavor
+        self.mode = mode
+        self.volume = volume
+        self.fizz_level = 1.0 if mode != FaygoMode.FLAT else 0.1
+        self.age = 0
+        self.shake_level = 0.0
+        self.particles: List[FaygoParticle] = []
+        self._sticky_accumulator = 0.0
+        self._opened = False
+        self._last_mode_change_tick = 0
+    
+    @property
+    def is_fresh(self) -> bool:
+        """Check if Faygo is still fresh."""
+        return self.age < FAYGO_FRESH_DURATION and self.fizz_level > 0.3
+    
+    @property
+    def is_empty(self) -> bool:
+        """Check if Faygo is empty."""
+        return self.volume <= 0.0
+    
+    @property
+    def is_shakeable(self) -> bool:
+        """Check if Faygo can be shaken more."""
+        return self.volume > 0.0 and self.shake_level < 1.0
+    
+    def open(self, tick: int = 0) -> Dict[str, Any]:
+        """
+        Open the Faygo (first interaction).
+        
+        Returns event data about the opening.
+        """
+        if self._opened:
+            return {"success": False, "reason": "already_open"}
+        
+        self._opened = True
+        self.age = 0
+        
+        # Shake level affects what happens
+        if self.shake_level > 0.8:
+            # Explosive opening!
+            self.mode = FaygoMode.SPRAY
+            return {
+                "success": True,
+                "explosive": True,
+                "spray_potential": self.shake_level * self.fizz_level,
+            }
+        
+        return {"success": True, "explosive": False}
+    
+    def shake(self, intensity: float = 0.1) -> Dict[str, Any]:
+        """
+        Shake the Faygo, building pressure.
+        
+        Args:
+            intensity: How hard to shake (0.0 - 1.0)
+            
+        Returns:
+            Data about shake result
+        """
+        if self.is_empty:
+            return {"success": False, "reason": "empty"}
+        
+        # Increase shake level based on fizz
+        shake_gain = intensity * self.fizz_level
+        self.shake_level = min(1.0, self.shake_level + shake_gain)
+        
+        # Shaking preserves fizz
+        self.fizz_level = min(1.0, self.fizz_level + intensity * 0.05)
+        
+        return {
+            "success": True,
+            "shake_level": self.shake_level,
+            "fizz_level": self.fizz_level,
+            "warning": self.shake_level > 0.7,
+        }
+    
+    def set_mode(self, mode: FaygoMode, tick: int = 0) -> bool:
+        """
+        Change the Faygo mode.
+        
+        Some modes require conditions.
+        """
+        # Check conditions
+        if mode == FaygoMode.CHUG and self.volume < 0.5:
+            return False
+        
+        if mode == FaygoMode.SPRAY and self.fizz_level < 0.3:
+            return False
+        
+        self.mode = mode
+        self._last_mode_change_tick = tick
+        return True
+    
+    def consume(self, amount: float = 0.1) -> Dict[str, Any]:
+        """
+        Consume some Faygo.
+        
+        Returns effect data based on mode and flavor.
+        """
+        if self.is_empty:
+            return {"success": False, "reason": "empty"}
+        
+        actual_amount = min(amount, self.volume)
+        self.volume -= actual_amount
+        
+        # Get mode effects
+        mode_effects = FAYGO_MODE_EFFECTS.get(self.mode.name, {})
+        
+        # Calculate refresh based on mode
+        refresh_base = mode_effects.get("refresh", 1.0)
+        refresh = refresh_base * actual_amount * self.fizz_level
+        
+        # Calculate sticky
+        sticky = mode_effects.get("sticky", 0.0) * actual_amount
+        self._sticky_accumulator += sticky
+        
+        # Create result
+        result = {
+            "success": True,
+            "amount_consumed": actual_amount,
+            "refresh": refresh,
+            "sticky": sticky,
+            "flavor": self.flavor.name,
+            "mode": self.mode.name,
+            "fizz_at_delivery": self.fizz_level,
+        }
+        
+        # Mode-specific effects
+        if self.mode == FaygoMode.HIT_IN_FACE:
+            result["shock"] = mode_effects.get("shock", 0) * self.fizz_level
+        
+        if self.mode == FaygoMode.CHUG:
+            result["risk"] = mode_effects.get("risk", "NONE")
+            result["burp_imminent"] = self.volume < 0.2
+        
+        # Reduce fizz on consumption
+        self.fizz_level *= 0.9
+        
+        return result
+    
+    def spray(self, target_x: float, target_y: float, 
+              spread: float = 1.0) -> List[FaygoParticle]:
+        """
+        Create spray particles toward a target.
+        
+        Args:
+            target_x, target_y: Target coordinates
+            spread: How spread out the spray is
+            
+        Returns:
+            List of created particles
+        """
+        if self.mode not in (FaygoMode.SPRAY, FaygoMode.SHOOK):
+            return []
+        
+        if self.is_empty:
+            return []
+        
+        particles = []
+        particle_count = int(10 * self.fizz_level * spread)
+        
+        for i in range(particle_count):
+            import random
+            import math
+            
+            angle = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(1, 5) * self.fizz_level
+            
+            particle = FaygoParticle(
+                x=0,
+                y=0,
+                velocity_x=math.cos(angle) * speed + (target_x * 0.1),
+                velocity_y=math.sin(angle) * speed + (target_y * 0.1),
+                fizz_level=self.fizz_level,
+                sticky=self._sticky_accumulator > 0.5,
+            )
+            particles.append(particle)
+        
+        self.particles.extend(particles)
+        
+        # Consumption
+        self.volume -= 0.05 * particle_count / 10
+        
+        return particles
+    
+    def bathe(self, radius: float = 3.0) -> Dict[str, Any]:
+        """
+        Create a bathing area of Faygo.
+        
+        Used for full immersion effects.
+        """
+        if self.mode != FaygoMode.BATHE:
+            return {"success": False, "reason": "wrong_mode"}
+        
+        if self.is_empty:
+            return {"success": False, "reason": "empty"}
+        
+        # Bathe consumes more
+        self.volume -= 0.2
+        
+        mode_effects = FAYGO_MODE_EFFECTS.get("BATHE", {})
+        duration_mult = mode_effects.get("duration_mult", 2.0)
+        
+        return {
+            "success": True,
+            "radius": radius * self.fizz_level,
+            "duration_mult": duration_mult,
+            "refresh_per_tick": 0.1 * self.fizz_level,
+            "sticky_zone": True,
+            "flavor": self.flavor.name,
+        }
+    
+    def tick(self, current_tick: int = 0):
+        """
+        Process a tick of Faygo physics.
+        
+        Handles aging, fizz decay, and particle updates.
+        """
+        if not self._opened:
+            return
+        
+        # Age the Faygo
+        self.age += 1
+        
+        # Natural fizz decay
+        if self.age > FAYGO_FRESH_DURATION:
+            self.fizz_level *= 0.98
+            if self.fizz_level < 0.1:
+                self.mode = FaygoMode.FLAT
+        
+        # Shake level naturally decreases
+        self.shake_level *= 0.99
+        
+        # Update particles
+        for particle in self.particles[:]:
+            particle.tick()
+            if particle.fizz_level < 0.01:
+                self.particles.remove(particle)
+    
+    def get_flavor_effect(self) -> Dict[str, float]:
+        """
+        Get the special effects of the current flavor.
+        
+        Each flavor has different properties.
+        """
+        effects = {
+            FaygoFlavor.WATERMELON: {
+                "refresh": 1.2,
+                "summer_vibe": 0.5,
+                "hydration": 1.5,
+            },
+            FaygoFlavor.PINEAPPLE: {
+                "refresh": 1.0,
+                "tropical": 0.7,
+                "sweetness": 1.3,
+            },
+            FaygoFlavor.GRAPE: {
+                "refresh": 1.1,
+                "royal": 0.3,
+                "stain_potential": 0.8,
+            },
+            FaygoFlavor.ORANGE: {
+                "refresh": 1.3,
+                "citrus_burst": 0.6,
+                "vitamin_c": 0.4,
+            },
+            FaygoFlavor.ROOT_BEER: {
+                "refresh": 0.9,
+                "creaminess": 0.7,
+                "vintage": 0.5,
+            },
+            FaygoFlavor.COTTON_CANDY: {
+                "refresh": 0.8,
+                "carnival_nostalgia": 1.0,
+                "sugar_rush": 0.9,
+            },
+        }
+        
+        return effects.get(self.flavor, {"refresh": 1.0})
+    
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize component state."""
+        data = super().serialize()
+        data.update({
+            "flavor": self.flavor.name,
+            "mode": self.mode.name,
+            "volume": self.volume,
+            "fizz_level": self.fizz_level,
+            "age": self.age,
+            "shake_level": self.shake_level,
+            "opened": self._opened,
+            "sticky_accumulator": self._sticky_accumulator,
+        })
+        return data
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "FaygoComponent":
+        """Reconstruct from serialized data."""
+        return cls(
+            flavor=FaygoFlavor[data.get("flavor", "GRAPE")],
+            mode=FaygoMode[data.get("mode", "FLAT")],
+            volume=data.get("volume", 1.0),
+        )
+
+"""
+Madrox Component
+================
+Overthinking as physics.
+
+Named after the X-Men character Multiple Man, this component
+represents the anxiety spiral and thought multiplication.
+
+When an entity overthinks, Madrox particles spawn and float.
+They are attracted to calm sources and repelled by chaos.
+
+The spiral: Overthinking → More particles → More overthinking → CHAOS
+
+Design: Anxiety is physics, not a rule. The particles are real.
+"""
+
+from typing import Dict, Any, List, Optional, Tuple
+from dataclasses import dataclass, field
+from enum import Enum, auto
+import math
+import random
+
+from ..core.component import Component
+from ..constants import (
+    MADROX_MAX_DURATION,
+    MADROX_BIAS_MULTIPLIER,
+    MADROX_CALM_ATTRACTION,
+    MADROX_CHAOS_REPULSION,
+    MADROX_PARTICLE_COUNT,
+    MADROX_SPIRAL_THRESHOLD,
+    MADROX_CALM_THRESHOLD,
+    MADROX_MAX_ANXIETY,
+    PHI,
+)
+
+
+class ThoughtType(Enum):
+    """Types of overthinking thoughts."""
+    WORRY = auto()
+    SCENARIO = auto()
+    REGRET = auto()
+    DOUBT = auto()
+    CATASTROPHE = auto()
+    REPLAY = auto()
+    COMPARISON = auto()
+    SHOULD_HAVE = auto()
+
+
+@dataclass
+class MadroxParticle:
+    """
+    A single thought particle.
+    
+    Particles float around the entity and interact with
+    magnetic fields (calm/chaos sources).
+    """
+    particle_id: int
+    thought_type: ThoughtType
+    x: float = 0.0
+    y: float = 0.0
+    velocity_x: float = 0.0
+    velocity_y: float = 0.0
+    energy: float = 1.0
+    age: int = 0
+    anchored: bool = False  # Anchored particles don't move
+    
+    def tick(self, calm_sources: List[Tuple[float, float]] = None,
+             chaos_sources: List[Tuple[float, float]] = None):
+        """
+        Update particle physics.
+        
+        Particles are attracted to calm, repelled by chaos.
+        """
+        if self.anchored:
+            return
+        
+        self.age += 1
+        
+        # Natural drift
+        self.velocity_x += random.uniform(-0.1, 0.1)
+        self.velocity_y += random.uniform(-0.1, 0.1)
+        
+        # Attraction to calm sources
+        if calm_sources:
+            for cx, cy in calm_sources:
+                dx = cx - self.x
+                dy = cy - self.y
+                dist = math.sqrt(dx*dx + dy*dy) + 0.1
+                
+                # Inverse square attraction
+                force = MADROX_CALM_ATTRACTION / (dist * dist)
+                self.velocity_x += (dx / dist) * force
+                self.velocity_y += (dy / dist) * force
+        
+        # Repulsion from chaos sources
+        if chaos_sources:
+            for cx, cy in chaos_sources:
+                dx = self.x - cx
+                dy = self.y - cy
+                dist = math.sqrt(dx*dx + dy*dy) + 0.1
+                
+                # Inverse square repulsion
+                force = MADROX_CHAOS_REPULSION / (dist * dist)
+                self.velocity_x += (dx / dist) * force
+                self.velocity_y += (dy / dist) * force
+        
+        # Apply velocity
+        self.x += self.velocity_x
+        self.y += self.velocity_y
+        
+        # Damping
+        self.velocity_x *= 0.95
+        self.velocity_y *= 0.95
+        
+        # Energy decay
+        self.energy *= 0.99
+    
+    def is_expired(self) -> bool:
+        """Check if particle should be removed."""
+        return self.energy < 0.1 or self.age > MADROX_MAX_DURATION
+
+
+class MadroxComponent(Component):
+    """
+    Component for overthinking and anxiety spiral mechanics.
+    
+    Entities with this component can enter a state of overthinking,
+    spawning thought particles that interact with the environment.
+    
+    Attributes:
+        is_overthinking: Currently in overthinking state
+        anxiety_level: Current anxiety (0.0 - 1.0)
+        particles: Active thought particles
+        spiral_depth: How deep into spiral (0-5)
+        bias: Past experience bias multiplier
+        calm_sensitivity: How affected by calm sources
+        chaos_sensitivity: How affected by chaos sources
+        thought_history: Recent thought types for patterns
+    """
+    
+    _particle_counter = 0
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
+        self.is_overthinking = False
+        self.anxiety_level = 0.0
+        self.particles: List[MadroxParticle] = []
+        self.spiral_depth = 0
+        self.bias = MADROX_BIAS_MULTIPLIER
+        self.calm_sensitivity = 1.0
+        self.chaos_sensitivity = 1.0
+        self.thought_history: List[ThoughtType] = []
+        self._duration = 0
+        self._calm_sources: List[Tuple[float, float]] = []
+        self._chaos_sources: List[Tuple[float, float]] = []
+    
+    @property
+    def particle_count(self) -> int:
+        """Current number of active particles."""
+        return len(self.particles)
+    
+    @property
+    def is_spiraling(self) -> bool:
+        """Check if in a spiral state."""
+        return self.anxiety_level >= MADROX_SPIRAL_THRESHOLD
+    
+    @property
+    def is_calm(self) -> bool:
+        """Check if calm enough."""
+        return self.anxiety_level <= MADROX_CALM_THRESHOLD
+    
+    def start_overthinking(self, trigger: str = "") -> Dict[str, Any]:
+        """
+        Enter overthinking state.
+        
+        Args:
+            trigger: What caused the overthinking
+            
+        Returns:
+            Data about the state entry
+        """
+        if self.is_overthinking:
+            return {"success": False, "reason": "already_overthinking"}
+        
+        self.is_overthinking = True
+        self._duration = 0
+        
+        # Spawn initial particles based on trigger
+        initial_count = random.randint(2, 5)
+        for _ in range(initial_count):
+            self._spawn_particle()
+        
+        return {
+            "success": True,
+            "trigger": trigger,
+            "initial_particles": initial_count,
+            "anxiety_level": self.anxiety_level,
+        }
+    
+    def stop_overthinking(self, reason: str = "calm") -> Dict[str, Any]:
+        """
+        Exit overthinking state.
+        
+        Args:
+            reason: Why overthinking stopped
+            
+        Returns:
+            Data about the state exit
+        """
+        if not self.is_overthinking:
+            return {"success": False, "reason": "not_overthinking"}
+        
+        self.is_overthinking = False
+        particles_dissolved = len(self.particles)
+        
+        # Particles fade when calm
+        self.particles.clear()
+        
+        result = {
+            "success": True,
+            "reason": reason,
+            "duration": self._duration,
+            "particles_dissolved": particles_dissolved,
+            "final_anxiety": self.anxiety_level,
+        }
+        
+        self._duration = 0
+        self.spiral_depth = 0
+        
+        return result
+    
+    def _spawn_particle(self, thought_type: ThoughtType = None) -> MadroxParticle:
+        """Spawn a new thought particle."""
+        MadroxComponent._particle_counter += 1
+        
+        if thought_type is None:
+            thought_type = random.choice(list(ThoughtType))
+        
+        # Spawn near entity center with random offset
+        angle = random.uniform(0, 2 * math.pi)
+        dist = random.uniform(0.5, 2.0)
+        
+        particle = MadroxParticle(
+            particle_id=MadroxComponent._particle_counter,
+            thought_type=thought_type,
+            x=math.cos(angle) * dist,
+            y=math.sin(angle) * dist,
+            velocity_x=random.uniform(-0.5, 0.5),
+            velocity_y=random.uniform(-0.5, 0.5),
+            energy=1.0,
+        )
+        
+        self.particles.append(particle)
+        self.thought_history.append(thought_type)
+        
+        # Keep history manageable
+        if len(self.thought_history) > 50:
+            self.thought_history.pop(0)
+        
+        return particle
+    
+    def add_calm_source(self, x: float, y: float, strength: float = 1.0):
+        """Add a calm source that attracts particles."""
+        # Scale by strength
+        self._calm_sources.append((x * strength, y * strength))
+    
+    def add_chaos_source(self, x: float, y: float, strength: float = 1.0):
+        """Add a chaos source that repels particles."""
+        self._chaos_sources.append((x * strength, y * strength))
+    
+    def clear_sources(self):
+        """Clear all sources (call each tick before adding new ones)."""
+        self._calm_sources.clear()
+        self._chaos_sources.clear()
+    
+    def tick(self, current_tick: int = 0):
+        """
+        Process a tick of Madrox physics.
+        
+        Updates particles, checks for spiraling, etc.
+        """
+        if not self.is_overthinking:
+            # Anxiety naturally decays when not overthinking
+            self.anxiety_level = max(0, self.anxiety_level - 0.02)
+            return
+        
+        self._duration += 1
+        
+        # Update existing particles
+        for particle in self.particles[:]:
+            particle.tick(self._calm_sources, self._chaos_sources)
+            
+            if particle.is_expired():
+                self.particles.remove(particle)
+        
+        #
+
+"""
+Carnie Component
+================
+The carnival worker entity.
+
+Carnies run the Midway games and have their own behaviors:
+- Running games
+- Taking smoke breaks
+- Dealing with customers
+- Maintaining the carnival
+
+The primary Carnie is Monoxide, but others exist.
+
+Design: Carnies are NPCs with personality physics.
+"""
+
+from typing import Dict, Any, List, Optional
+from dataclasses import dataclass, field
+from enum import Enum, auto
+import random
+
+from ..core.component import Component
+from ..constants import (
+    MIDWAY_GAME_TYPES,
+    MIDWAY_TICKET_COST,
+    PHI,
+)
+
+
+class CarnieState(Enum):
+    """States a carnie can be in."""
+    IDLE = auto()
+    RUNNING_GAME = auto()
+    SMOKE_BREAK = auto()
+    CHATTING = auto()
+    MAINTENANCE = auto()
+    GRIFTING = auto()
+    RESTOCKING = auto()
+
+
+class CarnieMood(Enum):
+    """Carnie mood states."""
+    BORED = auto()
+    CONTENT = auto()
+    EXCITED = auto()
+    ANNOYED = auto()
+    SUSPICIOUS = auto()
+    GENEROUS = auto()
+
+
+@dataclass
+class GameSession:
+    """Active game session at a carnie's booth."""
+    player_id: str
+    game_type: str
+    tickets_spent: int = 0
+    prizes_won: List[str] = field(default_factory=list)
+    attempts: int = 0
+    start_tick: int = 0
+
+
+class CarnieComponent(Component):
+    """
+    Component for carnival worker behavior.
+    
+    Carnies run games, manage prizes, and have personalities
+    that affect gameplay.
+    
+    Attributes:
+        name: Carnie name (e.g., "Monoxide")
+        state: Current activity state
+        mood: Current mood
+        assigned_game: Which game this carnie runs
+        patience: Current patience level (0-100)
+        generosity: How likely to give prizes (0-1)
+        suspicion: How suspicious of the player (0-1)
+        smoke_break_timer: Ticks until smoke break
+        current_session: Active game session
+        lifetime_tickets: Total tickets earned
+        lifetime_prizes: Total prizes given
+        games_expertise: Skill levels at different games
+    """
+    
+    def __init__(
+        self,
+        name: str = "Carnie",
+        assigned_game: str = "RING_TOSS",
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        
+        self.name = name
+        self.state = CarnieState.IDLE
+        self.mood = CarnieMood.CONTENT
+        self.assigned_game = assigned_game
+        
+        self.patience = 100
+        self.generosity = 0.5
+        self.suspicion = 0.0
+        
+        self.smoke_break_timer = random.randint(200, 500)
+        self.current_session: Optional[GameSession] = None
+        
+        self.lifetime_tickets = 0
+        self.lifetime_prizes = 0
+        
+        # Expertise at different games
+        self.games_expertise: Dict[str, float] = {
+            game: random.uniform(0.3, 1.0) for game in MIDWAY_GAME_TYPES
+        }
+        
+        self._ticks_since_interaction = 0
+        self._mood_shift_cooldown = 0
+    
+    @property
+    def is_available(self) -> bool:
+        """Check if carnie is available for games."""
+        return self.state in (CarnieState.IDLE, CarnieState.CHATTING)
+    
+    @property
+    def is_on_break(self) -> bool:
+        """Check if on smoke break."""
+        return self.state == CarnieState.SMOKE_BREAK
+    
+    def start_game(self, player_id: str, tick: int = 0) -> Dict[str, Any]:
+        """
+        Start a game session with a player.
+        
+        Args:
+            player_id: The player entity
+            tick: Current game tick
+            
+        Returns:
+            Data about the game start
+        """
+        if not self.is_available:
+            return {
+                "success": False,
+                "reason": f"busy_{self.state.name.lower()}"
+            }
+        
+        self.state = CarnieState.RUNNING_GAME
+        self.current_session = GameSession(
+            player_id=player_id,
+            game_type=self.assigned_game,
+            start_tick=tick,
+        )
+        
+        self._ticks_since_interaction = 0
+        
+        return {
+            "success": True,
+            "game": self.assigned_game,
+            "cost": MIDWAY_TICKET_COST,
+            "carnie_name": self.name,
+            "carnie_mood": self.mood.name,
+        }
+    
+    def play_round(self, player_skill: float = 0.5) -> Dict[str, Any]:
+        """
+        Process a round of the game.
+        
+        Args:
+            player_skill: Player's skill at this game (0-1)
+            
+        Returns:
+            Result of the round
+        """
+        if not self.current_session:
+            return {"success": False, "reason": "no_session"}
+        
+        self.current_session.attempts += 1
+        self.current_session.tickets_spent += MIDWAY_TICKET_COST
+        
+        # Calculate win chance
+        expertise = self.games_expertise.get(self.assigned_game, 0.5)
+        
+        # Mood affects difficulty
+        mood_mod = {
+            CarnieMood.GENEROUS: 0.2,
+            CarnieMood.EXCITED: 0.1,
+            CarnieMood.CONTENT: 0.0,
+            CarnieMood.BORED: -0.1,
+            CarnieMood.ANNOYED: -0.2,
+            CarnieMood.SUSPICIOUS: -0.3,
+        }.get(self.mood, 0.0)
+        
+        win_chance = player_skill + mood_mod - (expertise * 0.3)
+        win_chance = max(0.05, min(0.95, win_chance))
+        
+        # Suspicion affects
+        if self.suspicion > 0.5:
+            win_chance *= (1 - self.suspicion * 0.5)
+        
+        won = random.random() < win_chance
+        
+        result = {
+            "success": True,
+            "won": won,
+            "attempt": self.current_session.attempts,
+            "tickets_spent": self.current_session.tickets_spent,
+            "win_chance": win_chance,
+        }
+        
+        if won:
+            prize = self._determine_prize()
+            result["prize"] = prize
+            self.current_session.prizes_won.append(prize)
+            self.lifetime_prizes += 1
+            
+            # Generosity decreases after win
+            self.generosity = max(0.2, self.generosity - 0.05)
+        
+        self.lifetime_tickets += MIDWAY_TICKET_COST
+        
+        # Update mood based on result
+        if won and random.random() < 0.3:
+            self._shift_mood(CarnieMood.ANNOYED)
+        elif not won and random.random() < 0.2:
+            self._shift_mood(CarnieMood.GENEROUS)
+        
+        return result
+    
+    def _determine_prize(self) -> str:
+        """Determine prize tier based on generosity."""
+        roll = random.random() * self.generosity
+        
+        if roll > 0.9:
+            return "LEGENDARY"
+        elif roll > 0.7:
+            return "RARE"
+        elif roll > 0.4:
+            return "COMMON"
+        else:
+            return "BOBBY_PRIZE"  # Joke prize
+    
+    def end_session(self) -> Dict[str, Any]:
+        """End the current game session."""
+        if not self.current_session:
+            return {"success": False, "reason": "no_session"}
+        
+        result = {
+            "success": True,
+            "total_attempts": self.current_session.attempts,
+            "total_tickets": self.current_session.tickets_spent,
+            "prizes_won": self.current_session.prizes_won.copy(),
+        }
+        
+        self.current_session = None
+        self.state = CarnieState.IDLE
+        
+        return result
+    
+    def take_smoke_break(self, duration: int = 50) -> Dict[str, Any]:
+        """
+        Go on smoke break.
+        
+        Args:
+            duration: Break duration in ticks
+            
+        Returns:
+            Data about the break
+        """
+        if self.state == CarnieState.SMOKE_BREAK:
+            return {"success": False, "reason": "already_on_break"}
+        
+        previous_state = self.state
+        self.state = CarnieState.SMOKE_BREAK
+        self._smoke_break_duration = duration
+        self._smoke_break_remaining = duration
+        
+        # End any current session
+        if self.current_session:
+            self.end_session()
+        
+        return {
+            "success": True,
+            "duration": duration,
+            "previous_state": previous_state.name,
+            "carnie_name": self.name,
+        }
+    
+    def chat(self, topic: str = "") -> Dict[str, Any]:
+        """
+        Chat with the carnie.
+        
+        Returns dialogue based on mood and state.
+        """
+        # Shift to chatting state
+        if self.is_available:
+            self.state = CarnieState.CHATTING
+        
+        self._ticks_since_interaction = 0
+        
+        # Generate response based on mood
+        responses = self._get_mood_responses()
+        response = random.choice(responses)
+        
+        return {
+            "success": True,
+            "carnie_name": self.name,
+            "mood": self.mood.name,
+            "response": response,
+            "topic": topic,
+        }
+    
+    def _get_mood_responses(self) -> List[str]:
+        """Get dialogue responses based on current mood."""
+        responses = {
+            CarnieMood.BORED: [
+                "*yawns* Another day, another sucker...",
+                "You gonna play or just stand there?",
+                "Seen one mark, seen 'em all.",
+            ],
+            CarnieMood.CONTENT: [
+                "Step right up, test your skill!",
+                "Good times at the carnival, friend.",
+                "That's how we do it at the Midway.",
+            ],
+            CarnieMood.EXCITED: [
+                "YEAH! Now THIS is what I'm talking about!",
+                "You look like a WINNER to me!",
+                "Feel that energy? That's CARNIVAL MAGIC!",
+            ],
+            CarnieMood.ANNOYED: [
+                "*grumbles* What do YOU want?",
+                "I don't have all day here.",
+                "Just... play the game or move on.",
+            ],
+            CarnieMood.SUSPICIOUS: [
+                "*squints* You seem familiar...",
+                "I've got my eye on you.",
+                "Nobody wins THAT much around here...",
+            ],
+            CarnieMood.GENEROUS: [
+                "Hey friend, let me give you a tip...",
+                "You know what? Take an extra throw.",
+                "The carnival provides, my friend.",
+            ],
+        }
+        return responses.get(self.mood, ["..."])
+    
+    def _shift_mood(self, new_mood: CarnieMood):
+        """Shift to a new mood if cooldown allows."""
+        if self._mood_shift_cooldown <= 0:
+            self.mood = new_mood
+            self._mood_shift_cooldown = 20
+    
+    def tick(self, current_tick: int = 0):
+        """
+        Process a tick of Carnie physics.
+        
+        Handles state changes, smoke breaks, mood shifts.
+        """
+        self._ticks_since_interaction += 1
+        self._mood_shift_cooldown = max(0, self._mood_shift_cooldown - 1)
+        
+        # Patience decays without interaction
+        if self._ticks_since_interaction > 50:
+            self.patience = max(0, self.patience - 1)
+            
+            if self.patience < 20 and self.mood != CarnieMood.ANNOYED:
+                self._shift_mood(CarnieMood.ANNOYED)
+        
+        # Smoke break timer
+        if self.state != CarnieState.SMOKE_BREAK:
+            self.smoke_break_timer -= 1
+            
+            if self.smoke_break_timer <= 0:
+                self.take_smoke_break()
+        else:
+            self._smoke_break_remaining -= 1
+            
+            if self._smoke_break_remaining <= 0:
+                self.state = CarnieState.IDLE
+                self.smoke_break_timer = random.randint(200, 500)
+                self._shift_mood(CarnieMood.CONTENT)
+        
+        # Random mood shifts
+        if random.random() < 0.001:  # Rare random shift
+            self._shift_mood(random.choice(list(CarnieMood)))
+        
+        # Generosity slowly recovers
+        self.generosity = min(1.0, self.generosity + 0.001)
+        
+        # Suspicion decays
+        self.suspicion = max(0, self.suspicion - 0.001)
+    
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize component state."""
+        data = super().serialize()
+        data.update({
+            "name": self.name,
+            "state": self.state.name,
+            "mood": self.mood.name,
+            "assigned_game": self.assigned_game,
+            "patience": self.patience,
+            "generosity": self.generosity,
+            "suspicion": self.suspicion,
+            "lifetime_tickets": self.lifetime_tickets,
+            "lifetime_prizes": self.lifetime_prizes,
+        })
+        return data
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "CarnieComponent":
+        """Reconstruct from serialized data."""
+        return cls(
+            name=data.get("name", "Carnie"),
+            assigned_game=data.get("assigned_game", "RING_TOSS"),
+        )
+
+
+# Predefined carnie archetypes
+CARNIE_ARCHETYPES = {
+    "monoxide": {
+        "name": "Monoxide",
+        "assigned_game": "WHEEL_OF_FATE",
+        "generosity": 0.6,
+        "games_expertise": {"WHEEL_OF_FATE": 0.9, "HIGH_STRIKER": 0.7},
+    },
+    "bozo": {
+        "name": "Bozo",
+        "assigned_game": "RING_TOSS",
+        "generosity": 0.4,
+        "games_expertise": {"RING_TOSS": 0.95},
+    },
+    "lucky": {
+        "name": "Lucky",
+        "assigned_game": "DUCK_POND",
+        "generosity": 0.7,
+        "games_expertise": {"DUCK_POND": 0.6},
+    },
+}
+
+"""
+Danger State Component
+======================
+The 5 Perils of the Carnival.
+
+Danger states are extreme situations entities can enter.
+Each has unique mechanics and durations.
+
+The 5 Perils:
+1. GET_CLOWNED - You got clowned, deal with it
+2. JUGGALO_PARTY - Party level escalation
+3. THE_MIDWAY - Stuck playing carnival games
+4. LOST_AT_THE_CARNIVAL - Can't find your way
+5. I_FUCKED_A_COP - Maximum social peril
+
+Design: Danger states are physics - real consequences for actions.
+"""
+
+from typing import Dict, Any, Optional, List
+from dataclasses import dataclass, field
+from enum import Enum, auto
+import random
+
+from ..core.component import Component
+from ..constants import (
+    DANGER_STATE_DURATIONS,
+    DANGER_STATE_INTENSITIES,
+    PHI,
+)
+
+
+class DangerState(Enum):
+    """The 5 Perils of the Carnival."""
+    GET_CLOWNED = auto()
+    JUGGALO_PARTY = auto()
+    THE_MIDWAY = auto()
+    LOST_AT_THE_CARNIVAL = auto()
+    I_FUCKED_A_COP = auto()
+
+
+@dataclass
+class DangerStateInstance:
+    """
+    An active danger state instance.
+    
+    Tracks duration, intensity, and effects.
+    """
+    state: DangerState
+    start_tick: int = 0
+    duration: Optional[int] = None  # None = indefinite until resolved
+    intensity: float = 1.0
+    source: str = ""
+    effects: Dict[str, Any] = field(default_factory=dict)
+    
+    @property
+    def is_indefinite(self) -> bool:
+        """Check if this state has no fixed duration."""
+        return self.duration is None
+    
+    def get_remaining(self, current_tick: int) -> Optional[int]:
+        """Get remaining ticks, or None if indefinite."""
+        if self.duration is None:
+            return None
+        elapsed = current_tick - self.start_tick
+        return max(0, self.duration - elapsed)
+    
+    def is_expired(self, current_tick: int) -> bool:
+        """Check if state has expired."""
+        if self.duration is None:
+            return False
+        return (current_tick - self.start_tick) >= self.duration
+
+
+class DangerStateComponent(Component):
+    """
+    Component for tracking danger states.
+    
+    Entities can have multiple danger states active,
+    but certain combinations are prevented.
+    
+    Attributes:
+        active_states: Currently active danger states
+        history: Past danger states (0 = 3 archive)
+        resistance: Resistance to entering danger states
+        current_danger_level: Overall danger level
+    """
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
+        self.active_states: Dict[DangerState, DangerStateInstance] = {}
+        self.history: List[Dict[str, Any]] = []
+        self.resistance = 0.0
+        self.current_danger_level = 0.0
+        self._last_state_change = 0
+    
+    @property
+    def is_in_danger(self) -> bool:
+        """Check if entity has any active danger state."""
+        return len(self.active_states) > 0
+    
+    @property
+    def primary_danger(self) -> Optional[DangerState]:
+        """Get the most severe active danger state."""
+        if not self.active_states:
+            return None
+        
+        # Sort by intensity
+        sorted_states = sorted(
+            self.active_states.values(),
+            key=lambda s: DANGER_STATE_INTENSITIES.get(s.state.name, 0),
+            reverse=True
+        )
+        return sorted_states[0].state if sorted_states else None
+    
+    def enter_state(
+        self,
+        state: DangerState,
+        source: str = "",
+        intensity: float = 1.0,
+        current_tick: int = 0,
+        custom_duration: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        Enter a danger state.
+        
+        Args:
+            state: The danger state to enter
+            source: What caused this state
+            intensity: How intense (0-1)
+            current_tick: Current game tick
+            custom_duration: Override default duration
+            
+        Returns:
+            Data about state entry
+        """
+        # Check resistance
+        if random.random() < self.resistance:
+            return {
+                "success": False,
+                "reason": "resisted",
+                "state": state.name,
+            }
+        
+        # Check if already in this state
+        if state in self.active_states:
+            # Escalate instead
+            return self.escalate_state(state, current_tick)
+        
+        # Get duration
+        duration_config = DANGER_STATE_DURATIONS.get(state.name)
+        if custom_duration is not None:
+            duration = custom_duration
+        elif duration_config is not None:
+            min_dur, max_dur = duration_config
+            duration = random.randint(min_dur, max_dur)
+        else:
+            duration = None  # Indefinite
+        
+        # Create state instance
+        instance = DangerStateInstance(
+            state=state,
+            start_tick=current_tick,
+            duration=duration,
+            intensity=intensity,
+            source=source,
+        )
+        
+        # Apply state-specific effects
+        instance.effects = self._calculate_effects(state, intensity)
+        
+        self.active_states[state] = instance
+        self._last_state_change = current_tick
+        self._recalculate_danger_level()
+        
+        return {
+            "success": True,
+            "state": state.name,
+            "duration": duration,
+            "intensity": intensity,
+            "effects": instance.effects,
+        }
+    
+    def _calculate_effects(self, state: DangerState, intensity: float) -> Dict[str, Any]:
+        """Calculate effects for a danger state."""
+        base_intensity = DANGER_STATE_INTENSITIES.get(state.name, 0.5)
+        effective_intensity = base_intensity * intensity
+        
+        effects = {
+            "GET_CLOWNED": {
+                "social_penalty": effective_intensity * 0.5,
+                "embarrassment": effective_intensity,
+                "recovery_chance": 0.1,
+            },
+            "JUGGALO_PARTY": {
+                "energy_drain": effective_intensity * 0.3,
+                "faygo_attraction": effective_intensity * 2,
+                "party_level": int(effective_intensity * 5),
+            },
+            "THE_MIDWAY": {
+                "game_coercion": effective_intensity,
+                "ticket_drain": int(effective_intensity * 10),
+                "escape_chance": 0.05,
+            },
+            "LOST_AT_THE_CARNIVAL": {
+                "direction_penalty": effective_intensity,
+                "anxiety_increase": effective_intensity * 0.5,
+                "landmark_visibility": 1 - effective_intensity,
+            },
+            "I_FUCKED_A_COP": {
+                "social_nuclear": True,
+                "reputation_damage": effective_intensity,
+                "cannot_enter": ["POLICE_STATION", "COURTHOUSE"],
+            },
+        }
+        
+        return effects.get(state, {})
+    
+    def exit_state(
+        self,
+        state: DangerState,
+        reason: str = "expired",
+        current_tick: int = 0
+    ) -> Dict[str, Any]:
+        """
+        Exit a danger state.
+        
+        Args:
+            state: State to exit
+            reason: Why exiting
+            current_tick: Current game tick
+            
+        Returns:
+            Data about state exit
+        """
+        if state not in self.active_states:
+            return {"success": False, "reason": "not_active"}
+        
+        instance = self.active_states.pop(state)
+        
+        # Archive for 0 = 3
+        self.history.append({
+            "state": state.name,
+            "start_tick": instance.start_tick,
+            "end_tick": current_tick,
+            "duration": instance.duration,
+            "reason": reason,
+            "intensity": instance.intensity,
+        })
+        
+        self._last_state_change = current_tick
+        self._recalculate_danger_level()
+        
+        return {
+            "success": True,
+            "state": state.name,
+            "reason": reason,
+            "total_duration": current_tick - instance.start_tick,
+        }
+    
+    def escalate_state(
+        self,
+        state: DangerState,
+        current_tick: int = 0
+    ) -> Dict[str, Any]:
+        """
+        Escalate an active danger state.
+        
+        Makes the state more intense.
+        """
+        if state not in self.active_states:
+            return {"success": False, "reason": "not_active"}
+        
+        instance = self.active_states[state]
+        
+        # Increase intensity
+        instance.intensity = min(2.0, instance.intensity + 0.2)
+        
+        # Recalculate effects
+        instance.effects = self._calculate_effects(state, instance.intensity)
+        
+        # Extend duration if finite
+        if instance.duration is not None:
+            instance.duration = int(instance.duration * 1.2)
+        
+        self._recalculate_danger_level()
+        
+        return {
+            "success": True,
+            "state": state.name,
+            "action": "escalated",
+            "new_intensity": instance.intensity,
+        }
+    
+    def resolve_state(
+        self,
+        state: DangerState,
+        method: str = "natural",
+        current_tick: int = 0
+    ) -> Dict[str, Any]:
+        """
+        Resolve a danger state through action.
+        
+        Some states require specific actions to resolve.
+        """
+        if state not in self.active_states:
+            return {"success": False, "reason": "not_active"}
+        
+        instance = self.active_states[state]
+        
+        # State-specific resolution requirements
+        resolution_methods = {
+            DangerState.GET_CLOWNED: ["clown_back", "wait_it_out", "faygo_shower"],
+            DangerState.JUGGALO_PARTY: ["party_harder", "leave_party", "faygo_shower"],
+            DangerState.THE_MIDWAY: ["win_game", "lose_game", "bribe_carnie"],
+            DangerState.LOST_AT_THE_CARNIVAL: ["find_landmark", "ask_directions", "wait_for_dawn"],
+            DangerState.I_FUCKED_A_COP: ["lawyer_up", "leave_town", "face_consequences"],
+        }
+        
+        valid_methods = resolution_methods.get(state, [])
+        
+        if method not in valid_methods:
+            return {
+                "success": False,
+                "reason": "invalid_method",
+                "valid_methods": valid_methods,
+            }
+        
+        # Calculate success based on state and method
+        base_success = {
+            "wait_it_out": 0.8,
+            "faygo_shower": 0.6,
+            "win_game": 0.4,
+            "find_landmark": 0.5,
+            "lawyer_up": 0.3,
+        }.get(method, 0.5)
+        
+        # Intensity affects success
+        success_chance = base_success * (1 - instance.intensity * 0.3)
+        
+        if random.random() < success_chance:
+            return self.exit_state(state, f"resolved_{method}", current_tick)
+        else:
+            # Failed resolution might escalate
+            if random.random() < 0.3:
+                self.escalate_state(state, current_tick)
+            return {
+                "success": False,
+                "reason": "resolution_failed",
+                "can_retry": True,
+            }
+    
+    def _recalculate_danger_level(self):
+        """Recalculate overall danger level."""
+        if not self.active_states:
+            self.current_danger_level = 0
+            return
+        
+        total = 0
+        for instance in self.active_states.values():
+            base = DANGER_STATE_INTENSITIES.get(instance.state.name, 0.5)
+            total += base * instance.intensity
+        
+        self.current_danger_level = min(2.0, total / len(self.active_states))
+    
+    def tick(self, current_tick: int = 0):
+        """Process danger state tick."""
+        # Check for expired states
+        expired = []
+        for state, instance in self.active_states.items():
+            if instance.is_expired(current_tick):
+                expired.append(state)
+        
+        for state in expired:
+            self.exit_state(state, "expired", current_tick)
+        
+        # Resistance slowly builds
+        if not self.is_in_danger:
+            self.resistance = min(1.0, self.resistance + 0.001)
+        else:
+            # Resistance decays while in danger
+            self.resistance = max(0, self.resistance - 0.002)
+    
+    def get_state_summary(self) -> Dict[str, Any]:
+        """Get summary of all active states."""
+        return {
+            "in_danger": self.is_in_danger,
+            "danger_level": self.current_danger_level,
+            "primary_danger": self.primary_danger.name if self.primary_danger else None,
+            "active_count": len(self.active_states),
+            "states": {
+                state.name: {
+                    "intensity": inst.intensity,
+                    "remaining": inst.duration,
+                }
+                for state, inst in self.active_states.items()
+            },
+        }
+    
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize component state."""
+        data = super().serialize()
+        data.update({
+            "danger_level": self.current_danger_level,
+            "resistance": self.resistance,
+            "active_states": [
+                {
+                    "state": inst.state.name,
+                    "start_tick": inst.start_tick,
+                    "duration": inst.duration,
+                    "intensity": inst.intensity,
+                }
+                for inst in self.active_states.values()
+            ],
+            "history_count": len(self.history),
+        })
+        return data
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "DangerStateComponent":
+        """Reconstruct from serialized data."""
+        comp = cls()
+        comp.current_danger_level = data.get("danger_level", 0)
+        comp.resistance = data.get("resistance", 0)
+        return comp
+
+"""
+Loyalty Component
+=================
+Trust as physics.
+
+Loyalty tracks relationships between entities.
+It's not a simple number - it's a history of actions and reactions.
+
+Loyalty flows:
+- Actions toward an entity affect loyalty
+- Betrayal causes massive loyalty drops
+- Loyalty affects behavior modifiers
+
+Design: Loyalty is earned and lost through physics, not rules.
+"""
+
+from typing import Dict, Any, List, Optional
+from dataclasses import dataclass, field
+from enum import Enum, auto
+import time
+
+from ..core.component import Component
+from ..constants import (
+    LOYALTY_MAX,
+    LOYALTY_MIN,
+    LOYALTY_DECAY_RATE,
+    LOYALTY_ACTION_BONUS,
+    LOYALTY_BETRAYAL_PENALTY,
+    PHI,
+)
+
+
+class LoyaltyAction(Enum):
+    """Types of loyalty-affecting actions."""
+    HELPED = auto()
+    PROTECTED = auto()
+    SHARED_RESOURCE = auto()
+    KEPT_SECRET = auto()
+    DEFENDED = auto()
+    SACRIFICED = auto()
+    BETRAYED = auto()
+    ABANDONED = auto()
+    STOLE_FROM = auto()
+    LIED_TO = auto()
+    ATTACKED = auto()
+
+
+@dataclass
+class LoyaltyEvent:
+    """Record of a loyalty-affecting event."""
+    target_id: str
+    action: LoyaltyAction
+    change: float
+    timestamp: float
+    context: str = ""
+    tick: int = 0
+
+
+class LoyaltyComponent(Component):
+    """
+    Component for tracking loyalty relationships.
+    
+    Each entity has loyalty values toward other entities.
+    
+    Attributes:
+        loyalties: Map of entity_id -> loyalty value
+        event_history: Record of loyalty events
+        trust_threshold: Level needed for trusted status
+        betrayal_count: Total betrayals committed
+        forgive_chance: Chance to forgive negative actions
+    """
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
+        self.loyalties: Dict[str, float] = {}
+        self.event_history: List[LoyaltyEvent] = []
+        self.trust_threshold = 50.0
+        self.betrayal_count = 0
+        self.forgive_chance = 0.1
+        
+        self._last_decay = 0
+    
+    def get_loyalty(self, entity_id: str) -> float:
+        """
+        Get loyalty toward an entity.
+        
+        Returns 0 if no relationship exists.
+        """
+        return self.loyalties.get(entity_id, 0.0)
+    
+    def set_loyalty(self, entity_id: str, value: float) -> float:
+        """
+        Set loyalty directly (clamped to bounds).
+        
+        Returns the actual value set.
+        """
+        clamped = max(LOYALTY_MIN, min(LOYALTY_MAX, value))
+        self.loyalties[entity_id] = clamped
+        return clamped
+    
+    def modify_loyalty(
+        self,
+        entity_id: str,
+        action: LoyaltyAction,
+        context: str = "",
+        tick: int = 0
+    ) -> Dict[str, Any]:
+        """
+        Modify loyalty based on an action.
+        
+        Args:
+            entity_id: Target entity
+            action: What action was taken
+            context: Additional context
+            tick: Current game tick
+            
+        Returns:
+            Data about the loyalty change
+        """
+        current = self.get_loyalty(entity_id)
+        
+        # Determine change based on action
+        change_map = {
+            LoyaltyAction.HELPED: LOYALTY_ACTION_BONUS,
+            LoyaltyAction.PROTECTED: LOYALTY_ACTION_BONUS * 1.5,
+            LoyaltyAction.SHARED_RESOURCE: LOYALTY_ACTION_BONUS * 0.8,
+            LoyaltyAction.KEPT_SECRET: LOYALTY_ACTION_BONUS * 2.0,
+            LoyaltyAction.DEFENDED: LOYALTY_ACTION_BONUS * 2.5,
+            LoyaltyAction.SACRIFICED: LOYALTY_ACTION_BONUS * 5.0,
+            LoyaltyAction.BETRAYED: LOYALTY_BETRAYAL_PENALTY,
+            LoyaltyAction.ABANDONED: LOYALTY_BETRAYAL_PENALTY * 0.7,
+            LoyaltyAction.STOLE_FROM: LOYALTY_BETRAYAL_PENALTY * 0.5,
+            LoyaltyAction.LIED_TO: LOYALTY_BETRAYAL_PENALTY * 0.3,
+            LoyaltyAction.ATTACKED: LOYALTY_BETRAYAL_PENALTY * 2.0,
+        }
+        
+        base_change = change_map.get(action, 0)
+        
+        # Check for forgiveness
+        if base_change < 0 and random.random() < self.forgive_chance:
+            base_change *= 0.5  # Reduced penalty
+            context += " [forgiven]"
+        
+        # Apply change
+        new_value = self.set_loyalty(entity_id, current + base_change)
+        actual_change = new_value - current
+        
+        # Record event
+        event = LoyaltyEvent(
+            target_id=entity_id,
+            action=action,
+            change=actual_change,
+            timestamp=time.time(),
+            context=context,
+            tick=tick,
+        )
+        self.event_history.append(event)
+        
+        # Track betrayals
+        if action == LoyaltyAction.BETRAYED:
+            self.betrayal_count += 1
+        
+        # Trim history
+        if len(self.event_history) > 200:
+            self.event_history = self.event_history[-100:]
+        
+        return {
+            "success": True,
+            "entity_id": entity_id,
+            "action": action.name,
+            "change": actual_change,
+            "new_loyalty": new_value,
+            "context": context,
+        }
+    
+    def is_loyal_to(self, entity_id: str) -> bool:
+        """Check if loyalty is above neutral."""
+        return self.get_loyalty(entity_id) > 0
+    
+    def is_trusted(self, entity_id: str) -> bool:
+        """Check if loyalty meets trust threshold."""
+        return self.get_loyalty(entity_id) >= self.trust_threshold
+    
+    def is_enemy(self, entity_id: str) -> bool:
+        """Check if loyalty is deeply negative."""
+        return self.get_loyalty(entity_id) <= -50
+    
+    def get_loyalty_tier(self, entity_id: str) -> str:
+        """Get loyalty tier name."""
+        loyalty = self.get_loyalty(entity_id)
+        
+        if loyalty >= 80:
+            return "BOUND"
+        elif loyalty >= 50:
+            return "TRUSTED"
+        elif loyalty >= 20:
+            return "FRIENDLY"
+        elif loyalty > -20:
+            return "NEUTRAL"
+        elif loyalty > -50:
+            return "WARY"
+        elif loyalty > -80:
+            return "HOSTILE"
+        else:
+            return "NEMESIS"
+    
+    def decay_all(self, tick: int = 0):
+        """
+        Apply decay to all loyalties.
+        
+        Loyalty naturally drifts toward neutral.
+        """
+        for entity_id in list(self.loyalties.keys()):
+            current = self.loyalties[entity_id]
+            
+            # Decay toward 0
+            if current > 0:
+                new_value = current * (1 - LOYALTY_DECAY_RATE)
+                if new_value < 0.5:
+                    new_value = 0
+            else:
+                new_value = current * (1 - LOYALTY_DECAY_RATE)
+                if new_value > -0.5:
+                    new_value = 0
+            
+            if new_value == 0:
+                del self.loyalties[entity_id]
+            else:
+                self.loyalties[entity_id] = new_value
+        
+        self._last_decay = tick
+    
+    def get_most_loyal(self, count: int = 5) -> List[tuple]:
+        """Get entities with highest loyalty."""
+        sorted_loyalties = sorted(
+            self.loyalties.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+        return sorted_loyalties[:count]
+    
+    def get_most_hostile(self, count: int = 5) -> List[tuple]:
+        """Get entities with lowest loyalty."""
+        sorted_loyalties = sorted(
+            self.loyalties.items(),
+            key=lambda x: x[1]
+        )
+        return sorted_loyalties[:count]
+    
+    def get_history_with(self, entity_id: str) -> List[LoyaltyEvent]:
+        """Get loyalty event history with specific entity."""
+        return [
+            event for event in self.event_history
+            if event.target_id == entity_id
+        ]
+    
+    def tick(self, current_tick: int = 0):
+        """Process loyalty tick."""
+        # Decay every 100 ticks
+        if current_tick - self._last_decay >= 100:
+            self.decay_all(current_tick)
+        
+        # Betrayal count affects forgiveness
+        if self.betrayal_count > 0:
+            self.forgive_chance = max(0.01, 0.1 - (self.betrayal_count * 0.01))
+    
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize component state."""
+        data = super().serialize()
+        data.update({
+            "loyalties": self.loyalties.copy(),
+            "trust_threshold": self.trust_threshold,
+            "betrayal_count": self.betrayal_count,
+            "event_count": len(self.event_history),
+        })
+        return data
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "LoyaltyComponent":
+        """Reconstruct from serialized data."""
+        comp = cls()
+        comp.loyalties = data.get("loyalties", {})
+        comp.trust_threshold = data.get("trust_threshold", 50.0)
+        comp.betrayal_count = data.get("betrayal_count", 0)
+        return comp
+
+"""
+Authority Component
+===================
+Power gradients in the carnival.
+
+Authority determines who can command whom.
+It's a hierarchy, but it can be challenged.
+
+Levels:
+- NORMAL: Regular carnival-goer
+- RINGMASTER: Runs a section of the carnival
+- J: High-level operator
+- WRAITH: Top tier, near-supernatural authority
+
+Hollow Authority: Fake authority that collapses under scrutiny.
+
+Design: Authority is a gradient, not a binary. It flows.
+"""
+
+from typing import Dict, Any, List, Optional, Set
+from dataclasses import dataclass, field
+from enum import Enum, auto
+import random
+
+from ..core.component import Component
+from ..constants import (
+    AUTHORITY_LEVELS,
+    AUTHORITY_COMMAND_RANGE,
+    AUTHORITY_OBEDIENCE_FACTOR,
+    PHI,
+)
+
+
+class AuthorityLevel(Enum):
+    """Hierarchy of carnival authority."""
+    NORMAL = 0
+    RINGMASTER = 25
+    J = 50
+    WRAITH = 100
+
+
+@dataclass
+class AuthorityChallenge:
+    """Record of an authority challenge."""
+    challenger_id: str
+    target_id: str
+    challenger_roll: float
+    target_roll: float
+    success: bool
+    tick: int = 0
+
+
+class AuthorityComponent(Component):
+    """
+    Component for tracking authority power.
+    
+    Authority affects:
+    - Who entities obey
+    - Command range
+    - Challenge mechanics
+    
+    Attributes:
+        level: Current authority level
+        effective_authority: Actual authority (can differ from level)
+        hollow: Whether this authority is fake
+        commands_issued: Total commands given
+        commands_obeyed: Commands that were obeyed
+        challenges_won: Authority challenges won
+        challenges_lost: Authority challenges lost
+        authority_sources: Where authority comes from
+    """
+    
+    def __init__(
+        self,
+        level: AuthorityLevel = AuthorityLevel.NORMAL,
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        
+        self.level = level
+        self.effective_authority = AUTHORITY_LEVELS.get(level.name, 0)
+        self.hollow = False
+        self.hollow_exposed = False
+        
+        self.commands_issued = 0
+        self.commands_obeyed = 0
+        self.challenges_won = 0
+        self.challenges_lost = 0
+        
+        self.authority_sources: Set[str] = set()  # What grants authority
+        self._authority_decay = 0.0
+        self._last_challenge_tick = 0
+    
+    @property
+    def is_hollow(self) -> bool:
+        """Check if this authority is fake."""
+        return self.hollow
+    
+    @property
+    def authority_percentage(self) -> float:
+        """Get authority as percentage of max."""
+        return self.effective_authority / 100.0
+    
+    def grant_authority(
+        self,
+        new_level: AuthorityLevel,
+        source: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Grant a new authority level.
+        
+        Args:
+            new_level: Level to grant
+            source: What granted this authority
+            
+        Returns:
+            Data about the grant
+        """
+        old_level = self.level
+        self.level = new_level
+        
+        if source:
+            self.authority_sources.add(source)
+        
+        # Recalculate effective authority
+        self._recalculate_effective()
+        
+        return {
+            "success": True,
+            "old_level": old_level.name,
+            "new_level": new_level.name,
+            "effective": self.effective_authority,
+            "source": source,
+        }
+    
+    def revoke_authority(self, source: str = "") -> Dict[str, Any]:
+        """
+        Revoke authority from a source.
+        
+        Returns to NORMAL if all sources are gone.
+        """
+        if source in self.authority_sources:
+            self.authority_sources.remove(source)
+        
+        if not self.authority_sources:
+            self.level = AuthorityLevel.NORMAL
+        
+        self._recalculate_effective()
+        
+        return {
+            "success": True,
+            "remaining_sources": list(self.authority_sources),
+            "new_level": self.level.name,
+        }
+    
+    def set_hollow(self, is_hollow: bool = True):
+        """
+        Set whether this authority is hollow (fake).
+        
+        Hollow authority collapses under challenge.
+        """
+        self.hollow = is_hollow
+        if is_hollow:
+            # Hollow authority appears real
+            self.effective_authority = AUTHORITY_LEVELS.get(self.level.name, 0)
+    
+    def can_command(self, target_authority: "AuthorityComponent") -> bool:
+        """
+        Check if this entity can command another.
+        
+        Based on effective authority difference.
+        """
+        if self.hollow and self.hollow_exposed:
+            return False
+        
+        return self.effective_authority > target_authority.effective_authority
+    
+    def issue_command(
+        self,
+        target: "AuthorityComponent",
+        command_type: str = "general",
+        obedience_modifier: float = 1.0
+    ) -> Dict[str, Any]:
+        """
+        Issue a command to another entity.
+        
+        Args:
+            target: Target authority component
+            command_type: Type of command
+            obedience_modifier: Modifier to obedience chance
+            
+        Returns:
+            Result of command attempt
+        """
+        self.commands_issued += 1
+        
+        if not self.can_command(target):
+            return {
+                "success": False,
+                "reason": "insufficient_authority",
+            }
+        
+        if self.hollow:
+            # Hollow authority might be exposed
+            if random.random() < 0.1:
+                self.hollow_exposed = True
+                return {
+                    "success": False,
+                    "reason": "hollow_exposed",
+                }
+        
+        # Calculate obedience
+        authority_diff = self.effective_authority - target.effective_authority
+        base_obedience = AUTHORITY_OBEDIENCE_FACTOR * (authority_diff / 100)
+        obedience_chance = base_obedience * obedience_modifier
+        
+        obeyed = random.random() < obedience_chance
+        
+        if obeyed:
+            self.commands_obeyed += 1
+        
+        return {
+            "success": obeyed,
+            "authority_diff": authority_diff,
+            "obedience_chance": obedience_chance,
+            "command_type": command_type,
+        }
+    
+    def challenge(
+        self,
+        target: "AuthorityComponent",
+        tick: int = 0
+    ) -> Dict[str, Any]:
+        """
+        Challenge another entity's authority.
+        
+        Can expose hollow authority or change hierarchy.
+        """
+        # Challenger roll
+        challenger_roll = random.random() * self.effective_authority
+        
+        # Target roll (hollow authority rolls poorly)
+        if target.hollow:
+            target_roll = random.random() * 10  # Hollow rolls 1-10
+        else:
+            target_roll = random.random() * target.effective_authority
+        
+        success = challenger_roll > target_roll
+        
+        # Record challenge
+        challenge_record = AuthorityChallenge(
+            challenger_id=str(self._component_id),
+            target_id=str(target._component_id),
+            challenger_roll=challenger_roll,
+            target_roll=target_roll,
+            success=success,
+            tick=tick,
+        )
+        
+        if success:
+            self.challenges_won += 1
+            target.challenges_lost += 1
+            
+            # Expose hollow authority
+            if target.hollow:
+                target.hollow_exposed = True
+            
+            # Possible level change (rare)
+            if random.random() < 0.1:
+                # Steal some authority
+                self.effective_authority = min(
+                    100, 
+                    self.effective_authority + 5
+                )
+                target.effective_authority = max(
+                    0,
+                    target.effective_authority - 5
+                )
+        else:
+            self.challenges_lost += 1
+            target.challenges_won += 1
+        
+        self._last_challenge_tick = tick
+        
+        return {
+            "success": success,
+            "challenger_roll": challenger_roll,
+            "target_roll": target_roll,
+            "target_was_hollow": target.hollow,
+            "target_exposed": target.hollow_exposed if target.hollow else False,
+        }
+    
+    def _recalculate_effective(self):
+        """Recalculate effective authority based on level and modifiers."""
+        base = AUTHORITY_LEVELS.get(self.level.name, 0)
+        
+        # Challenges affect effective authority
+        challenge_modifier = 0
+        if self.challenges_won + self.challenges_lost > 0:
+            win_rate = self.challenges_won / (self.challenges_won + self.challenges_lost)
+            challenge_modifier = (win_rate - 0.5) * 10
+        
+        self.effective_authority = max(0, min(100, base + challenge_modifier - self._authority_decay))
+    
+    def tick(self, current_tick: int = 0):
+        """Process authority tick."""
+        # Authority slowly normalizes
+        target = AUTHORITY_LEVELS.get(self.level.name, 0)
+        
+        if self.effective_authority > target:
+            self._authority_decay += 0.01
+        elif self.effective_authority < target:
+            self._authority_decay = max(0, self._authority_decay - 0.01)
+        
+        self._recalculate_effective()
+    
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize component state."""
+        data = super().serialize()
+        data.update({
+            "level": self.level.name,
+            "effective_authority": self.effective_authority,
+            "hollow": self.hollow,
+            "hollow_exposed": self.hollow_exposed,
+            "commands_issued": self.commands_issued,
+            "challenges_won": self.challenges_won,
+            "challenges_lost": self.challenges_lost,
+        })
+        return data
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "AuthorityComponent":
+        """Reconstruct from serialized data."""
+        comp = cls(level=AuthorityLevel[data.get("level", "NORMAL")])
+        comp.effective_authority = data.get("effective_authority", 0)
+        comp.hollow = data.get("hollow", False)
+        comp.hollow_exposed = data.get("hollow_exposed", False)
+        comp.commands_issued = data.get("commands_issued", 0)
+        comp.challenges_won = data.get("challenges_won", 0)
+        comp.challenges_lost = data.get("challenges_lost", 0)
+        return comp
+
+
+class HollowAuthorityDetector:
+    """
+    Utility for detecting hollow authority.
+    
+    Used by systems to reveal fake authority.
+    """
+    
+    @staticmethod
+    def scan(authority: AuthorityComponent) -> Dict[str, Any]:
+        """
+        Scan an authority for hollowness.
+        
+        Returns detection data.
+        """
+        if not authority.hollow:
+            return {
+                "hollow": False,
+                "confidence": 1.0,
+            }
+        
+        # Detection chance based on various factors
+        detection_chance = 0.1
+        
+        if authority.hollow_exposed:
+            detection_chance = 1.0
+        
+        # Challenges increase detection chance
+        detection_chance += authority.challenges_lost * 0.05
+        
+        detected = random.random() < detection_chance
+        
+        return {
+            "hollow": detected,
+            "confidence": detection_chance if detected else 0,
+        }
+
+"""
+Hidden Potential Component
+==========================
+Latent abilities waiting to be discovered.
+
+Hidden potential represents abilities or bonuses
+that exist but aren't yet revealed or activated.
+
+Discovery mechanics:
+- Events can reveal potential
+- Certain conditions unlock potential
+- Potential can be stored or released
+
+Design: Hidden potential is physics - it exists before discovery.
+"""
+
+from typing import Dict, Any, List, Optional, Callable
+from dataclasses import dataclass, field
+from enum import Enum, auto
+import random
+
+from ..core.component import Component
+from ..constants import PHI
+
+
+class PotentialType(Enum):
+    """Types of hidden potential."""
+    STAT_BOOST = auto()
+    ABILITY_UNLOCK = auto()
+    RESISTANCE = auto()
+    AFFINITY = auto()
+    SECRET_KNOWLEDGE = auto()
+    HIDDEN_TALENT = auto()
+    DORMANT_POWER = auto()
+    ANCESTRAL_MEMORY = auto()
+
+
+class PotentialState(Enum):
+    """States of potential."""
+    DORMANT = auto()      # Not yet discoverable
+    HIDDEN = auto()       # Discoverable but not found
+    DISCOVERED = auto()   # Found but not activated
+    ACTIVE = auto()       # Currently active
+    EXHAUSTED = auto()    # Used up
+
+
+@dataclass
+class Potential:
+    """A single hidden potential."""
+    potential_id: str
+    potential_type: PotentialType
+    state: PotentialState = PotentialState.HIDDEN
+    name: str = ""
+    description: str = ""
+    power: float = 1.0
+    discovery_conditions: Dict[str, Any] = field(default_factory=dict)
+    activation_conditions: Dict[str, Any] = field(default_factory=dict)
+    effects: Dict[str, float] = field(default_factory=dict)
+    duration: Optional[int] = None  # None = permanent
+    cooldown: int = 0
+    current_cooldown: int = 0
+    uses_remaining: int = -1  # -1 = unlimited
+    
+    def can_discover(self, context: Dict[str, Any]) -> bool:
+        """Check if discovery conditions are met."""
+        for key, required in self.discovery_conditions.items():
+            if context.get(key) != required:
+                return False
+        return True
+    
+    def can_activate(self, context: Dict[str, Any]) -> bool:
+        """Check if activation conditions are met."""
+        if self.state not in (PotentialState.DISCOVERED, PotentialState.ACTIVE):
+            return False
+        
+        if self.current_cooldown > 0:
+            return False
+        
+        if self.uses_remaining == 0:
+            return False
+        
+        for key, required in self.activation_conditions.items():
+            if context.get(key) != required:
+                return False
+        
+        return True
+    
+    def discover(self) -> bool:
+        """Mark this potential as discovered."""
+        if self.state == PotentialState.DORMANT:
+            return False
+        
+        self.state = PotentialState.DISCOVERED
+        return True
+    
+    def activate(self) -> Dict[str, Any]:
+        """Activate this potential."""
+        if not self.can_activate({}):
+            return {"success": False, "reason": "cannot_activate"}
+        
+        self.state = PotentialState.ACTIVE
+        self.current_cooldown = self.cooldown
+        
+        if self.uses_remaining > 0:
+            self.uses_remaining -= 1
+        
+        return {
+            "success": True,
+            "effects": self.effects.copy(),
+            "duration": self.duration,
+        }
+    
+    def tick(self):
+        """Process potential tick."""
+        if self.current_cooldown > 0:
+            self.current_cooldown -= 1
+        
+        if self.state == PotentialState.ACTIVE:
+            if self.uses_remaining == 0:
+                self.state = PotentialState.EXHAUSTED
+
+
+class HiddenPotentialComponent(Component):
+    """
+    Component for hidden potential mechanics.
+    
+    Entities can have multiple potentials waiting to be discovered.
+    
+    Attributes:
+        potentials: All potentials (dormant, hidden, discovered, active)
+        discovery_bonus: Bonus to discovery checks
+        activation_bonus: Bonus to activation checks
+        discovered_count: Total potentials discovered
+        activated_count: Total potentials activated
+    """
+    
+    _potential_counter = 0
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
+        self.potentials: Dict[str, Potential] = {}
+        self.discovery_bonus = 0.0
+        self.activation_bonus = 0.0
+        self.discovered_count = 0
+        self.activated_count = 0
+    
+    def add_potential(
+        self,
+        potential_type: PotentialType,
+        name: str = "",
+        power: float = 1.0,
+        discovery_conditions: Dict = None,
+        activation_conditions: Dict = None,
+        effects: Dict = None,
+        **kwargs
+    ) -> Potential:
+        """
+        Add a new hidden potential.
+        
+        Returns the created potential.
+        """
+        HiddenPotentialComponent._potential_counter += 1
+        potential_id = f"potential_{HiddenPotentialComponent._potential_counter}"
+        
+        potential = Potential(
+            potential_id=potential_id,
+            potential_type=potential_type,
+            name=name or f"{potential_type.name.title()} Potential",
+            power=power,
+            discovery_conditions=discovery_conditions or {},
+            activation_conditions=activation_conditions or {},
+            effects=effects or {},
+            **kwargs
+        )
+        
+        self.potentials[potential_id] = potential
+        return potential
+    
+    def get_potential(self, potential_id: str) -> Optional[Potential]:
+        """Get a potential by ID."""
+        return self.potentials.get(potential_id)
+    
+    def get_potentials_by_state(self, state: PotentialState) -> List[Potential]:
+        """Get all potentials in a specific state."""
+        return [p for p in self.potentials.values() if p.state == state]
+    
+    def get_potentials_by_type(self, ptype: PotentialType) -> List[Potential]:
+        """Get all potentials of a specific type."""
+        return [p for p in self.potentials.values() if p.potential_type == ptype]
+    
+    def check_discovery(self, context: Dict[str, Any]) -> List[Potential]:
+        """
+        Check for potential discoveries.
+        
+        Returns list of newly discovered potentials.
+        """
+        discovered = []
+        
+        for potential in self.potentials.values():
+            if potential.state != PotentialState.HIDDEN:
+                continue
+            
+            # Check discovery conditions
+            if potential.can_discover(context):
+                # Discovery roll
+                discovery_chance = 0.5 + self.discovery_bonus
+                
+                if random.random() < discovery_chance:
+                    potential.discover()
+                    discovered.append(potential)
+                    self.discovered_count += 1
+        
+        return discovered
+    
+    def activate_potential(
+        self,
+        potential_id: str,
+        context: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Attempt to activate a potential.
+        
+        Returns activation result.
+        """
+        potential = self.potentials.get(potential_id)
+        
+        if not potential:
+            return {"success": False, "reason": "not_found"}
+        
+        context = context or {}
+        
+        # Apply activation bonus
+        modified_context = context.copy()
+        modified_context["_activation_bonus"] = self.activation_bonus
+        
+        if not potential.can_activate(modified_context):
+            return {"success": False, "reason": "conditions_not_met"}
+        
+        result = potential.activate()
+        
+        if result["success"]:
+            self.activated_count += 1
+            result["potential_id"] = potential_id
+            result["potential_name"] = potential.name
+        
+        return result
+    
+    def get_active_effects(self) -> Dict[str, float]:
+        """Get all active effect modifiers."""
+        total_effects = {}
+        
+        for potential in self.potentials.values():
+            if potential.state == PotentialState.ACTIVE:
+                for effect, value in potential.effects.items():
+                    if effect in total_effects:
+                        total_effects[effect] += value * potential.power
+                    else:
+                        total_effects[effect] = value * potential.power
+        
+        return total_effects
+    
+    def tick(self, current_tick: int = 0):
+        """Process all potential ticks."""
+        for potential in self.potentials.values():
+            potential.tick()
+    
+    def get_summary(self) -> Dict[str, Any]:
+        """Get summary of potentials."""
+        return {
+            "total_potentials": len(self.potentials),
+            "dormant": len(self.get_potentials_by_state(PotentialState.DORMANT)),
+            "hidden": len(self.get_potentials_by_state(PotentialState.HIDDEN)),
+            "discovered": len(self.get_potentials_by_state(PotentialState.DISCOVERED)),
+            "active": len(self.get_potentials_by_state(PotentialState.ACTIVE)),
+            "exhausted": len(self.get_potentials_by_state(PotentialState.EXHAUSTED)),
+            "discovered_total": self.discovered_count,
+            "activated_total": self.activated_count,
+        }
+    
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize component state."""
+        data = super().serialize()
+        data.update({
+            "discovery_bonus": self.discovery_bonus,
+            "activation_bonus": self.activation_bonus,
+            "discovered_count": self.discovered_count,
+            "activated_count": self.activated_count,
+            "potentials": {
+                pid: {
+                    "type": p.potential_type.name,
+                    "state": p.state.name,
+                    "name": p.name,
+                    "power": p.power,
+                }
+                for pid, p in self.potentials.items()
+            },
+        })
+        return data
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "HiddenPotentialComponent":
+        """Reconstruct from serialized data."""
+        comp = cls()
+        comp.discovery_bonus = data.get("discovery_bonus", 0)
+        comp.activation_bonus = data.get("activation_bonus", 0)
+        comp.discovered_count = data.get("discovered_count", 0)
+        comp.activated_count = data.get("activated_count", 0)
+        return comp
+
+"""
+Toxicity Component
+==================
+Corrosion and corruption mechanics.
+
+Toxicity tracks how corrupted, poisoned, or tainted an entity is.
+It can come from:
+- Environmental hazards
+- Items/curses
+- Other entities
+- Actions
+
+Toxicity flows and accumulates. It can be cleansed but never truly deleted (0 = 3).
+
+Design: Toxicity is physics - it's real contamination that spreads.
+"""
+
+from typing import Dict, Any, List, Optional, Set
+from dataclasses import dataclass, field
+from enum import Enum, auto
+import random
+
+from ..core.component import Component
+from ..constants import PHI
+
+
+class ToxicityType(Enum):
+    """Types of toxicity."""
+    PHYSICAL = auto()      # Poison, disease
+    MENTAL = auto()        # Corruption of mind
+    SPIRITUAL = auto()     # Soul taint
+    ENVIRONMENTAL = auto() # From the biome
+    SOCIAL = auto()        # Reputation damage
+    FAYGO = auto()         # From bad Faygo
+    MIDWAY = auto()        # From carnival games
+    CHAOS = auto()         # From chaos energy
+
+
+@dataclass
+class ToxicitySource:
+    """Source of toxicity."""
+    source_type: str
+    toxicity_type: ToxicityType
+    amount: float
+    tick: int
+    active: bool = True
+
+
+@dataclass
+class ToxinInstance:
+    """An active toxin in the entity."""
+    toxin_id: str
+    toxicity_type: ToxicityType
+    severity: float  # 0-1
+    duration: Optional[int] = None
+    tick_count: int = 0
+    effects: Dict[str, float] = field(default_factory=dict)
+    source: str = ""
+    
+    def tick(self) -> Dict[str, Any]:
+        """Process toxin tick."""
+        self.tick_count += 1
+        
+        # Check duration
+        if self.duration is not None:
+            self.duration -= 1
+            if self.duration <= 0:
+                return {"expired": True}
+        
+        # Apply effects
+        applied_effects = {}
+        for effect, base_value in self.effects.items():
+            applied_effects[effect] = base_value * self.severity
+        
+        return {"expired": False, "effects": applied_effects}
+
+
+class ToxicityComponent(Component):
+    """
+    Component for tracking toxicity/corruption.
+    
+    Entities can accumulate multiple types of toxins.
+    
+    Attributes:
+        toxins: Active toxin instances
+        sources: Sources of toxicity
+        resistances: Resistance per toxicity type
+        total_toxicity: Overall toxicity level
+        immunity_types: Types entity is immune to
+        cleansing_rate: Natural toxin removal rate
+    """
+    
+    _toxin_counter = 0
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
+        self.toxins: Dict[str, ToxinInstance] = {}
+        self.sources: List[ToxicitySource] = []
+        self.resistances: Dict[ToxicityType, float] = {}
+        self.total_toxicity = 0.0
+        self.immunity_types: Set[ToxicityType] = set()
+        self.cleansing_rate = 0.01
+        
+        self._last_cleansing = 0
+    
+    def add_resistance(self, toxicity_type: ToxicityType, amount: float):
+        """Add resistance to a toxicity type."""
+        current = self.resistances.get(toxicity_type, 0)
+        self.resistances[toxicity_type] = min(1.0, current + amount)
+    
+    def add_immunity(self, toxicity_type: ToxicityType):
+        """Add complete immunity to a toxicity type."""
+        self.immunity_types.add(toxicity_type)
+    
+    def apply_toxin(
+        self,
+        toxicity_type: ToxicityType,
+        severity: float = 0.5,
+        source: str = "",
+        duration: Optional[int] = None,
+        effects: Dict[str, float] = None
+    ) -> Dict[str, Any]:
+        """
+        Apply a toxin to this entity.
+        
+        Args:
+            toxicity_type: Type of toxin
+            severity: How severe (0-1)
+            source: Source of toxin
+            duration: Duration in ticks (None = permanent)
+            effects: Effect modifiers
+            
+        Returns:
+            Result of toxin application
+        """
+        # Check immunity
+        if toxicity_type in self.immunity_types:
+            return {
+                "success": False,
+                "reason": "immune",
+                "toxicity_type": toxicity_type.name,
+            }
+        
+        # Apply resistance
+        resistance = self.resistances.get(toxicity_type, 0)
+        effective_severity = severity * (1 - resistance)
+        
+        if effective_severity <= 0:
+            return {
+                "success": False,
+                "reason": "resisted",
+                "toxicity_type": toxicity_type.name,
+            }
+        
+        # Create toxin instance
+        ToxicityComponent._toxin_counter += 1
+        toxin_id = f"toxin_{ToxicityComponent._toxin_counter}"
+        
+        toxin = ToxinInstance(
+            toxin_id=toxin_id,
+            toxicity_type=toxicity_type,
+            severity=effective_severity,
+            duration=duration,
+            effects=effects or {},
+            source=source,
+        )
+        
+        self.toxins[toxin_id] = toxin
+        self._recalculate_total()
+        
+        # Record source
+        self.sources.append(ToxicitySource(
+            source_type=source,
+            toxicity_type=toxicity_type,
+            amount=effective_severity,
+            tick=0,
+        ))
+        
+        return {
+            "success": True,
+            "toxin_id": toxin_id,
+            "toxicity_type": toxicity_type.name,
+            "effective_severity": effective_severity,
+            "duration": duration,
+        }
+    
+    def remove_toxin(self, toxin_id: str) -> Dict[str, Any]:
+        """
+        Remove a specific toxin.
+        
+        Note: This is a soft removal (0 = 3).
+        """
+        if toxin_id not in self.toxins:
+            return {"success": False, "reason": "not_found"}
+        
+        toxin = self.toxins[toxin_id]
+        toxin.severity = 0  # Neutralized but record remains
+        
+        # Move to inactive
+        self._recalculate_total()
+        
+        return {
+            "success": True,
+            "toxin_id": toxin_id,
+            "type": toxin.toxicity_type.name,
+        }
+    
+    def cleanse(
+        self,
+        amount: float = 0.1,
+        toxicity_type: Optional[ToxicityType] = None
+    ) -> Dict[str, Any]:
+        """
+        Cleanse toxins.
+        
+        Args:
+            amount: How much to cleanse
+            toxicity_type: Specific type to cleanse (None = all)
+            
+        Returns:
+            Data about cleansing
+        """
+        cleansed_amount = 0
+        cleansed_toxins = []
+        
+        for toxin_id, toxin in list(self.toxins.items()):
+            if toxicity_type and toxin.toxicity_type != toxicity_type:
+                continue
+            
+            if toxin.severity > 0:
+                reduction = min(toxin.severity, amount)
+                toxin.severity -= reduction
+                cleansed_amount += reduction
+                
+                if toxin.severity <= 0:
+                    cleansed_toxins.append(toxin_id)
+        
+        self._recalculate_total()
+        
+        return {
+            "success": True,
+            "cleansed_amount": cleansed_amount,
+            "cleansed_toxins": cleansed_toxins,
+            "remaining_toxicity": self.total_toxicity,
+        }
+    
+    def _recalculate_total(self):
+        """Recalculate total toxicity level."""
+        self.total_toxicity = sum(
+            toxin.severity for toxin in self.toxins.values()
+        )
+    
+    def get_toxins_by_type(self, toxicity_type: ToxicityType) -> List[ToxinInstance]:
+        """Get all toxins of a specific type."""
+        return [
+            t for t in self.toxins.values()
+            if t.toxicity_type == toxicity_type and t.severity > 0
+        ]
+    
+    def get_toxicity_effects(self) -> Dict[str, float]:
+        """Get combined effects from all toxins."""
+        combined = {}
+        
+        for toxin in self.toxins.values():
+            if toxin.severity <= 0:
+                continue
+            
+            for effect, base_value in toxin.effects.items():
+                value = base_value * toxin.severity
+                if effect in combined:
+                    combined[effect] += value
+                else:
+                    combined[effect] = value
+        
+        return combined
+    
+    def tick(self, current_tick: int = 0):
+        """Process toxicity tick."""
+        expired_toxins = []
+        
+        for toxin_id, toxin in self.toxins.items():
+            result = toxin.tick()
+            
+            if result.get("expired"):
+                expired_toxins.append(toxin_id)
+        
+        for toxin_id in expired_toxins:
+            del self.toxins[toxin_id]
+        
+        # Natural cleansing
+        if random.random() < self.cleansing_rate:
+            self.cleanse(0.01)
+        
+        self._recalculate_total()
+        self._last_cleansing = current_tick
+    
+    def get_severity_tier(self) -> str:
+        """Get toxicity severity tier."""
+        if self.total_toxicity <= 0.1:
+            return "CLEAN"
+        elif self.total_toxicity <= 0.3:
+            return "MILD"
+        elif self.total_toxicity <= 0.5:
+            return "MODERATE"
+        elif self.total_toxicity <= 0.7:
+            return "SEVERE"
+        elif self.total_toxicity <= 0.9:
+            return "CRITICAL"
+        else:
+            return "LETHAL"
+    
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize component state."""
+        data = super().serialize()
+        data.update({
+            "total_toxicity": self.total_toxicity,
+            "toxin_count": len(self.toxins),
+            "severity_tier": self.get_severity_tier(),
+            "resistances": {
+                t.name: v for t, v in self.resistances.items()
+            },
+            "immunities": [t.name for t in self.immunity_types],
+        })
+        return data
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "ToxicityComponent":
+        """Reconstruct from serialized data."""
+        comp = cls()
+        comp.total_toxicity = data.get("total_toxicity", 0)
+        comp.resistances = {
+            ToxicityType[name]: value
+            for name, value in data.get("resistances", {}).items()
+        }
+        comp.immunity_types = {
+            ToxicityType[name]
+            for name in data.get("immunities", [])
+        }
+        return comp
